@@ -2,16 +2,29 @@
 
 Please perform each step when instructed.  Only perform one step at a time.
 
-1. Configure the project to connect to the PostgreSQL database on host `globeco-order-service-postgresql`  port 5432 and database `postgres`.  The user is  "postgres".  No password is required. Please add an entry with this prompt and your actions in the cursor-log.md  file following the instructions in the file.
+1. Configure the project to connect to the PostgreSQL database on host `globeco-trade-service-postgresql`  port 32800 and database `postgres`.  The user is  "postgres".  No password is required. Please add an entry with this prompt and your actions in the cursor-log.md  file following the instructions in the file.  Do not delete or replace anything in cursor-log.md
 2. Configure Flyway with the same configuration as in step 1.  Please add an entry with this prompt and your actions in the cursor-log.md  file following the instructions in the file.
-3. Create a Flyway migration to deploy the schema for this project.  The schema is in @order-service.sql.
-4. Create a Flyway migration for the blotter data in #### Initialization Data for `blotter`
-5. Create a Flyway migration for the blotter data in #### Initialization Data for `order_type`
-6. Create a Flyway migration for the blotter data in #### Initialization Data for `status`
-7. Please implement the APIs for status using the requirements provided in @requirements.md.  Please add an entry with this prompt and your actions in the cursor-log.md file following the instructions in the file.
-8. Please generate the unit tests for all the code you created in the previous step.  Please add an entry with this prompt and your actions in the cursor-log.md file following the instructions in the file.
-9. Please update the README.md file with an introduction and full documentation on the status data model and API.  Please add an entry with this prompt and your actions in the cursor-log.md file following the instructions in the file.
-10. Please create an OpenAPI schema `openapi.yaml' in the project root.  Please include the full specification for the status API.  Please add an entry with this prompt and your actions in the cursor-log.md file following the instructions in the file.
+3. Create a Flyway migration to deploy the schema for this project.  The schema is in @trade-service.sql in the project root.   Please add an entry with this prompt and your actions in the cursor-log.md file following the instructions in the file.
+4. Create a Flyway migration for the blotter data in #### Initialization Data for `blotter`.   Please add an entry with this prompt and your actions in the cursor-log.md file following the instructions in the file.
+5. Create a Flyway migration for the blotter data in #### Initialization Data for `trade_type`.   Please add an entry with this prompt and your actions in the cursor-log.md file following the instructions in the file.
+6. Create a Flyway migration for the blotter data in #### Initialization Data for `trade_status`.   Please add an entry with this prompt and your actions in the cursor-log.md file following the instructions in the file.
+6. Create a Flyway migration for the blotter data in #### Initialization Data for `execution_status`.   Please add an entry with this prompt and your actions in the cursor-log.md file following the instructions in the file.
+
+7. Please implement the entity, repository, service interface, and service implementation for blotter using the requirements provided in @requirements.md.  Please add an entry with this prompt and your actions in the cursor-log.md file following the instructions in the file.
+7. Please implement the unit tests for the entity, repository, service interface, and service implementation for blotter  Please add an entry with this prompt and your actions in the cursor-log.md file following the instructions in the file.
+7. Please impelement caching for blotter using the requirements in @requirements.md.
+7. Please implement unit testing for blotter caching.
+7. Please implement the APIs for blotter using the requirements provided in @requirements.md.  Please add an entry with this prompt and your actions in the cursor-log.md file following the instructions in the file.
+8. Please generate the unit tests for the blotter APIs.  Please add an entry with this prompt and your actions in the cursor-log.md file following the instructions in the file.
+9. Please update the README.md file with an introduction and full documentation on the blotter data model and API.  Please add an entry with this prompt and your actions in the cursor-log.md file following the instructions in the file.
+10. Please create an OpenAPI schema `openapi.yaml' in the project root.  Please include the full specification for the blotter API.  Please add an entry with this prompt and your actions in the cursor-log.md file following the instructions in the file.
+
+
+
+
+
+
+
 11. Please implement the APIs for orderType using the requirements provided in @requirements.md.  Use the code for status as an example.  Strive for consistency.  Please add an entry with this prompt and your actions in the cursor-log.md file following the instructions in the file.
 12. Please create unit tests for the code you created in the previous step.  Please use the code you created in the previous unit tests as an example.  Strive for consistency.  Please add an entry with this prompt and your actions in the cursor-log.md file following the instructions in the file.
 13. Please add documentation for the orderType data model and API to readme.md.  Please add an entry with this prompt and your actions in the cursor-log.md file following the instructions in the file.

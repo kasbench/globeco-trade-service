@@ -1,4 +1,4 @@
-# GlobeCo Order Service Requirements
+# GlobeCo Trade Service Requirements
 
 ## Background
 
@@ -7,6 +7,10 @@ This document provides requirements for the Trade Service.  This service is desi
 This microservice will be deployed on Kubernetes 1.33.
 
 This microservice is part of the GlobeCo suite of applications for benchmarking Kubernetes autoscaling.
+
+Name of service: Trade Service <br>
+Host: globeco-trade-service <br>
+Port: 8002 <br>
 
 Author: Noah Kriehger <br>
 Email: noah@kasbench.org
@@ -32,6 +36,22 @@ Notes:
 - (from BOM) means the version is managed by the Spring Boot BOM (Bill of Materials) and will match the Spring Boot version unless overridden.
 - All dependencies are managed via Maven Central.
 - The project uses Gradle as the build tool.
+
+
+
+## Other services
+
+| Name | Host | Port | Description |
+| --- | --- | --- | --- |
+Security Service | globeco-security-service | 8000 | Manages securities such as stocks, bonds, and options |
+| Order Service | globeco-order-service | 8001 |
+
+
+## Caching
+- Use Spring's caching abstraction for security, blotter, trade_type, trade_status, execution_status
+- Caches should have a 5 minute EOL
+- Initially, all caches should be with in-memory caching
+
 
 ## Database Information
 
@@ -109,6 +129,17 @@ A blotter is a record of financial transactions, typically used to organize and 
 | abbreviation  | varchar(20)  | NOT NULL         | Short code for the blotter        |
 | name          | varchar(100) | NOT NULL         | Name of the blotter               |
 | version       | integer      | NOT NULL, DEF 1  | Optimistic locking version number |
+---
+
+#### Initialization data for blotter
+
+| abbreviation | name | version | 
+| --- | --- | --- |
+| Default | Default | 1 |
+| EQ | Equity | 1 |
+| FI | Fixed Income | 1 |
+| HOLD | Hold | 1 |
+
 
 ---
 
@@ -189,6 +220,17 @@ Defines the various types of trades available in the system.
 | version       | integer      | NOT NULL, DEF 1  | Optimistic locking version number |
 
 ---
+#### Initialization data for trade_type
+
+| abbreviation | description | version |
+| --- | --- | --- |
+| BUY | Buy | 1 |
+| SELL | Sell | 1 |
+| SHORT | Sell to Open | 1 |
+| COVER | Buy to Close | 1 |
+| EXRC | Exercise | 1 |
+
+---
 
 ### trade_status
 
@@ -203,6 +245,27 @@ Defines the possible statuses a trade block can have.
 
 ---
 
+#### Initialization data for trade_status
+
+| abbreviation | description | version |
+| --- | --- | --- |
+| NEW | New | 1 |
+| SENT | Sent | 1 |
+| WORK | In progress | 1 |
+| FULL | Filled | 1 |
+| PART | Partial fill | 1 |
+| HOLD | Hold | 1 |
+| CNCL | Cancel | 1 |
+| CNCLD | Cancelled | 1 |
+| CPART | Cancelled with partial fill | 1 |
+| DEL | Delete | 1 |
+
+
+
+
+---
+
+
 ### execution_status
 
 Defines the possible statuses for an execution.
@@ -215,6 +278,22 @@ Defines the possible statuses for an execution.
 | version       | integer      | NOT NULL, DEF 1  | Optimistic locking version number |
 
 ---
+#### Initialization data for execution_status
+
+| abbreviation | description | version |
+| --- | --- | --- |
+| NEW | New | 1 |
+| SENT | Sent | 1 |
+| WORK | In progress | 1 |
+| FULL | Filled | 1 |
+| PART | Partial fill | 1 |
+| HOLD | Hold | 1 |
+| CNCL | Cancel | 1 |
+| CNCLD | Cancelled | 1 |
+| CPART | Cancelled with partial fill | 1 |
+| DEL | Delete | 1 |
+
+--
 
 ## Relationships
 
@@ -257,16 +336,14 @@ Defines the possible statuses for an execution.
 
 1. The database uses PostgreSQL version 17.0.
 2. All tables include a version column for optimistic locking.
-3. The model uses 24-character strings for external IDs (portfolio_id, security_id), likely to accommodate MongoDB ObjectIDs.
+3. The model uses 24-character strings for external IDs (portfolio_id, security_id), to accommodate MongoDB ObjectIDs.
 4. Decimal columns use high precision (18,8) to accommodate financial calculations.
 5. Foreign key relationships use `ON DELETE RESTRICT` or `ON DELETE SET NULL` as appropriate to maintain referential integrity.
 6. All timestamp fields use timestamptz (timestamp with time zone) to ensure proper timezone handling.
 
 ---
 
-Here is DTO documentation for your trade service, following the conventions and style of your `sample-DTOs` file, and based on your current data dictionary and schema. This covers all major entities, using plural resource names for GET-all and POST, IDs for foreign keys in requests, and nested DTOs for responses.
 
----
 
 ## Data Transfer Objects (DTOs)
 
@@ -563,10 +640,10 @@ The following REST APIs are recommended for managing blotters, trade types, trad
 | Method | Path                  | Request Body         | Response Body        | Description                       |
 |--------|-----------------------|---------------------|----------------------|-----------------------------------|
 | GET    | /api/v1/blotters      |                     | [BlotterDTO]         | List all blotters                 |
-| GET    | /api/v1/blotters/{id} |                     | BlotterDTO           | Get a blotter by ID               |
+| GET    | /api/v1/blotter/{id} |                     | BlotterDTO           | Get a blotter by ID               |
 | POST   | /api/v1/blotters      | BlotterDTO (POST)   | BlotterDTO           | Create a new blotter              |
-| PUT    | /api/v1/blotters/{id} | BlotterDTO          | BlotterDTO           | Update an existing blotter        |
-| DELETE | /api/v1/blotters/{id}?version={version} | |                      | Delete a blotter by ID            |
+| PUT    | /api/v1/blotter/{id} | BlotterDTO          | BlotterDTO           | Update an existing blotter        |
+| DELETE | /api/v1/blotter/{id}?version={version} | |                      | Delete a blotter by ID            |
 
 ---
 
@@ -575,10 +652,10 @@ The following REST APIs are recommended for managing blotters, trade types, trad
 | Method | Path                      | Request Body         | Response Body        | Description                       |
 |--------|---------------------------|---------------------|----------------------|-----------------------------------|
 | GET    | /api/v1/tradeTypes        |                     | [TradeTypeDTO]       | List all trade types              |
-| GET    | /api/v1/tradeTypes/{id}   |                     | TradeTypeDTO         | Get a trade type by ID            |
+| GET    | /api/v1/tradeType/{id}   |                     | TradeTypeDTO         | Get a trade type by ID            |
 | POST   | /api/v1/tradeTypes        | TradeTypeDTO (POST) | TradeTypeDTO         | Create a new trade type           |
-| PUT    | /api/v1/tradeTypes/{id}   | TradeTypeDTO        | TradeTypeDTO         | Update an existing trade type     |
-| DELETE | /api/v1/tradeTypes/{id}?version={version} | |                      | Delete a trade type by ID         |
+| PUT    | /api/v1/tradeType/{id}   | TradeTypeDTO        | TradeTypeDTO         | Update an existing trade type     |
+| DELETE | /api/v1/tradeType/{id}?version={version} | |                      | Delete a trade type by ID         |
 
 ---
 
@@ -587,10 +664,10 @@ The following REST APIs are recommended for managing blotters, trade types, trad
 | Method | Path                      | Request Body         | Response Body        | Description                       |
 |--------|---------------------------|---------------------|----------------------|-----------------------------------|
 | GET    | /api/v1/tradeStatuses     |                     | [TradeStatusDTO]     | List all trade statuses           |
-| GET    | /api/v1/tradeStatuses/{id}|                     | TradeStatusDTO       | Get a trade status by ID          |
+| GET    | /api/v1/tradeStatus/{id}|                     | TradeStatusDTO       | Get a trade status by ID          |
 | POST   | /api/v1/tradeStatuses     | TradeStatusDTO (POST)| TradeStatusDTO      | Create a new trade status         |
-| PUT    | /api/v1/tradeStatuses/{id}| TradeStatusDTO      | TradeStatusDTO       | Update an existing trade status   |
-| DELETE | /api/v1/tradeStatuses/{id}?version={version} | |                      | Delete a trade status by ID       |
+| PUT    | /api/v1/tradeStatus/{id}| TradeStatusDTO      | TradeStatusDTO       | Update an existing trade status   |
+| DELETE | /api/v1/tradeStatus/{id}?version={version} | |                      | Delete a trade status by ID       |
 
 ---
 
@@ -599,10 +676,10 @@ The following REST APIs are recommended for managing blotters, trade types, trad
 | Method | Path                          | Request Body             | Response Body            | Description                       |
 |--------|-------------------------------|-------------------------|--------------------------|-----------------------------------|
 | GET    | /api/v1/executionStatuses     |                         | [ExecutionStatusDTO]     | List all execution statuses       |
-| GET    | /api/v1/executionStatuses/{id}|                         | ExecutionStatusDTO       | Get an execution status by ID     |
+| GET    | /api/v1/executionStatus/{id}|                         | ExecutionStatusDTO       | Get an execution status by ID     |
 | POST   | /api/v1/executionStatuses     | ExecutionStatusDTO (POST)| ExecutionStatusDTO      | Create a new execution status     |
-| PUT    | /api/v1/executionStatuses/{id}| ExecutionStatusDTO      | ExecutionStatusDTO       | Update an existing execution status|
-| DELETE | /api/v1/executionStatuses/{id}?version={version} | |                          | Delete an execution status by ID  |
+| PUT    | /api/v1/executionStatus/{id}| ExecutionStatusDTO      | ExecutionStatusDTO       | Update an existing execution status|
+| DELETE | /api/v1/executionStatus/{id}?version={version} | |                          | Delete an execution status by ID  |
 
 ---
 
@@ -611,10 +688,10 @@ The following REST APIs are recommended for managing blotters, trade types, trad
 | Method | Path                      | Request Body         | Response Body        | Description                                 |
 |--------|---------------------------|---------------------|----------------------|---------------------------------------------|
 | GET    | /api/v1/tradeOrders       |                     | [TradeOrderDTO]      | List all trade orders                       |
-| GET    | /api/v1/tradeOrders/{id}  |                     | TradeOrderDTO        | Get a trade order by ID                     |
+| GET    | /api/v1/tradeOrder/{id}  |                     | TradeOrderDTO        | Get a trade order by ID                     |
 | POST   | /api/v1/tradeOrders       | TradeOrderDTO (POST)| TradeOrderDTO        | Create a new trade order                    |
-| PUT    | /api/v1/tradeOrders/{id}  | TradeOrderDTO       | TradeOrderDTO        | Update an existing trade order              |
-| DELETE | /api/v1/tradeOrders/{id}?version={version} | |                      | Delete a trade order by ID                  |
+| PUT    | /api/v1/tradeOrder/{id}  | TradeOrderDTO       | TradeOrderDTO        | Update an existing trade order              |
+| DELETE | /api/v1/tradeOrder/{id}?version={version} | |                      | Delete a trade order by ID                  |
 
 ---
 
@@ -623,10 +700,10 @@ The following REST APIs are recommended for managing blotters, trade types, trad
 | Method | Path                      | Request Body         | Response Body        | Description                                 |
 |--------|---------------------------|---------------------|----------------------|---------------------------------------------|
 | GET    | /api/v1/tradeBlocks       |                     | [TradeBlockDTO]      | List all trade blocks                       |
-| GET    | /api/v1/tradeBlocks/{id}  |                     | TradeBlockDTO        | Get a trade block by ID                     |
+| GET    | /api/v1/tradeBlock/{id}  |                     | TradeBlockDTO        | Get a trade block by ID                     |
 | POST   | /api/v1/tradeBlocks       | TradeBlockDTO (POST)| TradeBlockDTO        | Create a new trade block                    |
-| PUT    | /api/v1/tradeBlocks/{id}  | TradeBlockDTO       | TradeBlockDTO        | Update an existing trade block              |
-| DELETE | /api/v1/tradeBlocks/{id}?version={version} | |                      | Delete a trade block by ID                  |
+| PUT    | /api/v1/tradeBlock/{id}  | TradeBlockDTO       | TradeBlockDTO        | Update an existing trade block              |
+| DELETE | /api/v1/tradeBlock/{id}?version={version} | |                      | Delete a trade block by ID                  |
 
 ---
 
@@ -635,10 +712,10 @@ The following REST APIs are recommended for managing blotters, trade types, trad
 | Method | Path                              | Request Body                 | Response Body                | Description                                 |
 |--------|-----------------------------------|-----------------------------|------------------------------|---------------------------------------------|
 | GET    | /api/v1/tradeBlockAllocations     |                             | [TradeBlockAllocationDTO]     | List all trade block allocations            |
-| GET    | /api/v1/tradeBlockAllocations/{id}|                             | TradeBlockAllocationDTO       | Get a trade block allocation by ID          |
+| GET    | /api/v1/tradeBlockAllocation/{id}|                             | TradeBlockAllocationDTO       | Get a trade block allocation by ID          |
 | POST   | /api/v1/tradeBlockAllocations     | TradeBlockAllocationDTO (POST)| TradeBlockAllocationDTO     | Create a new trade block allocation         |
-| PUT    | /api/v1/tradeBlockAllocations/{id}| TradeBlockAllocationDTO     | TradeBlockAllocationDTO       | Update an existing trade block allocation   |
-| DELETE | /api/v1/tradeBlockAllocations/{id}?version={version} | |                  | Delete a trade block allocation by ID       |
+| PUT    | /api/v1/tradeBlockAllocation/{id}| TradeBlockAllocationDTO     | TradeBlockAllocationDTO       | Update an existing trade block allocation   |
+| DELETE | /api/v1/tradeBlockAllocation/{id}?version={version} | |                  | Delete a trade block allocation by ID       |
 
 ---
 
@@ -647,10 +724,10 @@ The following REST APIs are recommended for managing blotters, trade types, trad
 | Method | Path                      | Request Body         | Response Body        | Description                                 |
 |--------|---------------------------|---------------------|----------------------|---------------------------------------------|
 | GET    | /api/v1/executions        |                     | [ExecutionDTO]       | List all executions                         |
-| GET    | /api/v1/executions/{id}   |                     | ExecutionDTO         | Get an execution by ID                      |
+| GET    | /api/v1/execution/{id}   |                     | ExecutionDTO         | Get an execution by ID                      |
 | POST   | /api/v1/executions        | ExecutionDTO (POST) | ExecutionDTO         | Create a new execution                      |
-| PUT    | /api/v1/executions/{id}   | ExecutionDTO        | ExecutionDTO         | Update an existing execution                |
-| DELETE | /api/v1/executions/{id}?version={version} | |                      | Delete an execution by ID                   |
+| PUT    | /api/v1/execution/{id}   | ExecutionDTO        | ExecutionDTO         | Update an existing execution                |
+| DELETE | /api/v1/execution/{id}?version={version} | |                      | Delete an execution by ID                   |
 
 ---
 
