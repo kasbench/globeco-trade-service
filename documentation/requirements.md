@@ -8,6 +8,8 @@ This microservice will be deployed on Kubernetes 1.33.
 
 This microservice is part of the GlobeCo suite of applications for benchmarking Kubernetes autoscaling.
 
+Author: Noah Kriehger <br>
+Email: noah@kasbench.org
 
 ## Technology
 
@@ -457,7 +459,7 @@ Represents a block of trades, which can be allocated to multiple orders.
 | blotter           | BlotterDTO          | No       | The containing blotter                              |
 | orderType         | String              | No       | Order type code                                     |
 | tradeType         | TradeTypeDTO        | No       | The trade type                                      |
-| securityId        | String (24 char)    | No       | ID of the security being traded                     |
+| security          | SecurityDTO         | No       | The security being traded (nested DTO)              |
 | quantityOrdered   | Decimal(18,8)       | No       | Amount of security to trade                         |
 | limitPrice        | Decimal(18,8)       | No       | Price limit for the trade                           |
 | quantityPlaced    | Decimal(18,8)       | No       | Amount placed                                       |
@@ -700,7 +702,17 @@ The following REST APIs are recommended for managing blotters, trade types, trad
     "description": "Buy",
     "version": 1
   },
-  "securityId": "5f47ac10b8e4e53b8cfa9b1b",
+  "security": {
+    "securityId": "5f47ac10b8e4e53b8cfa9b1b",
+    "ticker": "AAPL",
+    "description": "Apple Inc.",
+    "securityType": {
+      "securityTypeId": "equity",
+      "abbreviation": "EQ",
+      "description": "Equity"
+    },
+    "version": 1
+  },
   "quantityOrdered": 100.00000000,
   "limitPrice": 50.25000000,
   "quantityPlaced": 100.00000000,
@@ -748,7 +760,17 @@ The following REST APIs are recommended for managing blotters, trade types, trad
       "description": "Buy",
       "version": 1
     },
-    "securityId": "5f47ac10b8e4e53b8cfa9b1b",
+    "security": {
+      "securityId": "5f47ac10b8e4e53b8cfa9b1b",
+      "ticker": "AAPL",
+      "description": "Apple Inc.",
+      "securityType": {
+        "securityTypeId": "equity",
+        "abbreviation": "EQ",
+        "description": "Equity"
+      },
+      "version": 1
+    },
     "quantityOrdered": 100.00000000,
     "limitPrice": 50.25000000,
     "quantityPlaced": 100.00000000,
