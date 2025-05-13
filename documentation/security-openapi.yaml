@@ -1,0 +1,341 @@
+openapi: 3.0.3
+info:
+  title: GlobeCo Security Service - Security Type API
+  version: 1.0.0
+  description: |
+    The GlobeCo Security Service provides REST APIs for managing security types and securities as part of the GlobeCo Suite.
+    
+    - **All main APIs are prefixed with `/api/v1/`.**
+    - **Health check endpoints (`/health/liveness`, `/health/readiness`, `/health/startup`) are available at the root and are NOT prefixed with `/api/v1`.**
+    
+    Author: Noah Krieger
+servers:
+  - url: http://localhost:8000/api/v1
+  - url: http://localhost:8000
+paths:
+  /securityTypes:
+    get:
+      summary: Get all security types
+      operationId: getSecurityTypes
+      tags: [SecurityType]
+      responses:
+        '200':
+          description: List of security types
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/SecurityTypeOut'
+    post:
+      summary: Create a new security type
+      operationId: createSecurityType
+      tags: [SecurityType]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SecurityTypeIn'
+      responses:
+        '201':
+          description: Created security type
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SecurityTypeOut'
+        '409':
+          description: Conflict (duplicate abbreviation)
+  /securityType/{securityTypeId}:
+    get:
+      summary: Get a specific security type
+      operationId: getSecurityType
+      tags: [SecurityType]
+      parameters:
+        - name: securityTypeId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Security type object
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SecurityTypeOut'
+        '404':
+          description: Not found
+    put:
+      summary: Update a security type
+      operationId: updateSecurityType
+      tags: [SecurityType]
+      parameters:
+        - name: securityTypeId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SecurityTypeIn'
+      responses:
+        '200':
+          description: Updated security type
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SecurityTypeOut'
+        '404':
+          description: Not found
+        '409':
+          description: Version conflict
+    delete:
+      summary: Delete a security type
+      operationId: deleteSecurityType
+      tags: [SecurityType]
+      parameters:
+        - name: securityTypeId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: version
+          in: query
+          required: true
+          schema:
+            type: integer
+      responses:
+        '204':
+          description: Deleted
+        '404':
+          description: Not found
+        '409':
+          description: Version conflict
+  /securities:
+    get:
+      summary: Get all securities
+      operationId: getSecurities
+      tags: [Security]
+      responses:
+        '200':
+          description: List of securities
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/SecurityOut'
+    post:
+      summary: Create a new security
+      operationId: createSecurity
+      tags: [Security]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SecurityIn'
+      responses:
+        '201':
+          description: Created security
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SecurityOut'
+        '400':
+          description: Invalid securityTypeId
+        '409':
+          description: Conflict (duplicate ticker)
+  /security/{securityId}:
+    get:
+      summary: Get a specific security
+      operationId: getSecurity
+      tags: [Security]
+      parameters:
+        - name: securityId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Security object
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SecurityOut'
+        '404':
+          description: Not found
+    put:
+      summary: Update a security
+      operationId: updateSecurity
+      tags: [Security]
+      parameters:
+        - name: securityId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SecurityIn'
+      responses:
+        '200':
+          description: Updated security
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SecurityOut'
+        '404':
+          description: Not found
+        '409':
+          description: Version conflict
+    delete:
+      summary: Delete a security
+      operationId: deleteSecurity
+      tags: [Security]
+      parameters:
+        - name: securityId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: version
+          in: query
+          required: true
+          schema:
+            type: integer
+      responses:
+        '204':
+          description: Deleted
+        '404':
+          description: Not found
+        '409':
+          description: Version conflict
+  /health/liveness:
+    get:
+      summary: Liveness probe
+      description: Returns 200 OK if the process is running. Used by Kubernetes to determine if the container should be restarted.
+      tags: [Health]
+      responses:
+        '200':
+          description: Service is alive
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthStatus'
+  /health/readiness:
+    get:
+      summary: Readiness probe
+      description: Returns 200 OK if the service can connect to MongoDB. Used by Kubernetes to determine if the pod is ready to receive traffic. Returns 503 if not ready.
+      tags: [Health]
+      responses:
+        '200':
+          description: Service is ready
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthStatus'
+        '503':
+          description: Service is not ready
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthStatus'
+  /health/startup:
+    get:
+      summary: Startup probe
+      description: Returns 200 OK if the service has started and can connect to MongoDB. Used by Kubernetes to delay liveness checks until startup is complete. Returns 503 if not started.
+      tags: [Health]
+      responses:
+        '200':
+          description: Service has started
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthStatus'
+        '503':
+          description: Service has not started
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthStatus'
+components:
+  schemas:
+    SecurityTypeIn:
+      type: object
+      required:
+        - abbreviation
+        - description
+        - version
+      properties:
+        abbreviation:
+          type: string
+          minLength: 1
+          maxLength: 10
+        description:
+          type: string
+          minLength: 1
+          maxLength: 100
+        version:
+          type: integer
+          default: 1
+    SecurityTypeOut:
+      allOf:
+        - $ref: '#/components/schemas/SecurityTypeIn'
+        - type: object
+          properties:
+            securityTypeId:
+              type: string
+    SecurityIn:
+      type: object
+      required:
+        - ticker
+        - description
+        - securityTypeId
+        - version
+      properties:
+        ticker:
+          type: string
+          minLength: 1
+          maxLength: 50
+        description:
+          type: string
+          minLength: 1
+          maxLength: 200
+        securityTypeId:
+          type: string
+        version:
+          type: integer
+          default: 1
+    SecurityTypeNested:
+      type: object
+      properties:
+        securityTypeId:
+          type: string
+        abbreviation:
+          type: string
+        description:
+          type: string
+    SecurityOut:
+      allOf:
+        - $ref: '#/components/schemas/SecurityIn'
+        - type: object
+          properties:
+            securityId:
+              type: string
+            securityType:
+              $ref: '#/components/schemas/SecurityTypeNested'
+    HealthStatus:
+      type: object
+      properties:
+        status:
+          type: string
+          example: alive 
