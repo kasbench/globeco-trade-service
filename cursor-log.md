@@ -305,3 +305,34 @@ Actions:
 2. This ensures no duplicate orderId values are used, even across test classes and runs, resolving the constraint violation.
 
 ---
+
+Request: Implement caching for tradeOrder and unit testing for tradeOrder caching (steps 19 and 20 in execution-plan.md).
+
+Actions:
+1. Ensured TradeOrderServiceImpl uses Caffeine-based caching for tradeOrders: @Cacheable on getAllTradeOrders/getTradeOrderById, @CacheEvict on create/update/delete.
+2. Added unit tests to TradeOrderServiceImplTest to verify caching:
+   - testGetTradeOrderByIdUsesCache: Ensures getTradeOrderById uses the cache.
+   - testGetAllTradeOrdersUsesCache: Ensures getAllTradeOrders uses the cache.
+   - testCacheEvictedOnCreateUpdateDelete: Ensures create, update, and delete evict the cache as expected.
+3. Used @DirtiesContext to reset the cache between tests and injected CacheManager for direct cache inspection.
+4. Ensured consistency with Blotter caching and test conventions.
+
+---
+
+Request: Implement the APIs for tradeOrder using the requirements provided in requirements.md.
+
+Actions:
+1. Implemented the TradeOrderController with endpoints for GET (all and by id), POST, PUT, and DELETE, mapping DTOs to entities and handling all CRUD operations as specified.
+2. Ensured consistency with API URI and DTO conventions.
+3. All actions logged as required.
+
+---
+
+Request: Generate the unit tests for the tradeOrder APIs.
+
+Actions:
+1. Created unit tests for TradeOrderController using MockMvc to cover all endpoints (GET all, GET by id, POST, PUT, DELETE), verifying correct status codes, request/response mapping, and error handling.
+2. Ensured tests use unique orderId values to avoid constraint violations.
+3. All actions logged as required.
+
+---

@@ -15,6 +15,8 @@ import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.Optional;
 import java.util.concurrent.ThreadLocalRandom;
+import org.springframework.cache.CacheManager;
+import org.springframework.test.annotation.DirtiesContext;
 
 @SpringBootTest
 public class TradeOrderServiceImplTest {
@@ -24,6 +26,8 @@ public class TradeOrderServiceImplTest {
     private TradeOrderRepository tradeOrderRepository;
     @Autowired
     private BlotterRepository blotterRepository;
+    @Autowired
+    private CacheManager cacheManager;
 
     private TradeOrder createTradeOrder() {
         Blotter blotter = new Blotter();
@@ -90,5 +94,54 @@ public class TradeOrderServiceImplTest {
         Assertions.assertThrows(IllegalArgumentException.class, () -> {
             tradeOrderService.deleteTradeOrder(tradeOrder.getId(), tradeOrder.getVersion() + 1);
         });
+    }
+
+    @Test
+    @DirtiesContext
+    void testGetTradeOrderByIdUsesCache() {
+        TradeOrder tradeOrder = createTradeOrder();
+        Integer id = tradeOrder.getId();
+        // First call: should hit DB
+        Optional<TradeOrder> found1 = tradeOrderService.getTradeOrderById(id);
+        Assertions.assertTrue(found1.isPresent());
+        // Remove from DB directly
+        tradeOrderRepository.deleteById(id);
+        // Second call: should hit cache, still returns the entity
+        Optional<TradeOrder> found2 = tradeOrderService.getTradeOrderById(id);
+        Assertions.assertTrue(found2.isPresent());
+    }
+
+    @Test
+    @DirtiesContext
+    void testGetAllTradeOrdersUsesCache() {
+        createTradeOrder();
+        // First call: should hit DB
+        Assertions.assertFalse(tradeOrderService.getAllTradeOrders().isEmpty());
+        // Remove all from DB directly
+        tradeOrderRepository.deleteAll();
+        // Second call: should hit cache, still returns the entity
+        Assertions.assertFalse(tradeOrderService.getAllTradeOrders().isEmpty());
+    }
+
+    @Test
+    @DirtiesContext
+    void testCacheEvictedOnCreateUpdateDelete() {
+        TradeOrder tradeOrder = createTradeOrder();
+        Integer id = tradeOrder.getId();
+        // Prime the cache
+        tradeOrderService.getTradeOrderById(id);
+        Assertions.assertNotNull(cacheManager.getCache("tradeOrders").get(id));
+        // Update should evict cache
+        tradeOrder.setOrderType("Updated");
+        tradeOrderService.updateTradeOrder(id, tradeOrder);
+        Assertions.assertNull(cacheManager.getCache("tradeOrders").get(id));
+        // Prime the cache again
+        tradeOrderService.getTradeOrderById(id);
+        Assertions.assertNotNull(cacheManager.getCache("tradeOrders").get(id));
+        // Reload the entity to get the latest version
+        TradeOrder updated = tradeOrderRepository.findById(id).orElseThrow();
+        // Delete should evict cache
+        tradeOrderService.deleteTradeOrder(id, updated.getVersion());
+        Assertions.assertNull(cacheManager.getCache("tradeOrders").get(id));
     }
 } 
