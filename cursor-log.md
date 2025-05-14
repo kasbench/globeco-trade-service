@@ -70,3 +70,14 @@ Action: Created three DTOs in src/main/java/org/kasbench/globeco_trade_service/d
 - ExecutionPostDTO.java (all fields except id and version, for POST requests, no nesting)
 
 ---
+
+Request: Configure the project to connect to the PostgreSQL database on host `globeco-trade-service-postgresql` port 32800 and database `postgres`. The user is "postgres". No password is required. Please add an entry with this prompt and your actions in the cursor-log.md file following the instructions in the file. Do not delete or replace anything in cursor-log.md
+
+Action: Updated the log to record the request. Next, I will update the Spring Boot datasource configuration to use:
+- Host: globeco-trade-service-postgresql
+- Port: 32800
+- Database: postgres
+- User: postgres
+- No password
+
+---
