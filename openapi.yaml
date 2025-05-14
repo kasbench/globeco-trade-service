@@ -1,0 +1,138 @@
+openapi: 3.0.3
+info:
+  title: GlobeCo Trade Service - Blotter API
+  version: 1.0.0
+  description: API for managing blotters in the GlobeCo Trade Service.
+servers:
+  - url: http://localhost:8002/api/v1
+paths:
+  /blotters:
+    get:
+      summary: Get all blotters
+      operationId: getAllBlotters
+      tags: [Blotter]
+      responses:
+        '200':
+          description: List of blotters
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/BlotterResponseDTO'
+    post:
+      summary: Create a new blotter
+      operationId: createBlotter
+      tags: [Blotter]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BlotterPostDTO'
+      responses:
+        '201':
+          description: Blotter created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BlotterResponseDTO'
+  /blotters/{id}:
+    get:
+      summary: Get a blotter by ID
+      operationId: getBlotterById
+      tags: [Blotter]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Blotter found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BlotterResponseDTO'
+        '404':
+          description: Blotter not found
+    put:
+      summary: Update a blotter by ID
+      operationId: updateBlotter
+      tags: [Blotter]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BlotterPutDTO'
+      responses:
+        '200':
+          description: Blotter updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BlotterResponseDTO'
+        '404':
+          description: Blotter not found
+    delete:
+      summary: Delete a blotter by ID and version
+      operationId: deleteBlotter
+      tags: [Blotter]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: version
+          in: query
+          required: true
+          schema:
+            type: integer
+      responses:
+        '204':
+          description: Blotter deleted
+        '404':
+          description: Blotter not found
+components:
+  schemas:
+    BlotterResponseDTO:
+      type: object
+      properties:
+        id:
+          type: integer
+        abbreviation:
+          type: string
+        name:
+          type: string
+        version:
+          type: integer
+      required: [id, abbreviation, name, version]
+    BlotterPutDTO:
+      type: object
+      properties:
+        id:
+          type: integer
+        abbreviation:
+          type: string
+        name:
+          type: string
+        version:
+          type: integer
+      required: [id, abbreviation, name, version]
+    BlotterPostDTO:
+      type: object
+      properties:
+        abbreviation:
+          type: string
+        name:
+          type: string
+      required: [abbreviation, name] 

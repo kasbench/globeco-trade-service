@@ -254,3 +254,25 @@ Actions:
 4. Ensured consistency with other test classes.
 
 ---
+
+Request: Update the README.md file with an introduction and full documentation of the blotter data model and API (step 15 in execution-plan.md).
+
+Actions:
+1. Added a section describing the blotter data model, including entity fields and their descriptions.
+2. Documented the BlotterResponseDTO, BlotterPutDTO, and BlotterPostDTO with field tables.
+3. Added a table of all Blotter API endpoints, request/response DTOs, and descriptions.
+4. Included example requests and responses for POST and GET endpoints.
+5. Ensured style and structure are consistent with requirements.md and codebase conventions.
+
+---
+
+Request: Create an OpenAPI schema openapi.yaml in the project root with the full specification for the blotter API (step 16 in execution-plan.md).
+
+Actions:
+1. Created openapi.yaml with OpenAPI 3.0.3 specification for the Blotter API.
+2. Documented all endpoints: GET (all, by id), POST, PUT, DELETE for /blotters.
+3. Defined BlotterResponseDTO, BlotterPutDTO, and BlotterPostDTO schemas.
+4. Included all required parameters, request/response bodies, and error responses.
+5. Ensured consistency with README.md and requirements.md documentation.
+
+---

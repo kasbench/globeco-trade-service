@@ -46,8 +46,8 @@ PLEASE REMEMBER: When logging to cursor-log.md, append each entry beneath the pr
 20. Please implement unit testing for **tradeOrder** caching.  Please add an entry with this prompt and your actions in the cursor-log.md file following the instructions in the file.
 21. Please implement the APIs for **tradeOrder** using the requirements provided in @requirements.md.  Please add an entry with this prompt and your actions in the cursor-log.md file following the instructions in the file.
 22. Please generate the unit tests for the **tradeOrder** APIs.  Please add an entry with this prompt and your actions in the cursor-log.md file following the instructions in the file.
-23. Please update the README.md file with full documentation of the **tradeOrder** data model and API.  Please add an entry with this prompt and your actions in the cursor-log.md file following the instructions in the file.
-24. Please update the OpenAPI schema @openapi.yaml in the project root.  Please include the full specification for the **tradeOrder** API.  Please add an entry with this prompt and your actions in the cursor-log.md file following the instructions in the file.
+23. Please update the README.md file by adding full documentation of the **tradeOrder** data model and API.  Please add an entry with this prompt and your actions in the cursor-log.md file following the instructions in the file.
+24. Please update the OpenAPI schema @openapi.yaml in the project root.  Please add the full specification for the **tradeOrder** API.  Please add an entry with this prompt and your actions in the cursor-log.md file following the instructions in the file.
 
 
 25. Please implement the entity, repository, service interface, and service implementation for **execution** using the requirements provided in @requirements.md.  Please add an entry with this prompt and your actions in the cursor-log.md file following the instructions in the file.
@@ -55,8 +55,8 @@ PLEASE REMEMBER: When logging to cursor-log.md, append each entry beneath the pr
 27. Please implement unit testing for **execution** caching.  Please add an entry with this prompt and your actions in the cursor-log.md file following the instructions in the file.
 28. Please implement the APIs for **execution** using the requirements provided in @requirements.md.  Please add an entry with this prompt and your actions in the cursor-log.md file following the instructions in the file.
 29. Please generate the unit tests for the **execution** APIs.  Please add an entry with this prompt and your actions in the cursor-log.md file following the instructions in the file.
-30. Please update the README.md file with full documentation of the **execution** data model and API.  Please add an entry with this prompt and your actions in the cursor-log.md file following the instructions in the file.
-31. Please update the OpenAPI schema @openapi.yaml in the project root.  Please include the full specification for the **execution** API.  Please add an entry with this prompt and your actions in the cursor-log.md file following the instructions in the file.
+30. Please update the README.md file by adding full documentation of the **execution** data model and API.  Please add an entry with this prompt and your actions in the cursor-log.md file following the instructions in the file.
+31. Please update the OpenAPI schema @openapi.yaml in the project root.  Please add the full specification for the **execution** API.  Please add an entry with this prompt and your actions in the cursor-log.md file following the instructions in the file.
 
 
 32. Please implement the entity, repository, service interface, and service implementation for **destination** using the requirements provided in @requirements.md.  Please add an entry with this prompt and your actions in the cursor-log.md file following the instructions in the file.
@@ -65,8 +65,8 @@ PLEASE REMEMBER: When logging to cursor-log.md, append each entry beneath the pr
 35. Please implement unit testing for **destination** caching.  Please add an entry with this prompt and your actions in the cursor-log.md file following the instructions in the file.
 36. Please implement the APIs for **destination** using the requirements provided in @requirements.md.  Please add an entry with this prompt and your actions in the cursor-log.md file following the instructions in the file.
 37. Please generate the unit tests for the **destination** APIs.  Please add an entry with this prompt and your actions in the cursor-log.md file following the instructions in the file.
-38. Please update the README.md file with full documentation of the **destination** data model and API.  Please add an entry with this prompt and your actions in the cursor-log.md file following the instructions in the file.
-39. Please update the OpenAPI schema @openapi.yaml in the project root.  Please include the full specification for the **destination** API.  Please add an entry with this prompt and your actions in the cursor-log.md file following the instructions in the file.
+38. Please update the README.md file by adding full documentation of the **destination** data model and API.  Please add an entry with this prompt and your actions in the cursor-log.md file following the instructions in the file.
+39. Please update the OpenAPI schema @openapi.yaml in the project root.  Please add the full specification for the **destination** API.  Please add an entry with this prompt and your actions in the cursor-log.md file following the instructions in the file.
 
 
 40. Please implement the entity, repository, service interface, and service implementation for **tradeType** using the requirements provided in @requirements.md.  Please add an entry with this prompt and your actions in the cursor-log.md file following the instructions in the file.
@@ -75,8 +75,8 @@ PLEASE REMEMBER: When logging to cursor-log.md, append each entry beneath the pr
 43. Please implement unit testing for **tradeType** caching.  Please add an entry with this prompt and your actions in the cursor-log.md file following the instructions in the file.
 44. Please implement the APIs for **tradeType** using the requirements provided in @requirements.md.  Please add an entry with this prompt and your actions in the cursor-log.md file following the instructions in the file.
 45. Please generate the unit tests for the **tradeType** APIs.  Please add an entry with this prompt and your actions in the cursor-log.md file following the instructions in the file.
-46. Please update the README.md file with full documentation of the **tradeType** data model and API.  Please add an entry with this prompt and your actions in the cursor-log.md file following the instructions in the file.
-47. Please update the OpenAPI schema @openapi.yaml in the project root.  Please include the full specification for the **tradeType** API.  Please add an entry with this prompt and your actions in the cursor-log.md file following the instructions in the file.
+46. Please update the README.md file by adding full documentation of the **tradeType** data model and API.  Please add an entry with this prompt and your actions in the cursor-log.md file following the instructions in the file.
+47. Please update the OpenAPI schema @openapi.yaml in the project root.  Please add the full specification for the **tradeType** API.  Please add an entry with this prompt and your actions in the cursor-log.md file following the instructions in the file.
 
 
 48. Please implement the entity, repository, service interface, and service implementation for **executionStatus** using the requirements provided in @requirements.md.  Please add an entry with this prompt and your actions in the cursor-log.md file following the instructions in the file.
@@ -85,8 +85,8 @@ PLEASE REMEMBER: When logging to cursor-log.md, append each entry beneath the pr
 51. Please implement unit testing for **executionStatus** caching.  Please add an entry with this prompt and your actions in the cursor-log.md file following the instructions in the file.
 52. Please implement the APIs for **executionStatus** using the requirements provided in @requirements.md.  Please add an entry with this prompt and your actions in the cursor-log.md file following the instructions in the file.
 53. Please generate the unit tests for the **executionStatus** APIs.  Please add an entry with this prompt and your actions in the cursor-log.md file following the instructions in the file.
-54. Please update the README.md file with full documentation of the **executionStatus** data model and API.  Please add an entry with this prompt and your actions in the cursor-log.md file following the instructions in the file.
-55. Please update the OpenAPI schema @openapi.yaml in the project root.  Please include the full specification for the **executionStatus** API.  Please add an entry with this prompt and your actions in the cursor-log.md file following the instructions in the file.
+54. Please update the README.md file by adding full documentation of the **executionStatus** data model and API.  Please add an entry with this prompt and your actions in the cursor-log.md file following the instructions in the file.
+55. Please update the OpenAPI schema @openapi.yaml in the project root.  Please add the full specification for the **executionStatus** API.  Please add an entry with this prompt and your actions in the cursor-log.md file following the instructions in the file.
 
 
 
