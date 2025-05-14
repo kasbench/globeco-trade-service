@@ -81,3 +81,14 @@ Action: Updated the log to record the request. Next, I will update the Spring Bo
 - No password
 
 ---
+
+Request: Configure Flyway with the same configuration as in step 1 (PostgreSQL on host globeco-trade-service-postgresql, port 32800, database postgres, user postgres, no password). Please add an entry with this prompt and your actions in the cursor-log.md file following the instructions in the file. Do not delete or replace anything in cursor-log.md
+
+Action: Updated the log to record the request. Next, I will update the Spring Boot Flyway configuration in application.properties to use:
+- Host: globeco-trade-service-postgresql
+- Port: 32800
+- Database: postgres
+- User: postgres
+- No password
+
+---
