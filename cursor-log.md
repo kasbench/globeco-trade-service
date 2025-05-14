@@ -136,3 +136,63 @@ Action: Updated the log to record the request. Next, I will:
 4. Implement the service class for Blotter, following the requirements and conventions in requirements.md.
 
 ---
+
+Request: Please implement the unit tests for the entity, repository, service interface, and service implementation for blotter. Please add an entry with this prompt and your actions in the cursor-log.md file following the instructions in the file. Do not delete or replace anything in cursor-log.md
+
+Action: Updated the log to record the request. Next, I will:
+1. Implement unit tests for the Blotter entity (basic construction, getters/setters, equals/hashCode).
+2. Implement unit tests for BlotterRepository (CRUD operations, optimistic concurrency).
+3. Implement unit tests for BlotterService and BlotterServiceImpl (service logic, optimistic concurrency, error handling).
+
+---
+
+**Request:** Troubleshoot why optimistic concurrency tests for the Blotter entity are not throwing exceptions as expected. Investigate test configuration, entity setup, and test code.
+
+**Actions:**
+- Searched for optimistic concurrency test code in repository and service layer tests.
+- Reviewed Blotter entity for @Version annotation and configuration.
+- Checked main and test datasource configuration for H2 or PostgreSQL usage.
+- Confirmed that @DataJpaTest is used (defaults to H2 unless overridden), but no test-specific application.properties or @AutoConfigureTestDatabase override is present.
+- Noted that H2 is included as a test dependency in build.gradle, so tests likely run against H2 by default.
+
+**Next Steps:**
+- Recommend explicitly configuring @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE) in repository tests to ensure they use PostgreSQL and enforce optimistic locking as in production.
+
+---
+
+Request: Update BlotterRepositoryTest to use PostgreSQL for optimistic locking tests and create a test properties file for the test datasource.
+
+Actions:
+1. Added @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE) to BlotterRepositoryTest to ensure it uses the real PostgreSQL database.
+2. Created src/test/resources/application.properties with PostgreSQL datasource and Flyway configuration for integration tests.
+
+---
+
+Request: Fix optimistic concurrency so that JPA manages the version field and exceptions are thrown as expected.
+
+Actions:
+1. Removed the line that manually set the version in BlotterServiceImpl.updateBlotter. Now, only JPA manages the version field, enabling proper optimistic locking and exception handling.
+
+---
+
+Request: Fix optimistic concurrency test to ensure the stale entity scenario is properly simulated and exceptions are thrown as expected.
+
+Actions:
+1. Updated testOptimisticConcurrency in BlotterRepositoryTest to use entityManager.clear() instead of entityManager.detach(b2), ensuring b2 is truly stale.
+2. Ensured the test method does not use @Transactional, so each saveAndFlush is in its own transaction and version increments are visible to subsequent operations.
+
+---
+
+Request: Update optimistic concurrency test to explicitly set a stale version on the entity after clearing the persistence context, ensuring Hibernate detects the version conflict.
+
+Actions:
+1. Modified testOptimisticConcurrency in BlotterRepositoryTest to reload b2 after clearing the persistence context and set its version to 1 (stale) before saving, so Hibernate will throw an OptimisticLockingFailureException as expected.
+
+---
+
+Request: Disable the optimistic concurrency test due to persistent failures with exception detection in the test environment.
+
+Actions:
+1. Commented out the testOptimisticConcurrency method and its @Test annotation in BlotterRepositoryTest, with a note explaining it is disabled due to persistent failures and to see cursor-log.md for details.
+
+---

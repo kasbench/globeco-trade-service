@@ -43,7 +43,6 @@ public class BlotterServiceImpl implements BlotterService {
                 .orElseThrow(() -> new IllegalArgumentException("Blotter not found: " + id));
         existing.setAbbreviation(blotter.getAbbreviation());
         existing.setName(blotter.getName());
-        existing.setVersion(blotter.getVersion());
         return blotterRepository.save(existing);
     }
 
