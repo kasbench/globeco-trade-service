@@ -287,3 +287,21 @@ Actions (Repository, Service, Cache):
 5. Ensured consistency with codebase conventions and requirements.
 
 ---
+
+Request: Implement the unit tests for the entity, repository, service interface, and service implementation for tradeOrder (step 18 in execution-plan.md).
+
+Actions:
+1. Created TradeOrderEntityTest to test getters/setters and @Version annotation.
+2. Created TradeOrderRepositoryTest to test CRUD operations and optimistic concurrency.
+3. Created TradeOrderServiceImplTest to test CRUD, optimistic concurrency, and error handling in the service layer.
+4. Used consistent style and conventions as in Blotter tests.
+
+---
+
+Request: Fix test failures due to unique constraint violation on trade_order.order_id in TradeOrderRepositoryTest and TradeOrderServiceImplTest.
+
+Actions:
+1. Updated TradeOrderRepositoryTest and TradeOrderServiceImplTest to use ThreadLocalRandom to generate a random, globally unique orderId for each TradeOrder instance in tests.
+2. This ensures no duplicate orderId values are used, even across test classes and runs, resolving the constraint violation.
+
+---
