@@ -225,3 +225,32 @@ Actions:
 1. Updated testCacheEvictedOnCreateUpdateDelete to reload the Blotter entity from the repository after update, so the correct (latest) version is passed to deleteBlotter, avoiding version mismatch errors.
 
 ---
+
+Request: Implement BlotterController with REST endpoints for CRUD operations (step 13 in requirements.md).
+
+Actions:
+1. Created BlotterController in the main package with the following endpoints:
+   - GET /api/v1/blotters: List all blotters.
+   - GET /api/v1/blotters/{id}: Get a blotter by ID.
+   - POST /api/v1/blotters: Create a new blotter.
+   - PUT /api/v1/blotters/{id}: Update an existing blotter.
+   - DELETE /api/v1/blotters/{id}?version=...: Delete a blotter by ID and version.
+2. Used BlotterService and DTOs for request/response mapping.
+3. Ensured consistency with codebase conventions and requirements.
+
+---
+
+Request: Generate tests for the new BlotterController endpoints.
+
+Actions:
+1. Created BlotterControllerTest in src/test/java/org/kasbench/globeco_trade_service/ covering:
+   - GET /api/v1/blotters (all)
+   - GET /api/v1/blotters/{id}
+   - POST /api/v1/blotters
+   - PUT /api/v1/blotters/{id}
+   - DELETE /api/v1/blotters/{id}?version=...
+2. Used @SpringBootTest, @AutoConfigureMockMvc, and MockMvc for endpoint testing.
+3. Verified status codes and response bodies for success and not found cases.
+4. Ensured consistency with other test classes.
+
+---
