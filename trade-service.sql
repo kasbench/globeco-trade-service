@@ -20,10 +20,15 @@ SET search_path TO pg_catalog,public;
 -- DROP TABLE IF EXISTS public.trade_order CASCADE;
 CREATE TABLE public.trade_order (
 	id serial NOT NULL,
+	order_id integer NOT NULL,
 	portfolio_id char(24) NOT NULL,
+	order_type char(10) NOT NULL,
+	security_id char(24) NOT NULL,
 	quantity decimal(18,8) NOT NULL,
+	limit_price decimal(18,8),
 	trade_timestamp timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP,
 	version integer NOT NULL DEFAULT 1,
+	blotter_id integer,
 	CONSTRAINT trade_pk PRIMARY KEY (id)
 );
 -- ddl-end --
@@ -34,10 +39,13 @@ ALTER TABLE public.trade_order OWNER TO postgres;
 -- DROP TABLE IF EXISTS public.execution CASCADE;
 CREATE TABLE public.execution (
 	id serial NOT NULL,
-	trade_block_id integer NOT NULL,
-	execution_status_id integer,
-	trade_type_id integer,
 	execution_timestamp timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP,
+	execution_status_id integer NOT NULL,
+	blotter_id integer,
+	trade_type_id integer,
+	trade_order_id integer NOT NULL,
+	destination_id integer NOT NULL,
+	quantity_ordered smallint,
 	quantity_placed decimal(18,8) NOT NULL,
 	quantity_filled decimal(18,8) NOT NULL DEFAULT 0,
 	limit_price decimal(18,8),
@@ -61,67 +69,6 @@ CREATE TABLE public.blotter (
 ALTER TABLE public.blotter OWNER TO postgres;
 -- ddl-end --
 
--- object: public.trade_block | type: TABLE --
--- DROP TABLE IF EXISTS public.trade_block CASCADE;
-CREATE TABLE public.trade_block (
-	id serial NOT NULL,
-	trade_status_id integer,
-	blotter_id integer NOT NULL,
-	order_type varchar(10) NOT NULL,
-	trade_type_id integer NOT NULL,
-	security_id char(24) NOT NULL,
-	quantity_ordered decimal(18,8) NOT NULL,
-	limit_price decimal(18,8) NOT NULL,
-	quantity_placed decimal(18,8) NOT NULL DEFAULT 0,
-	quantity_filled decimal(18,8) NOT NULL DEFAULT 0,
-	version integer NOT NULL DEFAULT 1,
-	CONSTRAINT trade_block_pk PRIMARY KEY (id)
-);
--- ddl-end --
-ALTER TABLE public.trade_block OWNER TO postgres;
--- ddl-end --
-
--- object: public.trade_block_allocation | type: TABLE --
--- DROP TABLE IF EXISTS public.trade_block_allocation CASCADE;
-CREATE TABLE public.trade_block_allocation (
-	id serial NOT NULL,
-	version integer NOT NULL DEFAULT 1,
-	trade_order_id integer NOT NULL,
-	trade_block_id integer NOT NULL,
-	CONSTRAINT trade_block_allocation_pk PRIMARY KEY (id)
-);
--- ddl-end --
-ALTER TABLE public.trade_block_allocation OWNER TO postgres;
--- ddl-end --
-
--- object: trade_order__fk | type: CONSTRAINT --
--- ALTER TABLE public.trade_block_allocation DROP CONSTRAINT IF EXISTS trade_order__fk CASCADE;
-ALTER TABLE public.trade_block_allocation ADD CONSTRAINT trade_order__fk FOREIGN KEY (trade_order_id)
-REFERENCES public.trade_order (id) MATCH FULL
-ON DELETE RESTRICT ON UPDATE CASCADE;
--- ddl-end --
-
--- object: trade_block__fk | type: CONSTRAINT --
--- ALTER TABLE public.trade_block_allocation DROP CONSTRAINT IF EXISTS trade_block__fk CASCADE;
-ALTER TABLE public.trade_block_allocation ADD CONSTRAINT trade_block__fk FOREIGN KEY (trade_block_id)
-REFERENCES public.trade_block (id) MATCH FULL
-ON DELETE RESTRICT ON UPDATE CASCADE;
--- ddl-end --
-
--- object: blotter__fk | type: CONSTRAINT --
--- ALTER TABLE public.trade_block DROP CONSTRAINT IF EXISTS blotter__fk CASCADE;
-ALTER TABLE public.trade_block ADD CONSTRAINT blotter__fk FOREIGN KEY (blotter_id)
-REFERENCES public.blotter (id) MATCH FULL
-ON DELETE RESTRICT ON UPDATE CASCADE;
--- ddl-end --
-
--- object: trade_block__fk | type: CONSTRAINT --
--- ALTER TABLE public.execution DROP CONSTRAINT IF EXISTS trade_block__fk CASCADE;
-ALTER TABLE public.execution ADD CONSTRAINT trade_block__fk FOREIGN KEY (trade_block_id)
-REFERENCES public.trade_block (id) MATCH FULL
-ON DELETE RESTRICT ON UPDATE CASCADE;
--- ddl-end --
-
 -- object: public.trade_type | type: TABLE --
 -- DROP TABLE IF EXISTS public.trade_type CASCADE;
 CREATE TABLE public.trade_type (
@@ -133,33 +80,6 @@ CREATE TABLE public.trade_type (
 );
 -- ddl-end --
 ALTER TABLE public.trade_type OWNER TO postgres;
--- ddl-end --
-
--- object: trade_type__fk | type: CONSTRAINT --
--- ALTER TABLE public.trade_block DROP CONSTRAINT IF EXISTS trade_type__fk CASCADE;
-ALTER TABLE public.trade_block ADD CONSTRAINT trade_type__fk FOREIGN KEY (trade_type_id)
-REFERENCES public.trade_type (id) MATCH FULL
-ON DELETE RESTRICT ON UPDATE CASCADE;
--- ddl-end --
-
--- object: public.trade_status | type: TABLE --
--- DROP TABLE IF EXISTS public.trade_status CASCADE;
-CREATE TABLE public.trade_status (
-	id serial NOT NULL,
-	abbreviation varchar(20) NOT NULL,
-	description varchar(60) NOT NULL,
-	version integer NOT NULL DEFAULT 1,
-	CONSTRAINT trade_status_pk PRIMARY KEY (id)
-);
--- ddl-end --
-ALTER TABLE public.trade_status OWNER TO postgres;
--- ddl-end --
-
--- object: trade_status__fk | type: CONSTRAINT --
--- ALTER TABLE public.trade_block DROP CONSTRAINT IF EXISTS trade_status__fk CASCADE;
-ALTER TABLE public.trade_block ADD CONSTRAINT trade_status__fk FOREIGN KEY (trade_status_id)
-REFERENCES public.trade_status (id) MATCH FULL
-ON DELETE SET NULL ON UPDATE CASCADE;
 -- ddl-end --
 
 -- object: public.execution_status | type: TABLE --
@@ -179,13 +99,63 @@ ALTER TABLE public.execution_status OWNER TO postgres;
 -- ALTER TABLE public.execution DROP CONSTRAINT IF EXISTS execution_status__fk CASCADE;
 ALTER TABLE public.execution ADD CONSTRAINT execution_status__fk FOREIGN KEY (execution_status_id)
 REFERENCES public.execution_status (id) MATCH FULL
-ON DELETE SET NULL ON UPDATE CASCADE;
+ON DELETE RESTRICT ON UPDATE CASCADE;
 -- ddl-end --
 
 -- object: trade_type__fk | type: CONSTRAINT --
 -- ALTER TABLE public.execution DROP CONSTRAINT IF EXISTS trade_type__fk CASCADE;
 ALTER TABLE public.execution ADD CONSTRAINT trade_type__fk FOREIGN KEY (trade_type_id)
 REFERENCES public.trade_type (id) MATCH FULL
+ON DELETE SET NULL ON UPDATE CASCADE;
+-- ddl-end --
+
+-- object: trade_order_order_id_ndx | type: INDEX --
+-- DROP INDEX IF EXISTS public.trade_order_order_id_ndx CASCADE;
+CREATE UNIQUE INDEX trade_order_order_id_ndx ON public.trade_order
+USING btree
+(
+	order_id
+);
+-- ddl-end --
+
+-- object: blotter__fk | type: CONSTRAINT --
+-- ALTER TABLE public.trade_order DROP CONSTRAINT IF EXISTS blotter__fk CASCADE;
+ALTER TABLE public.trade_order ADD CONSTRAINT blotter__fk FOREIGN KEY (blotter_id)
+REFERENCES public.blotter (id) MATCH FULL
+ON DELETE SET NULL ON UPDATE CASCADE;
+-- ddl-end --
+
+-- object: trade_order__fk | type: CONSTRAINT --
+-- ALTER TABLE public.execution DROP CONSTRAINT IF EXISTS trade_order__fk CASCADE;
+ALTER TABLE public.execution ADD CONSTRAINT trade_order__fk FOREIGN KEY (trade_order_id)
+REFERENCES public.trade_order (id) MATCH FULL
+ON DELETE RESTRICT ON UPDATE CASCADE;
+-- ddl-end --
+
+-- object: public.destination | type: TABLE --
+-- DROP TABLE IF EXISTS public.destination CASCADE;
+CREATE TABLE public.destination (
+	id serial NOT NULL,
+	abbreviation varchar(20) NOT NULL,
+	description varchar(60) NOT NULL,
+	version integer NOT NULL DEFAULT 1,
+	CONSTRAINT destination_pk PRIMARY KEY (id)
+);
+-- ddl-end --
+ALTER TABLE public.destination OWNER TO postgres;
+-- ddl-end --
+
+-- object: destination__fk | type: CONSTRAINT --
+-- ALTER TABLE public.execution DROP CONSTRAINT IF EXISTS destination__fk CASCADE;
+ALTER TABLE public.execution ADD CONSTRAINT destination__fk FOREIGN KEY (destination_id)
+REFERENCES public.destination (id) MATCH FULL
+ON DELETE RESTRICT ON UPDATE CASCADE;
+-- ddl-end --
+
+-- object: blotter__fk | type: CONSTRAINT --
+-- ALTER TABLE public.execution DROP CONSTRAINT IF EXISTS blotter__fk CASCADE;
+ALTER TABLE public.execution ADD CONSTRAINT blotter__fk FOREIGN KEY (blotter_id)
+REFERENCES public.blotter (id) MATCH FULL
 ON DELETE SET NULL ON UPDATE CASCADE;
 -- ddl-end --
 
