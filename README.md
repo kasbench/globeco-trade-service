@@ -89,3 +89,144 @@ HTTP/1.1 200 OK
   }
 ]
 ```
+
+## TradeOrder Data Model
+
+The **trade_order** table represents an order to trade a security. Each trade order has an orderId, portfolioId, orderType, securityId, quantity, limitPrice, tradeTimestamp, version for optimistic locking, and a reference to a blotter.
+
+### Entity Fields
+| Field           | Type           | Description                                 |
+|-----------------|----------------|---------------------------------------------|
+| id              | Integer        | Unique identifier                           |
+| orderId         | Integer        | Order identifier                            |
+| portfolioId     | String         | Portfolio identifier                        |
+| orderType       | String         | Order type                                  |
+| securityId      | String         | Security identifier                         |
+| quantity        | BigDecimal     | Quantity ordered                            |
+| limitPrice      | BigDecimal     | Limit price                                 |
+| tradeTimestamp  | OffsetDateTime | Timestamp of the trade                      |
+| version         | Integer        | Version for optimistic locking              |
+| blotterId       | Integer        | Foreign key to blotter                      |
+
+### DTOs
+
+#### TradeOrderResponseDTO (Response)
+| Field           | Type                  | Description                                 |
+|-----------------|----------------------|---------------------------------------------|
+| id              | Integer               | Unique identifier                           |
+| orderId         | Integer               | Order identifier                            |
+| portfolioId     | String                | Portfolio identifier                        |
+| orderType       | String                | Order type                                  |
+| securityId      | String                | Security identifier                         |
+| quantity        | BigDecimal            | Quantity ordered                            |
+| limitPrice      | BigDecimal            | Limit price                                 |
+| tradeTimestamp  | OffsetDateTime        | Timestamp of the trade                      |
+| version         | Integer               | Version for optimistic locking              |
+| blotter         | BlotterResponseDTO    | Nested DTO for blotter                      |
+
+#### TradeOrderPutDTO (PUT Request)
+| Field           | Type           | Description                                 |
+|-----------------|----------------|---------------------------------------------|
+| id              | Integer        | Unique identifier                           |
+| orderId         | Integer        | Order identifier                            |
+| portfolioId     | String         | Portfolio identifier                        |
+| orderType       | String         | Order type                                  |
+| securityId      | String         | Security identifier                         |
+| quantity        | BigDecimal     | Quantity ordered                            |
+| limitPrice      | BigDecimal     | Limit price                                 |
+| tradeTimestamp  | OffsetDateTime | Timestamp of the trade                      |
+| version         | Integer        | Version for optimistic locking              |
+| blotterId       | Integer        | Foreign key to blotter                      |
+
+#### TradeOrderPostDTO (POST Request)
+| Field           | Type           | Description                                 |
+|-----------------|----------------|---------------------------------------------|
+| orderId         | Integer        | Order identifier                            |
+| portfolioId     | String         | Portfolio identifier                        |
+| orderType       | String         | Order type                                  |
+| securityId      | String         | Security identifier                         |
+| quantity        | BigDecimal     | Quantity ordered                            |
+| limitPrice      | BigDecimal     | Limit price                                 |
+| tradeTimestamp  | OffsetDateTime | Timestamp of the trade                      |
+| blotterId       | Integer        | Foreign key to blotter                      |
+
+## TradeOrder API
+
+All endpoints are prefixed with `/api/v1`.
+
+| Verb   | URI                              | Request DTO            | Response DTO                | Description                                 |
+|--------|-----------------------------------|------------------------|-----------------------------|---------------------------------------------|
+| GET    | /api/v1/tradeOrders              |                        | [TradeOrderResponseDTO]     | Get all trade orders                        |
+| GET    | /api/v1/tradeOrders/{id}         |                        | TradeOrderResponseDTO       | Get a single trade order by ID              |
+| POST   | /api/v1/tradeOrders              | TradeOrderPostDTO      | TradeOrderResponseDTO       | Create a new trade order                    |
+| PUT    | /api/v1/tradeOrders/{id}         | TradeOrderPutDTO       | TradeOrderResponseDTO       | Update an existing trade order by ID        |
+| DELETE | /api/v1/tradeOrders/{id}?version={version} |                |                             | Delete a trade order by ID and version       |
+
+### Example Request/Response
+
+#### Create TradeOrder (POST)
+```
+POST /api/v1/tradeOrders
+Content-Type: application/json
+{
+  "orderId": 12345,
+  "portfolioId": "PORTFOLIO1",
+  "orderType": "BUY",
+  "securityId": "SEC123",
+  "quantity": 100.00,
+  "limitPrice": 10.50,
+  "tradeTimestamp": "2024-06-01T12:00:00Z",
+  "blotterId": 1
+}
+```
+
+#### Response
+```
+HTTP/1.1 201 Created
+{
+  "id": 1,
+  "orderId": 12345,
+  "portfolioId": "PORTFOLIO1",
+  "orderType": "BUY",
+  "securityId": "SEC123",
+  "quantity": 100.00,
+  "limitPrice": 10.50,
+  "tradeTimestamp": "2024-06-01T12:00:00Z",
+  "version": 1,
+  "blotter": {
+    "id": 1,
+    "abbreviation": "EQ",
+    "name": "Equity",
+    "version": 1
+  }
+}
+```
+
+#### Get All TradeOrders (GET)
+```
+GET /api/v1/tradeOrders
+```
+
+#### Response
+```
+HTTP/1.1 200 OK
+[
+  {
+    "id": 1,
+    "orderId": 12345,
+    "portfolioId": "PORTFOLIO1",
+    "orderType": "BUY",
+    "securityId": "SEC123",
+    "quantity": 100.00,
+    "limitPrice": 10.50,
+    "tradeTimestamp": "2024-06-01T12:00:00Z",
+    "version": 1,
+    "blotter": {
+      "id": 1,
+      "abbreviation": "EQ",
+      "name": "Equity",
+      "version": 1
+    }
+  }
+]
+```

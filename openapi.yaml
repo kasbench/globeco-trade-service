@@ -102,6 +102,102 @@ paths:
           description: Blotter deleted
         '404':
           description: Blotter not found
+  /tradeOrders:
+    get:
+      summary: Get all trade orders
+      operationId: getAllTradeOrders
+      tags: [TradeOrder]
+      responses:
+        '200':
+          description: List of trade orders
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TradeOrderResponseDTO'
+    post:
+      summary: Create a new trade order
+      operationId: createTradeOrder
+      tags: [TradeOrder]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TradeOrderPostDTO'
+      responses:
+        '201':
+          description: Trade order created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TradeOrderResponseDTO'
+  /tradeOrders/{id}:
+    get:
+      summary: Get a trade order by ID
+      operationId: getTradeOrderById
+      tags: [TradeOrder]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Trade order found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TradeOrderResponseDTO'
+        '404':
+          description: Trade order not found
+    put:
+      summary: Update a trade order by ID
+      operationId: updateTradeOrder
+      tags: [TradeOrder]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TradeOrderPutDTO'
+      responses:
+        '200':
+          description: Trade order updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TradeOrderResponseDTO'
+        '404':
+          description: Trade order not found
+    delete:
+      summary: Delete a trade order by ID and version
+      operationId: deleteTradeOrder
+      tags: [TradeOrder]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: version
+          in: query
+          required: true
+          schema:
+            type: integer
+      responses:
+        '204':
+          description: Trade order deleted
+        '404':
+          description: Trade order not found
 components:
   schemas:
     BlotterResponseDTO:
@@ -135,4 +231,81 @@ components:
           type: string
         name:
           type: string
-      required: [abbreviation, name] 
+      required: [abbreviation, name]
+    TradeOrderResponseDTO:
+      type: object
+      properties:
+        id:
+          type: integer
+        orderId:
+          type: integer
+        portfolioId:
+          type: string
+        orderType:
+          type: string
+        securityId:
+          type: string
+        quantity:
+          type: number
+          format: double
+        limitPrice:
+          type: number
+          format: double
+        tradeTimestamp:
+          type: string
+          format: date-time
+        version:
+          type: integer
+        blotter:
+          $ref: '#/components/schemas/BlotterResponseDTO'
+      required: [id, orderId, portfolioId, orderType, securityId, quantity, tradeTimestamp, version, blotter]
+    TradeOrderPutDTO:
+      type: object
+      properties:
+        id:
+          type: integer
+        orderId:
+          type: integer
+        portfolioId:
+          type: string
+        orderType:
+          type: string
+        securityId:
+          type: string
+        quantity:
+          type: number
+          format: double
+        limitPrice:
+          type: number
+          format: double
+        tradeTimestamp:
+          type: string
+          format: date-time
+        version:
+          type: integer
+        blotterId:
+          type: integer
+      required: [id, orderId, portfolioId, orderType, securityId, quantity, tradeTimestamp, version, blotterId]
+    TradeOrderPostDTO:
+      type: object
+      properties:
+        orderId:
+          type: integer
+        portfolioId:
+          type: string
+        orderType:
+          type: string
+        securityId:
+          type: string
+        quantity:
+          type: number
+          format: double
+        limitPrice:
+          type: number
+          format: double
+        tradeTimestamp:
+          type: string
+          format: date-time
+        blotterId:
+          type: integer
+      required: [orderId, portfolioId, orderType, securityId, quantity, tradeTimestamp, blotterId] 
