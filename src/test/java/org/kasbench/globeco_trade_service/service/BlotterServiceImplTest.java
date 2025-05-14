@@ -10,8 +10,9 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.util.List;
+import org.springframework.cache.CacheManager;
+import org.springframework.test.annotation.DirtiesContext;
+import java.util.Optional;
 
 @SpringBootTest
 public class BlotterServiceImplTest {
@@ -19,6 +20,8 @@ public class BlotterServiceImplTest {
     private BlotterService blotterService;
     @Autowired
     private BlotterRepository blotterRepository;
+    @Autowired
+    private CacheManager cacheManager;
 
     @Test
     @Transactional
@@ -81,5 +84,74 @@ public class BlotterServiceImplTest {
         Blotter b = blotterRepository.findById(id).orElseThrow();
         b.setName(newName);
         blotterService.updateBlotter(id, b);
+    }
+
+    @Test
+    @DirtiesContext
+    void testGetBlotterByIdUsesCache() {
+        Blotter blotter = new Blotter();
+        blotter.setAbbreviation("EQ");
+        blotter.setName("Equity");
+        Blotter created = blotterService.createBlotter(blotter);
+        Integer id = created.getId();
+
+        // First call: should hit DB
+        Optional<Blotter> found1 = blotterService.getBlotterById(id);
+        Assertions.assertTrue(found1.isPresent());
+
+        // Remove from DB directly
+        blotterRepository.deleteById(id);
+
+        // Second call: should hit cache, still returns the entity
+        Optional<Blotter> found2 = blotterService.getBlotterById(id);
+        Assertions.assertTrue(found2.isPresent());
+    }
+
+    @Test
+    @DirtiesContext
+    void testGetAllBlottersUsesCache() {
+        Blotter blotter = new Blotter();
+        blotter.setAbbreviation("EQ");
+        blotter.setName("Equity");
+        blotterService.createBlotter(blotter);
+
+        // First call: should hit DB
+        Assertions.assertFalse(blotterService.getAllBlotters().isEmpty());
+
+        // Remove all from DB directly
+        blotterRepository.deleteAll();
+
+        // Second call: should hit cache, still returns the entity
+        Assertions.assertFalse(blotterService.getAllBlotters().isEmpty());
+    }
+
+    @Test
+    @DirtiesContext
+    void testCacheEvictedOnCreateUpdateDelete() {
+        Blotter blotter = new Blotter();
+        blotter.setAbbreviation("EQ");
+        blotter.setName("Equity");
+        Blotter created = blotterService.createBlotter(blotter);
+        Integer id = created.getId();
+
+        // Prime the cache
+        blotterService.getBlotterById(id);
+        Assertions.assertNotNull(cacheManager.getCache("blotters").get(id));
+
+        // Update should evict cache
+        created.setName("Updated");
+        blotterService.updateBlotter(id, created);
+        Assertions.assertNull(cacheManager.getCache("blotters").get(id));
+
+        // Prime the cache again
+        blotterService.getBlotterById(id);
+        Assertions.assertNotNull(cacheManager.getCache("blotters").get(id));
+
+        // Reload the entity to get the latest version
+        Blotter updated = blotterRepository.findById(id).orElseThrow();
+
+        // Delete should evict cache
+        blotterService.deleteBlotter(id, updated.getVersion());
+        Assertions.assertNull(cacheManager.getCache("blotters").get(id));
     }
 } 

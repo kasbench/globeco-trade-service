@@ -12,10 +12,10 @@ import java.util.concurrent.TimeUnit;
 
 @Configuration
 @EnableCaching
-public class SecurityCacheConfig {
+public class CacheConfig {
     @Bean
     public CacheManager cacheManager() {
-        CaffeineCacheManager cacheManager = new CaffeineCacheManager("securityTypes", "securities");
+        CaffeineCacheManager cacheManager = new CaffeineCacheManager("securityTypes", "securities", "blotters");
         cacheManager.setCaffeine(Caffeine.newBuilder().expireAfterWrite(5, TimeUnit.MINUTES));
         return cacheManager;
     }
