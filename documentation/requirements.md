@@ -31,11 +31,13 @@ Email: noah@kasbench.org
 | JUnit Platform Launcher | (from BOM) | For running tests |
 | Spring Boot Starter Test | (from BOM) | For testing |
 | PostgreSQL (Database) | 17 | As specified in [globeco-trade-service-postgresql](https://github.com/kasbench/globeco-trade-service-postgresql) |
+| Caffeine | 3.1.8 | In-memory caching provider for Spring's caching abstraction (5 minute TTL) |
 
 Notes:
 - (from BOM) means the version is managed by the Spring Boot BOM (Bill of Materials) and will match the Spring Boot version unless overridden.
 - All dependencies are managed via Maven Central.
 - The project uses Gradle as the build tool.
+- Spring's caching abstraction is used with Caffeine for in-memory caching with a 5 minute time-to-live (TTL) for relevant caches.
 
 
 
