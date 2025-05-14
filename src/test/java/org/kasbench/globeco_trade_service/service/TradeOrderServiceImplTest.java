@@ -14,7 +14,6 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.Optional;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.ThreadLocalRandom;
 
 @SpringBootTest
@@ -25,8 +24,6 @@ public class TradeOrderServiceImplTest {
     private TradeOrderRepository tradeOrderRepository;
     @Autowired
     private BlotterRepository blotterRepository;
-
-    private static final AtomicInteger orderIdGen = new AtomicInteger(100);
 
     private TradeOrder createTradeOrder() {
         Blotter blotter = new Blotter();

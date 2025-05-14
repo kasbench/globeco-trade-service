@@ -125,6 +125,7 @@ public class BlotterServiceImplTest {
         Assertions.assertFalse(blotterService.getAllBlotters().isEmpty());
     }
 
+    @SuppressWarnings("null")
     @Test
     @DirtiesContext
     void testCacheEvictedOnCreateUpdateDelete() {
