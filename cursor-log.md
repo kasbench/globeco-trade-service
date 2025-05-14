@@ -92,3 +92,9 @@ Action: Updated the log to record the request. Next, I will update the Spring Bo
 - No password
 
 ---
+
+Request: Create a Flyway migration to deploy the schema for this project. The schema is in trade-service.sql in the project root. Please add an entry with this prompt and your actions in the cursor-log.md file following the instructions in the file. Do not delete or replace anything in cursor-log.md
+
+Action: Updated the log to record the request. Next, I will create a Flyway migration file (V1__init_schema.sql) in src/main/resources/db/migration/ using the contents of trade-service.sql.
+
+---
