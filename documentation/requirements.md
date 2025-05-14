@@ -244,134 +244,277 @@ The owner of all database objects is `postgres`.
 ## DTOs
 
 ### Blotter DTOs
-- **BlotterResponseDTO**: Contains all fields from the blotter table.
-  - id: Integer
-  - abbreviation: String
-  - name: String
-  - version: Integer
-- **BlotterPutDTO**: Contains all fields from the blotter table (for PUT requests).
-  - id: Integer
-  - abbreviation: String
-  - name: String
-  - version: Integer
-- **BlotterPostDTO**: Contains all fields except id and version (for POST requests).
-  - abbreviation: String
-  - name: String
+
+**BlotterResponseDTO** (Response)
+
+| Field         | Type    | Description                      |
+|-------------- |---------|----------------------------------|
+| id            | Integer | Unique identifier                |
+| abbreviation  | String  | Abbreviation for the blotter     |
+| name          | String  | Name of the blotter              |
+| version       | Integer | Version for optimistic locking   |
+
+**BlotterPutDTO** (PUT Request)
+
+| Field         | Type    | Description                      |
+|-------------- |---------|----------------------------------|
+| id            | Integer | Unique identifier                |
+| abbreviation  | String  | Abbreviation for the blotter     |
+| name          | String  | Name of the blotter              |
+| version       | Integer | Version for optimistic locking   |
+
+**BlotterPostDTO** (POST Request)
+
+| Field         | Type    | Description                      |
+|-------------- |---------|----------------------------------|
+| abbreviation  | String  | Abbreviation for the blotter     |
+| name          | String  | Name of the blotter              |
+
+---
 
 ### TradeType DTOs
-- **TradeTypeResponseDTO**: Contains all fields from the trade_type table.
-  - id: Integer
-  - abbreviation: String
-  - description: String
-  - version: Integer
-- **TradeTypePutDTO**: Contains all fields from the trade_type table (for PUT requests).
-  - id: Integer
-  - abbreviation: String
-  - description: String
-  - version: Integer
-- **TradeTypePostDTO**: Contains all fields except id and version (for POST requests).
-  - abbreviation: String
-  - description: String
+
+**TradeTypeResponseDTO** (Response)
+
+| Field         | Type    | Description                      |
+|-------------- |---------|----------------------------------|
+| id            | Integer | Unique identifier                |
+| abbreviation  | String  | Abbreviation for the trade type  |
+| description   | String  | Description of the trade type    |
+| version       | Integer | Version for optimistic locking   |
+
+**TradeTypePutDTO** (PUT Request)
+
+| Field         | Type    | Description                      |
+|-------------- |---------|----------------------------------|
+| id            | Integer | Unique identifier                |
+| abbreviation  | String  | Abbreviation for the trade type  |
+| description   | String  | Description of the trade type    |
+| version       | Integer | Version for optimistic locking   |
+
+**TradeTypePostDTO** (POST Request)
+
+| Field         | Type    | Description                      |
+|-------------- |---------|----------------------------------|
+| abbreviation  | String  | Abbreviation for the trade type  |
+| description   | String  | Description of the trade type    |
+
+---
 
 ### Destination DTOs
-- **DestinationResponseDTO**: Contains all fields from the destination table.
-  - id: Integer
-  - abbreviation: String
-  - description: String
-  - version: Integer
-- **DestinationPutDTO**: Contains all fields from the destination table (for PUT requests).
-  - id: Integer
-  - abbreviation: String
-  - description: String
-  - version: Integer
-- **DestinationPostDTO**: Contains all fields except id and version (for POST requests).
-  - abbreviation: String
-  - description: String
+
+**DestinationResponseDTO** (Response)
+
+| Field         | Type    | Description                      |
+|-------------- |---------|----------------------------------|
+| id            | Integer | Unique identifier                |
+| abbreviation  | String  | Abbreviation for the destination |
+| description   | String  | Description of the destination   |
+| version       | Integer | Version for optimistic locking   |
+
+**DestinationPutDTO** (PUT Request)
+
+| Field         | Type    | Description                      |
+|-------------- |---------|----------------------------------|
+| id            | Integer | Unique identifier                |
+| abbreviation  | String  | Abbreviation for the destination |
+| description   | String  | Description of the destination   |
+| version       | Integer | Version for optimistic locking   |
+
+**DestinationPostDTO** (POST Request)
+
+| Field         | Type    | Description                      |
+|-------------- |---------|----------------------------------|
+| abbreviation  | String  | Abbreviation for the destination |
+| description   | String  | Description of the destination   |
+
+---
 
 ### ExecutionStatus DTOs
-- **ExecutionStatusResponseDTO**: Contains all fields from the execution_status table.
-  - id: Integer
-  - abbreviation: String
-  - description: String
-  - version: Integer
-- **ExecutionStatusPutDTO**: Contains all fields from the execution_status table (for PUT requests).
-  - id: Integer
-  - abbreviation: String
-  - description: String
-  - version: Integer
-- **ExecutionStatusPostDTO**: Contains all fields except id and version (for POST requests).
-  - abbreviation: String
-  - description: String
+
+**ExecutionStatusResponseDTO** (Response)
+
+| Field         | Type    | Description                      |
+|-------------- |---------|----------------------------------|
+| id            | Integer | Unique identifier                |
+| abbreviation  | String  | Abbreviation for the status      |
+| description   | String  | Description of the status        |
+| version       | Integer | Version for optimistic locking   |
+
+**ExecutionStatusPutDTO** (PUT Request)
+
+| Field         | Type    | Description                      |
+|-------------- |---------|----------------------------------|
+| id            | Integer | Unique identifier                |
+| abbreviation  | String  | Abbreviation for the status      |
+| description   | String  | Description of the status        |
+| version       | Integer | Version for optimistic locking   |
+
+**ExecutionStatusPostDTO** (POST Request)
+
+| Field         | Type    | Description                      |
+|-------------- |---------|----------------------------------|
+| abbreviation  | String  | Abbreviation for the status      |
+| description   | String  | Description of the status        |
+
+---
 
 ### TradeOrder DTOs
-- **TradeOrderResponseDTO**: Contains all fields from the trade_order table, with blotter as a nested BlotterResponseDTO.
-  - id: Integer
-  - orderId: Integer
-  - portfolioId: String
-  - orderType: String
-  - securityId: String
-  - quantity: BigDecimal
-  - limitPrice: BigDecimal
-  - tradeTimestamp: OffsetDateTime
-  - version: Integer
-  - blotter: BlotterResponseDTO
-- **TradeOrderPutDTO**: Contains all fields from the trade_order table (for PUT requests, no nesting).
-  - id: Integer
-  - orderId: Integer
-  - portfolioId: String
-  - orderType: String
-  - securityId: String
-  - quantity: BigDecimal
-  - limitPrice: BigDecimal
-  - tradeTimestamp: OffsetDateTime
-  - version: Integer
-  - blotterId: Integer
-- **TradeOrderPostDTO**: Contains all fields except id and version (for POST requests, no nesting).
-  - orderId: Integer
-  - portfolioId: String
-  - orderType: String
-  - securityId: String
-  - quantity: BigDecimal
-  - limitPrice: BigDecimal
-  - tradeTimestamp: OffsetDateTime
-  - blotterId: Integer
+
+**TradeOrderResponseDTO** (Response)
+
+| Field           | Type                  | Description                                 |
+|-----------------|----------------------|---------------------------------------------|
+| id              | Integer               | Unique identifier                           |
+| orderId         | Integer               | Order identifier                            |
+| portfolioId     | String                | Portfolio identifier                        |
+| orderType       | String                | Order type                                  |
+| securityId      | String                | Security identifier                         |
+| quantity        | BigDecimal            | Quantity ordered                            |
+| limitPrice      | BigDecimal            | Limit price                                 |
+| tradeTimestamp  | OffsetDateTime        | Timestamp of the trade                      |
+| version         | Integer               | Version for optimistic locking              |
+| blotter         | BlotterResponseDTO    | Nested DTO for blotter                      |
+
+**TradeOrderPutDTO** (PUT Request)
+
+| Field           | Type           | Description                                 |
+|-----------------|----------------|---------------------------------------------|
+| id              | Integer        | Unique identifier                           |
+| orderId         | Integer        | Order identifier                            |
+| portfolioId     | String         | Portfolio identifier                        |
+| orderType       | String         | Order type                                  |
+| securityId      | String         | Security identifier                         |
+| quantity        | BigDecimal     | Quantity ordered                            |
+| limitPrice      | BigDecimal     | Limit price                                 |
+| tradeTimestamp  | OffsetDateTime | Timestamp of the trade                      |
+| version         | Integer        | Version for optimistic locking              |
+| blotterId       | Integer        | Foreign key to blotter                      |
+
+**TradeOrderPostDTO** (POST Request)
+
+| Field           | Type           | Description                                 |
+|-----------------|----------------|---------------------------------------------|
+| orderId         | Integer        | Order identifier                            |
+| portfolioId     | String         | Portfolio identifier                        |
+| orderType       | String         | Order type                                  |
+| securityId      | String         | Security identifier                         |
+| quantity        | BigDecimal     | Quantity ordered                            |
+| limitPrice      | BigDecimal     | Limit price                                 |
+| tradeTimestamp  | OffsetDateTime | Timestamp of the trade                      |
+| blotterId       | Integer        | Foreign key to blotter                      |
+
+---
 
 ### Execution DTOs
-- **ExecutionResponseDTO**: Contains all fields from the execution table, with all foreign keys as nested ResponseDTOs.
-  - id: Integer
-  - executionTimestamp: OffsetDateTime
-  - executionStatus: ExecutionStatusResponseDTO
-  - blotter: BlotterResponseDTO
-  - tradeType: TradeTypeResponseDTO
-  - tradeOrder: TradeOrderResponseDTO
-  - destination: DestinationResponseDTO
-  - quantityOrdered: Short
-  - quantityPlaced: BigDecimal
-  - quantityFilled: BigDecimal
-  - limitPrice: BigDecimal
-  - version: Integer
-- **ExecutionPutDTO**: Contains all fields from the execution table (for PUT requests, no nesting).
-  - id: Integer
-  - executionTimestamp: OffsetDateTime
-  - executionStatusId: Integer
-  - blotterId: Integer
-  - tradeTypeId: Integer
-  - tradeOrderId: Integer
-  - destinationId: Integer
-  - quantityOrdered: Short
-  - quantityPlaced: BigDecimal
-  - quantityFilled: BigDecimal
-  - limitPrice: BigDecimal
-  - version: Integer
-- **ExecutionPostDTO**: Contains all fields except id and version (for POST requests, no nesting).
-  - executionTimestamp: OffsetDateTime
-  - executionStatusId: Integer
-  - blotterId: Integer
-  - tradeTypeId: Integer
-  - tradeOrderId: Integer
-  - destinationId: Integer
-  - quantityOrdered: Short
-  - quantityPlaced: BigDecimal
-  - quantityFilled: BigDecimal
-  - limitPrice: BigDecimal
 
+**ExecutionResponseDTO** (Response)
+
+| Field              | Type                        | Description                                 |
+|--------------------|----------------------------|---------------------------------------------|
+| id                 | Integer                     | Unique identifier                           |
+| executionTimestamp | OffsetDateTime              | Timestamp of execution                      |
+| executionStatus    | ExecutionStatusResponseDTO  | Nested DTO for execution status             |
+| blotter            | BlotterResponseDTO          | Nested DTO for blotter                      |
+| tradeType          | TradeTypeResponseDTO        | Nested DTO for trade type                   |
+| tradeOrder         | TradeOrderResponseDTO       | Nested DTO for trade order                  |
+| destination        | DestinationResponseDTO      | Nested DTO for destination                  |
+| quantityOrdered    | Short                       | Quantity ordered                            |
+| quantityPlaced     | BigDecimal                  | Quantity placed                             |
+| quantityFilled     | BigDecimal                  | Quantity filled                             |
+| limitPrice         | BigDecimal                  | Limit price                                 |
+| version            | Integer                     | Version for optimistic locking              |
+
+**ExecutionPutDTO** (PUT Request)
+
+| Field              | Type           | Description                                 |
+|--------------------|----------------|---------------------------------------------|
+| id                 | Integer        | Unique identifier                           |
+| executionTimestamp | OffsetDateTime | Timestamp of execution                      |
+| executionStatusId  | Integer        | Foreign key to execution status              |
+| blotterId          | Integer        | Foreign key to blotter                      |
+| tradeTypeId        | Integer        | Foreign key to trade type                   |
+| tradeOrderId       | Integer        | Foreign key to trade order                  |
+| destinationId      | Integer        | Foreign key to destination                  |
+| quantityOrdered    | Short          | Quantity ordered                            |
+| quantityPlaced     | BigDecimal     | Quantity placed                             |
+| quantityFilled     | BigDecimal     | Quantity filled                             |
+| limitPrice         | BigDecimal     | Limit price                                 |
+| version            | Integer        | Version for optimistic locking              |
+
+**ExecutionPostDTO** (POST Request)
+
+| Field              | Type           | Description                                 |
+|--------------------|----------------|---------------------------------------------|
+| executionTimestamp | OffsetDateTime | Timestamp of execution                      |
+| executionStatusId  | Integer        | Foreign key to execution status              |
+| blotterId          | Integer        | Foreign key to blotter                      |
+| tradeTypeId        | Integer        | Foreign key to trade type                   |
+| tradeOrderId       | Integer        | Foreign key to trade order                  |
+| destinationId      | Integer        | Foreign key to destination                  |
+| quantityOrdered    | Short          | Quantity ordered                            |
+| quantityPlaced     | BigDecimal     | Quantity placed                             |
+| quantityFilled     | BigDecimal     | Quantity filled                             |
+| limitPrice         | BigDecimal     | Limit price                                 |
+
+## APIs
+
+### Blotter APIs
+
+| Verb   | URI                        | Request DTO         | Response DTO           | Description                                 |
+|--------|----------------------------|---------------------|------------------------|---------------------------------------------|
+| GET    | /api/v1/blotters           |                     | [BlotterResponseDTO]   | Get all blotters                            |
+| GET    | /api/v1/blotter/{id}       |                     | BlotterResponseDTO     | Get a single blotter by ID                  |
+| POST   | /api/v1/blotters           | BlotterPostDTO      | BlotterResponseDTO     | Create a new blotter                        |
+| PUT    | /api/v1/blotter/{id}       | BlotterPutDTO       | BlotterResponseDTO     | Update an existing blotter by ID            |
+| DELETE | /api/v1/blotter/{id}?version={version} |         |                        | Delete a blotter by ID and version          |
+
+### TradeType APIs
+
+| Verb   | URI                          | Request DTO         | Response DTO             | Description                                 |
+|--------|------------------------------|---------------------|--------------------------|---------------------------------------------|
+| GET    | /api/v1/tradeTypes           |                     | [TradeTypeResponseDTO]   | Get all trade types                         |
+| GET    | /api/v1/tradeType/{id}       |                     | TradeTypeResponseDTO     | Get a single trade type by ID               |
+| POST   | /api/v1/tradeTypes           | TradeTypePostDTO    | TradeTypeResponseDTO     | Create a new trade type                     |
+| PUT    | /api/v1/tradeType/{id}       | TradeTypePutDTO     | TradeTypeResponseDTO     | Update an existing trade type by ID         |
+| DELETE | /api/v1/tradeType/{id}?version={version} |         |                          | Delete a trade type by ID and version        |
+
+### Destination APIs
+
+| Verb   | URI                              | Request DTO            | Response DTO                | Description                                 |
+|--------|-----------------------------------|------------------------|-----------------------------|---------------------------------------------|
+| GET    | /api/v1/destinations             |                        | [DestinationResponseDTO]    | Get all destinations                        |
+| GET    | /api/v1/destination/{id}         |                        | DestinationResponseDTO      | Get a single destination by ID              |
+| POST   | /api/v1/destinations             | DestinationPostDTO     | DestinationResponseDTO      | Create a new destination                    |
+| PUT    | /api/v1/destination/{id}         | DestinationPutDTO      | DestinationResponseDTO      | Update an existing destination by ID        |
+| DELETE | /api/v1/destination/{id}?version={version} |                |                             | Delete a destination by ID and version       |
+
+### ExecutionStatus APIs
+
+| Verb   | URI                                      | Request DTO                | Response DTO                   | Description                                 |
+|--------|-------------------------------------------|----------------------------|--------------------------------|---------------------------------------------|
+| GET    | /api/v1/executionStatuses                |                            | [ExecutionStatusResponseDTO]   | Get all execution statuses                  |
+| GET    | /api/v1/executionStatus/{id}             |                            | ExecutionStatusResponseDTO     | Get a single execution status by ID         |
+| POST   | /api/v1/executionStatuses                | ExecutionStatusPostDTO     | ExecutionStatusResponseDTO     | Create a new execution status               |
+| PUT    | /api/v1/executionStatus/{id}             | ExecutionStatusPutDTO      | ExecutionStatusResponseDTO     | Update an existing execution status by ID   |
+| DELETE | /api/v1/executionStatus/{id}?version={version} |                        |                                | Delete an execution status by ID and version |
+
+### TradeOrder APIs
+
+| Verb   | URI                              | Request DTO            | Response DTO                | Description                                 |
+|--------|-----------------------------------|------------------------|-----------------------------|---------------------------------------------|
+| GET    | /api/v1/tradeOrders              |                        | [TradeOrderResponseDTO]     | Get all trade orders                        |
+| GET    | /api/v1/tradeOrder/{id}          |                        | TradeOrderResponseDTO       | Get a single trade order by ID              |
+| POST   | /api/v1/tradeOrders              | TradeOrderPostDTO      | TradeOrderResponseDTO       | Create a new trade order                    |
+| PUT    | /api/v1/tradeOrder/{id}          | TradeOrderPutDTO       | TradeOrderResponseDTO       | Update an existing trade order by ID        |
+| DELETE | /api/v1/tradeOrder/{id}?version={version} |                |                             | Delete a trade order by ID and version       |
+
+### Execution APIs
+
+| Verb   | URI                              | Request DTO            | Response DTO                | Description                                 |
+|--------|-----------------------------------|------------------------|-----------------------------|---------------------------------------------|
+| GET    | /api/v1/executions               |                        | [ExecutionResponseDTO]      | Get all executions                          |
+| GET    | /api/v1/execution/{id}           |                        | ExecutionResponseDTO        | Get a single execution by ID                |
+| POST   | /api/v1/executions               | ExecutionPostDTO       | ExecutionResponseDTO        | Create a new execution                      |
+| PUT    | /api/v1/execution/{id}           | ExecutionPutDTO        | ExecutionResponseDTO        | Update an existing execution by ID          |
+| DELETE | /api/v1/execution/{id}?version={version} |                |                             | Delete an execution by ID and version        |
