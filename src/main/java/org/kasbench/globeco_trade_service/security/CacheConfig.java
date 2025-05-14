@@ -15,7 +15,7 @@ import java.util.concurrent.TimeUnit;
 public class CacheConfig {
     @Bean
     public CacheManager cacheManager() {
-        CaffeineCacheManager cacheManager = new CaffeineCacheManager("securityTypes", "securities", "blotters");
+        CaffeineCacheManager cacheManager = new CaffeineCacheManager("securityTypes", "securities", "blotters", "tradeOrders");
         cacheManager.setCaffeine(Caffeine.newBuilder().expireAfterWrite(5, TimeUnit.MINUTES));
         return cacheManager;
     }
