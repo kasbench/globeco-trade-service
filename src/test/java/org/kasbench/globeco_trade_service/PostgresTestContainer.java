@@ -2,6 +2,7 @@ package org.kasbench.globeco_trade_service;
 
 import org.testcontainers.containers.PostgreSQLContainer;
 
+@SuppressWarnings("resource")
 public class PostgresTestContainer {
     private static final PostgreSQLContainer<?> container;
 

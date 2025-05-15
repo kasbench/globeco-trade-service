@@ -1,11 +1,9 @@
 package org.kasbench.globeco_trade_service;
 
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.TestInstance;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
-import org.kasbench.globeco_trade_service.PostgresTestContainer;
 
 @SpringBootTest
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
