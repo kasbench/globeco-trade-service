@@ -17,7 +17,7 @@ spec:
         - name: globeco-trade-service
           image: globeco-trade-service:latest
           ports:
-            - containerPort: 8002
+            - containerPort: 8082
           resources:
             requests:
               cpu: 100m
@@ -28,21 +28,21 @@ spec:
           livenessProbe:
             httpGet:
               path: /api/v1/health/liveness
-              port: 8002
+              port: 8082
             initialDelaySeconds: 10
             periodSeconds: 10
             timeoutSeconds: 240
           readinessProbe:
             httpGet:
               path: /api/v1/health/readiness
-              port: 8002
+              port: 8082
             initialDelaySeconds: 10
             periodSeconds: 10
             timeoutSeconds: 5
           startupProbe:
             httpGet:
               path: /api/v1/health/startup
-              port: 8002
+              port: 8082
             failureThreshold: 30
             periodSeconds: 10
             timeoutSeconds: 5
@@ -78,6 +78,6 @@ spec:
     app: globeco-trade-service
   ports:
     - protocol: TCP
-      port: 8002
-      targetPort: 8002
+      port: 8082
+      targetPort: 8082
   type: ClusterIP 

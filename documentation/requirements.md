@@ -10,7 +10,7 @@ This microservice is part of the GlobeCo suite of applications for benchmarking 
 
 Name of service: Trade Service <br>
 Host: globeco-trade-service <br>
-Port: 8002 <br>
+Port: 8082 <br>
 
 Author: Noah Kriehger <br>
 Email: noah@kasbench.org
