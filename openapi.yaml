@@ -294,6 +294,102 @@ paths:
           description: Destination deleted
         '404':
           description: Destination not found
+  /tradeTypes:
+    get:
+      summary: Get all trade types
+      operationId: getAllTradeTypes
+      tags: [TradeType]
+      responses:
+        '200':
+          description: List of trade types
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TradeTypeResponseDTO'
+    post:
+      summary: Create a new trade type
+      operationId: createTradeType
+      tags: [TradeType]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TradeTypePostDTO'
+      responses:
+        '201':
+          description: Trade type created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TradeTypeResponseDTO'
+  /tradeType/{id}:
+    get:
+      summary: Get a trade type by ID
+      operationId: getTradeTypeById
+      tags: [TradeType]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Trade type found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TradeTypeResponseDTO'
+        '404':
+          description: Trade type not found
+    put:
+      summary: Update a trade type by ID
+      operationId: updateTradeType
+      tags: [TradeType]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TradeTypePutDTO'
+      responses:
+        '200':
+          description: Trade type updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TradeTypeResponseDTO'
+        '404':
+          description: Trade type not found
+    delete:
+      summary: Delete a trade type by ID and version
+      operationId: deleteTradeType
+      tags: [TradeType]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: version
+          in: query
+          required: true
+          schema:
+            type: integer
+      responses:
+        '204':
+          description: Trade type deleted
+        '404':
+          description: Trade type not found
 components:
   schemas:
     BlotterResponseDTO:
@@ -430,6 +526,38 @@ components:
           type: integer
       required: [id, abbreviation, description, version]
     DestinationPostDTO:
+      type: object
+      properties:
+        abbreviation:
+          type: string
+        description:
+          type: string
+      required: [abbreviation, description]
+    TradeTypeResponseDTO:
+      type: object
+      properties:
+        id:
+          type: integer
+        abbreviation:
+          type: string
+        description:
+          type: string
+        version:
+          type: integer
+      required: [id, abbreviation, description, version]
+    TradeTypePutDTO:
+      type: object
+      properties:
+        id:
+          type: integer
+        abbreviation:
+          type: string
+        description:
+          type: string
+        version:
+          type: integer
+      required: [id, abbreviation, description, version]
+    TradeTypePostDTO:
       type: object
       properties:
         abbreviation:

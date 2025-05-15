@@ -505,3 +505,17 @@ Action: Updated the log to record the request. Next, I will:
 3. All actions logged as required.
 
 ---
+
+Request: Update the README.md file by adding full documentation of the tradeType data model and API.
+
+Action: Updated the log to record the request. Next, I will:
+1. Added a section to README.md describing the tradeType data model, including entity fields, DTOs (Response, Put, Post), and a table of all tradeType API endpoints with request/response DTOs and descriptions. Included example requests and responses. Ensured style and structure are consistent with requirements.md and codebase conventions. All actions logged as required.
+
+---
+
+Request: Update the OpenAPI schema openapi.yaml in the project root. Add the full specification for the tradeType API.
+
+Action: Updated the log to record the request. Next, I will:
+1. Updated openapi.yaml to include the full OpenAPI 3.0.3 specification for the tradeType API, documenting all endpoints (GET all, GET by id, POST, PUT, DELETE), request/response schemas, parameters, and error responses. Ensured consistency with README.md and requirements.md documentation. All actions logged as required.
+
+---

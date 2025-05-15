@@ -319,3 +319,92 @@ HTTP/1.1 200 OK
   }
 ]
 ```
+
+## TradeType Data Model
+
+The **trade_type** table represents a type of trade (e.g., Buy, Sell, Short, Cover, Exercise). Each trade type has an abbreviation, a description, and a version for optimistic locking.
+
+### Entity Fields
+| Field         | Type    | Description                      |
+|-------------- |---------|----------------------------------|
+| id            | Integer | Unique identifier                |
+| abbreviation  | String  | Abbreviation for the trade type  |
+| description   | String  | Description of the trade type    |
+| version       | Integer | Version for optimistic locking   |
+
+### DTOs
+
+#### TradeTypeResponseDTO (Response)
+| Field         | Type    | Description                      |
+|-------------- |---------|----------------------------------|
+| id            | Integer | Unique identifier                |
+| abbreviation  | String  | Abbreviation for the trade type  |
+| description   | String  | Description of the trade type    |
+| version       | Integer | Version for optimistic locking   |
+
+#### TradeTypePutDTO (PUT Request)
+| Field         | Type    | Description                      |
+|-------------- |---------|----------------------------------|
+| id            | Integer | Unique identifier                |
+| abbreviation  | String  | Abbreviation for the trade type  |
+| description   | String  | Description of the trade type    |
+| version       | Integer | Version for optimistic locking   |
+
+#### TradeTypePostDTO (POST Request)
+| Field         | Type    | Description                      |
+|-------------- |---------|----------------------------------|
+| abbreviation  | String  | Abbreviation for the trade type  |
+| description   | String  | Description of the trade type    |
+
+## TradeType API
+
+All endpoints are prefixed with `/api/v1`.
+
+| Verb   | URI                          | Request DTO         | Response DTO             | Description                                 |
+|--------|------------------------------|---------------------|--------------------------|---------------------------------------------|
+| GET    | /api/v1/tradeTypes           |                     | [TradeTypeResponseDTO]   | Get all trade types                         |
+| GET    | /api/v1/tradeType/{id}       |                     | TradeTypeResponseDTO     | Get a single trade type by ID               |
+| POST   | /api/v1/tradeTypes           | TradeTypePostDTO    | TradeTypeResponseDTO     | Create a new trade type                     |
+| PUT    | /api/v1/tradeType/{id}       | TradeTypePutDTO     | TradeTypeResponseDTO     | Update an existing trade type by ID         |
+| DELETE | /api/v1/tradeType/{id}?version={version} |         |                          | Delete a trade type by ID and version        |
+
+### Example Request/Response
+
+#### Create TradeType (POST)
+```
+POST /api/v1/tradeTypes
+Content-Type: application/json
+{
+  "abbreviation": "BUY",
+  "description": "Buy"
+}
+```
+
+#### Response
+```
+HTTP/1.1 201 Created
+{
+  "id": 1,
+  "abbreviation": "BUY",
+  "description": "Buy",
+  "version": 1
+}
+```
+
+#### Get All TradeTypes (GET)
+```
+GET /api/v1/tradeTypes
+```
+
+#### Response
+```
+HTTP/1.1 200 OK
+[
+  {
+    "id": 1,
+    "abbreviation": "BUY",
+    "description": "Buy",
+    "version": 1
+  }
+]
+```
