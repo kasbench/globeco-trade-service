@@ -12,6 +12,7 @@ import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 import java.util.Optional;
+import java.util.concurrent.ThreadLocalRandom;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -28,7 +29,7 @@ public class ExecutionStatusServiceImplTest {
 
     private ExecutionStatus buildExecutionStatus() {
         ExecutionStatus status = new ExecutionStatus();
-        status.setAbbreviation("NEW");
+        status.setAbbreviation("NEW" + ThreadLocalRandom.current().nextInt(1_000_000, Integer.MAX_VALUE));
         status.setDescription("New");
         return status;
     }

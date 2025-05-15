@@ -11,11 +11,13 @@ import org.springframework.cache.CacheManager;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.junit.jupiter.api.Disabled;
+import org.springframework.cache.interceptor.SimpleKey;
 
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.ThreadLocalRandom;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -81,9 +83,9 @@ public class ExecutionServiceImplTest {
         TradeType tradeTypeWithId = new TradeType();
         tradeTypeWithId.setId(tradeType.getId());
         execution.setTradeType(tradeTypeWithId);
-        // Create a new TradeOrder with a unique orderId for each Execution
+        // Create a new TradeOrder with a globally unique orderId for each Execution
         TradeOrder newTradeOrder = new TradeOrder();
-        newTradeOrder.setOrderId(ORDER_ID_GENERATOR.incrementAndGet());
+        newTradeOrder.setOrderId(ThreadLocalRandom.current().nextInt(1_000_000, Integer.MAX_VALUE));
         newTradeOrder.setPortfolioId("PORT1");
         newTradeOrder.setOrderType("BUY");
         newTradeOrder.setSecurityId("SEC1");
@@ -106,7 +108,7 @@ public class ExecutionServiceImplTest {
     }
 
     @Test
-    @Disabled("Disabled: persistent failures, will revisit at the end of implementation")
+    // @Disabled("Disabled: persistent failures, will revisit at the end of implementation")
     void testCreateAndGetExecution() {
         Execution execution = buildExecution();
         Execution created = executionService.createExecution(execution);
@@ -117,7 +119,7 @@ public class ExecutionServiceImplTest {
     }
 
     @Test
-    @Disabled("Disabled: persistent failures, will revisit at the end of implementation")
+    // @Disabled("Disabled: persistent failures, will revisit at the end of implementation")
     void testUpdateExecution() {
         Execution execution = buildExecution();
         Execution created = executionService.createExecution(execution);
@@ -127,7 +129,7 @@ public class ExecutionServiceImplTest {
     }
 
     @Test
-    @Disabled("Disabled: persistent failures, will revisit at the end of implementation")
+    // @Disabled("Disabled: persistent failures, will revisit at the end of implementation")
     void testDeleteExecution() {
         Execution execution = buildExecution();
         Execution created = executionService.createExecution(execution);
@@ -136,7 +138,7 @@ public class ExecutionServiceImplTest {
     }
 
     @Test
-    @Disabled("Disabled: persistent failures, will revisit at the end of implementation")
+    // @Disabled("Disabled: persistent failures, will revisit at the end of implementation")
     void testDeleteExecutionVersionMismatch() {
         Execution execution = buildExecution();
         Execution created = executionService.createExecution(execution);
@@ -144,7 +146,7 @@ public class ExecutionServiceImplTest {
     }
 
     @Test
-    @Disabled("Disabled: persistent failures, will revisit at the end of implementation")
+    // @Disabled("Disabled: persistent failures, will revisit at the end of implementation")
     void testGetAllExecutionsUsesCache() {
         cacheManager.getCache("executions").clear();
         Execution execution = buildExecution();
@@ -153,11 +155,11 @@ public class ExecutionServiceImplTest {
         executionService.getAllExecutions();
         // Second call should hit cache
         executionService.getAllExecutions();
-        assertNotNull(cacheManager.getCache("executions").get("org.springframework.cache.internal.SimpleKey []"));
+        assertNotNull(cacheManager.getCache("executions").get(SimpleKey.EMPTY));
     }
 
     @Test
-    @Disabled("Disabled: persistent failures, will revisit at the end of implementation")
+    // @Disabled("Disabled: persistent failures, will revisit at the end of implementation")
     void testGetExecutionByIdUsesCache() {
         cacheManager.getCache("executions").clear();
         Execution execution = buildExecution();
@@ -170,25 +172,25 @@ public class ExecutionServiceImplTest {
     }
 
     @Test
-    @Disabled("Disabled: persistent failures, will revisit at the end of implementation")
+    // @Disabled("Disabled: persistent failures, will revisit at the end of implementation")
     void testCacheEvictedOnCreateUpdateDelete() {
         cacheManager.getCache("executions").clear();
         Execution execution = buildExecution();
         executionService.createExecution(execution);
         executionService.getAllExecutions();
-        assertNotNull(cacheManager.getCache("executions").get("org.springframework.cache.internal.SimpleKey []"));
+        assertNotNull(cacheManager.getCache("executions").get(SimpleKey.EMPTY));
         // Update
         Execution created = executionService.getAllExecutions().get(0);
         created.setQuantityFilled(new BigDecimal("25.00"));
         executionService.updateExecution(created.getId(), created);
-        assertNull(cacheManager.getCache("executions").get("org.springframework.cache.internal.SimpleKey []"));
+        assertNull(cacheManager.getCache("executions").get(SimpleKey.EMPTY));
         // Create again
         executionService.createExecution(buildExecution());
         executionService.getAllExecutions();
-        assertNotNull(cacheManager.getCache("executions").get("org.springframework.cache.internal.SimpleKey []"));
+        assertNotNull(cacheManager.getCache("executions").get(SimpleKey.EMPTY));
         // Delete
         Execution toDelete = executionService.getAllExecutions().get(0);
         executionService.deleteExecution(toDelete.getId(), toDelete.getVersion());
-        assertNull(cacheManager.getCache("executions").get("org.springframework.cache.internal.SimpleKey []"));
+        assertNull(cacheManager.getCache("executions").get(SimpleKey.EMPTY));
     }
 } 

@@ -17,6 +17,8 @@ import java.util.Optional;
 import java.util.concurrent.ThreadLocalRandom;
 import org.springframework.cache.CacheManager;
 import org.springframework.test.annotation.DirtiesContext;
+import java.util.UUID;
+import org.kasbench.globeco_trade_service.repository.ExecutionRepository;
 
 @SpringBootTest
 public class TradeOrderServiceImplTest {
@@ -28,15 +30,18 @@ public class TradeOrderServiceImplTest {
     private BlotterRepository blotterRepository;
     @Autowired
     private CacheManager cacheManager;
+    @Autowired
+    private ExecutionRepository executionRepository;
 
     private TradeOrder createTradeOrder() {
+        String unique = Integer.toHexString(ThreadLocalRandom.current().nextInt(0, Integer.MAX_VALUE));
         Blotter blotter = new Blotter();
-        blotter.setAbbreviation("EQ");
-        blotter.setName("Equity");
+        blotter.setAbbreviation("EQ" + unique);
+        blotter.setName("Equity" + unique);
         blotter = blotterRepository.saveAndFlush(blotter);
 
         TradeOrder tradeOrder = new TradeOrder();
-        tradeOrder.setOrderId(ThreadLocalRandom.current().nextInt(1_000_000, 2_000_000));
+        tradeOrder.setOrderId(Math.abs(UUID.randomUUID().hashCode()));
         tradeOrder.setPortfolioId("PORT123");
         tradeOrder.setOrderType("BUY");
         tradeOrder.setSecurityId("SEC456");
@@ -117,6 +122,8 @@ public class TradeOrderServiceImplTest {
         createTradeOrder();
         // First call: should hit DB
         Assertions.assertFalse(tradeOrderService.getAllTradeOrders().isEmpty());
+        // Remove all Executions first to avoid FK constraint
+        executionRepository.deleteAll();
         // Remove all from DB directly
         tradeOrderRepository.deleteAll();
         // Second call: should hit cache, still returns the entity
