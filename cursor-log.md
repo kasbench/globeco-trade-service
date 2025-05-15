@@ -617,3 +617,12 @@ Action:
    - HorizontalPodAutoscaler (HPA) scaling from 1 to 100 pods based on CPU utilization.
    - ClusterIP Service exposing port 8002.
 2. Ensured all configuration matches the requirements in the execution plan.
+
+---
+
+Request: Expose the OpenAPI schema as an endpoint using Springdoc OpenAPI. (step 61 of execution-plan.md)
+
+Action:
+1. Created OpenApiController to serve the static openapi.yaml file at /api/v1/openapi.yaml using Spring's Resource handling.
+2. Endpoint returns the OpenAPI YAML with content type application/yaml, making the API spec available for documentation and tooling.
+3. Ensured endpoint path and behavior are consistent with project conventions and requirements.
