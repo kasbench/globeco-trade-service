@@ -408,3 +408,92 @@ HTTP/1.1 200 OK
   }
 ]
 ```
+
+## ExecutionStatus Data Model
+
+The **execution_status** table represents the status of an execution (e.g., New, Sent, Filled, Cancelled). Each execution status has an abbreviation, a description, and a version for optimistic locking.
+
+### Entity Fields
+| Field         | Type    | Description                      |
+|-------------- |---------|----------------------------------|
+| id            | Integer | Unique identifier                |
+| abbreviation  | String  | Abbreviation for the status      |
+| description   | String  | Description of the status        |
+| version       | Integer | Version for optimistic locking   |
+
+### DTOs
+
+#### ExecutionStatusResponseDTO (Response)
+| Field         | Type    | Description                      |
+|-------------- |---------|----------------------------------|
+| id            | Integer | Unique identifier                |
+| abbreviation  | String  | Abbreviation for the status      |
+| description   | String  | Description of the status        |
+| version       | Integer | Version for optimistic locking   |
+
+#### ExecutionStatusPutDTO (PUT Request)
+| Field         | Type    | Description                      |
+|-------------- |---------|----------------------------------|
+| id            | Integer | Unique identifier                |
+| abbreviation  | String  | Abbreviation for the status      |
+| description   | String  | Description of the status        |
+| version       | Integer | Version for optimistic locking   |
+
+#### ExecutionStatusPostDTO (POST Request)
+| Field         | Type    | Description                      |
+|-------------- |---------|----------------------------------|
+| abbreviation  | String  | Abbreviation for the status      |
+| description   | String  | Description of the status        |
+
+## ExecutionStatus API
+
+All endpoints are prefixed with `/api/v1`.
+
+| Verb   | URI                                      | Request DTO                | Response DTO                   | Description                                 |
+|--------|-------------------------------------------|----------------------------|--------------------------------|---------------------------------------------|
+| GET    | /api/v1/executionStatuses                |                            | [ExecutionStatusResponseDTO]   | Get all execution statuses                  |
+| GET    | /api/v1/executionStatuses/{id}           |                            | ExecutionStatusResponseDTO     | Get a single execution status by ID         |
+| POST   | /api/v1/executionStatuses                | ExecutionStatusPostDTO     | ExecutionStatusResponseDTO     | Create a new execution status               |
+| PUT    | /api/v1/executionStatuses/{id}           | ExecutionStatusPutDTO      | ExecutionStatusResponseDTO     | Update an existing execution status by ID   |
+| DELETE | /api/v1/executionStatuses/{id}?version={version} |                        |                                | Delete an execution status by ID and version |
+
+### Example Request/Response
+
+#### Create ExecutionStatus (POST)
+```
+POST /api/v1/executionStatuses
+Content-Type: application/json
+{
+  "abbreviation": "NEW",
+  "description": "New"
+}
+```
+
+#### Response
+```
+HTTP/1.1 201 Created
+{
+  "id": 1,
+  "abbreviation": "NEW",
+  "description": "New",
+  "version": 1
+}
+```
+
+#### Get All ExecutionStatuses (GET)
+```
+GET /api/v1/executionStatuses
+```
+
+#### Response
+```
+HTTP/1.1 200 OK
+[
+  {
+    "id": 1,
+    "abbreviation": "NEW",
+    "description": "New",
+    "version": 1
+  }
+]
+```

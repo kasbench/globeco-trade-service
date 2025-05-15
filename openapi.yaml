@@ -390,6 +390,104 @@ paths:
           description: Trade type deleted
         '404':
           description: Trade type not found
+  /executionStatuses:
+    get:
+      summary: Get all execution statuses
+      operationId: getAllExecutionStatuses
+      tags: [ExecutionStatus]
+      responses:
+        '200':
+          description: List of execution statuses
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ExecutionStatusResponseDTO'
+    post:
+      summary: Create a new execution status
+      operationId: createExecutionStatus
+      tags: [ExecutionStatus]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ExecutionStatusPostDTO'
+      responses:
+        '201':
+          description: Execution status created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExecutionStatusResponseDTO'
+  /executionStatuses/{id}:
+    get:
+      summary: Get an execution status by ID
+      operationId: getExecutionStatusById
+      tags: [ExecutionStatus]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Execution status found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExecutionStatusResponseDTO'
+        '404':
+          description: Execution status not found
+    put:
+      summary: Update an execution status by ID
+      operationId: updateExecutionStatus
+      tags: [ExecutionStatus]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ExecutionStatusPutDTO'
+      responses:
+        '200':
+          description: Execution status updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExecutionStatusResponseDTO'
+        '404':
+          description: Execution status not found
+    delete:
+      summary: Delete an execution status by ID and version
+      operationId: deleteExecutionStatus
+      tags: [ExecutionStatus]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: version
+          in: query
+          required: true
+          schema:
+            type: integer
+      responses:
+        '204':
+          description: Execution status deleted
+        '404':
+          description: Execution status not found
+        '409':
+          description: Version mismatch
 components:
   schemas:
     BlotterResponseDTO:
@@ -558,6 +656,38 @@ components:
           type: integer
       required: [id, abbreviation, description, version]
     TradeTypePostDTO:
+      type: object
+      properties:
+        abbreviation:
+          type: string
+        description:
+          type: string
+      required: [abbreviation, description]
+    ExecutionStatusResponseDTO:
+      type: object
+      properties:
+        id:
+          type: integer
+        abbreviation:
+          type: string
+        description:
+          type: string
+        version:
+          type: integer
+      required: [id, abbreviation, description, version]
+    ExecutionStatusPutDTO:
+      type: object
+      properties:
+        id:
+          type: integer
+        abbreviation:
+          type: string
+        description:
+          type: string
+        version:
+          type: integer
+      required: [id, abbreviation, description, version]
+    ExecutionStatusPostDTO:
       type: object
       properties:
         abbreviation:
