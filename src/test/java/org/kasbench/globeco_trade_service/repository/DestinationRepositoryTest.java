@@ -2,13 +2,10 @@ package org.kasbench.globeco_trade_service.repository;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Disabled;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.kasbench.globeco_trade_service.entity.Destination;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.dao.OptimisticLockingFailureException;
-import org.springframework.test.context.junit.jupiter.SpringExtension;
-
 import static org.junit.jupiter.api.Assertions.*;
 
 @SpringBootTest
@@ -35,7 +32,7 @@ public class DestinationRepositoryTest extends org.kasbench.globeco_trade_servic
     }
 
     @Test
-    @Disabled("Disabled: persistent failures with optimistic locking exception detection in test environment")
+    // @Disabled("Disabled: persistent failures with optimistic locking exception detection in test environment")
     void testOptimisticConcurrency() {
         Destination destination = new Destination();
         destination.setAbbreviation("ML");

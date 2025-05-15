@@ -35,7 +35,7 @@ public class TradeTypeRepositoryTest extends org.kasbench.globeco_trade_service.
     }
 
     @Test
-    @Disabled("Disabled: persistent failures with optimistic locking exception detection in test environment")
+    // @Disabled("Disabled: persistent failures with optimistic locking exception detection in test environment")
     void testOptimisticConcurrency() {
         TradeType tradeType = new TradeType();
         tradeType.setAbbreviation("BUY");

@@ -647,15 +647,15 @@ Action:
 
 **2024-05-15**
 
-**Request:** Fix the last remaining test error (contextLoads) by ensuring GlobecoTradeServiceApplicationTests uses the Testcontainers PostgreSQL instance.
+**Request:** Fix the failing optimistic concurrency test in ExecutionRepositoryTest so it passes like the other repositories.
 
 **Actions:**
-1. Updated GlobecoTradeServiceApplicationTests to extend AbstractPostgresContainerTest, so it uses the dynamic Testcontainers datasource like all other tests.
-2. Removed incorrect import for org.testcontainers.junit.jupiter.AbstractPostgresContainerTest.
-3. Ran the contextLoads test and confirmed it now passes.
-4. Ran the full test suite and confirmed that **all tests now pass successfully**.
+1. Refactored buildExecution() in ExecutionRepositoryTest to use unique/random values for all fields with unique or not-null constraints (especially TradeOrder.orderId, portfolioId, securityId, and abbreviations).
+2. Re-enabled the testOptimisticConcurrency test (removed @Disabled).
+3. Added cleanup logic to delete the created Execution entity after the test.
+4. Ran ExecutionRepositoryTest and confirmed that the optimistic concurrency test now passes successfully.
 
 **Rationale:**
-- The contextLoads test was failing because it used the default datasource config, not the Testcontainers instance. Extending the base test class ensures all tests use the same dynamic datasource and context.
+- The test was failing due to constraint violations from non-unique test data. Making all test data unique ensures the test only checks for optimistic locking, not unrelated constraint errors.
 
 ---

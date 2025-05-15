@@ -12,6 +12,8 @@ import org.junit.jupiter.api.Assertions;
 
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
+import java.util.concurrent.ThreadLocalRandom;
+import java.util.Random;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -32,25 +34,25 @@ public class ExecutionRepositoryTest extends org.kasbench.globeco_trade_service.
 
     private Execution buildExecution() {
         ExecutionStatus status = new ExecutionStatus();
-        status.setAbbreviation("NEW");
-        status.setDescription("New");
+        status.setAbbreviation("NEW" + ThreadLocalRandom.current().nextInt(1_000_000));
+        status.setDescription("New" + ThreadLocalRandom.current().nextInt(1_000_000));
         status = executionStatusRepository.save(status);
 
         Blotter blotter = new Blotter();
-        blotter.setAbbreviation("EQ");
-        blotter.setName("Equity");
+        blotter.setAbbreviation("EQ" + ThreadLocalRandom.current().nextInt(1_000_000));
+        blotter.setName("Equity" + ThreadLocalRandom.current().nextInt(1_000_000));
         blotter = blotterRepository.save(blotter);
 
         TradeType tradeType = new TradeType();
-        tradeType.setAbbreviation("BUY");
-        tradeType.setDescription("Buy");
+        tradeType.setAbbreviation("BUY" + ThreadLocalRandom.current().nextInt(1_000_000));
+        tradeType.setDescription("Buy" + ThreadLocalRandom.current().nextInt(1_000_000));
         tradeType = tradeTypeRepository.save(tradeType);
 
         TradeOrder tradeOrder = new TradeOrder();
-        tradeOrder.setOrderId(1001);
-        tradeOrder.setPortfolioId("PORT1");
+        tradeOrder.setOrderId(ThreadLocalRandom.current().nextInt(1_000_000, 2_000_000));
+        tradeOrder.setPortfolioId(randomAlphaNum(12));
         tradeOrder.setOrderType("BUY");
-        tradeOrder.setSecurityId("SEC1");
+        tradeOrder.setSecurityId(randomAlphaNum(12));
         tradeOrder.setQuantity(new BigDecimal("100.00"));
         tradeOrder.setLimitPrice(new BigDecimal("10.00"));
         tradeOrder.setTradeTimestamp(OffsetDateTime.now());
@@ -58,8 +60,8 @@ public class ExecutionRepositoryTest extends org.kasbench.globeco_trade_service.
         tradeOrder = tradeOrderRepository.save(tradeOrder);
 
         Destination destination = new Destination();
-        destination.setAbbreviation("ML");
-        destination.setDescription("Merrill Lynch");
+        destination.setAbbreviation("ML" + ThreadLocalRandom.current().nextInt(1_000_000));
+        destination.setDescription("Merrill Lynch" + ThreadLocalRandom.current().nextInt(1_000_000));
         destination = destinationRepository.save(destination);
 
         Execution execution = new Execution();
@@ -74,6 +76,16 @@ public class ExecutionRepositoryTest extends org.kasbench.globeco_trade_service.
         execution.setQuantityFilled(new BigDecimal("0.00"));
         execution.setLimitPrice(new BigDecimal("10.00"));
         return execution;
+    }
+
+    private static String randomAlphaNum(int len) {
+        String chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+        StringBuilder sb = new StringBuilder();
+        Random r = new Random();
+        for (int i = 0; i < len; i++) {
+            sb.append(chars.charAt(r.nextInt(chars.length())));
+        }
+        return sb.toString();
     }
 
     @Test
@@ -92,7 +104,6 @@ public class ExecutionRepositoryTest extends org.kasbench.globeco_trade_service.
         assertFalse(executionRepository.findById(updated.getId()).isPresent());
     }
 
-    @Disabled("Disabled: persistent failures with optimistic locking exception detection in test environment")
     @Test
     void testOptimisticConcurrency() {
         Execution execution = buildExecution();
@@ -102,6 +113,8 @@ public class ExecutionRepositoryTest extends org.kasbench.globeco_trade_service.
         e1.setQuantityFilled(new BigDecimal("10.00"));
         executionRepository.saveAndFlush(e1);
         e2.setQuantityFilled(new BigDecimal("20.00"));
-        assertThrows(OptimisticLockingFailureException.class, () -> executionRepository.saveAndFlush(e2));
+        org.junit.jupiter.api.Assertions.assertThrows(org.springframework.dao.OptimisticLockingFailureException.class, () -> executionRepository.saveAndFlush(e2));
+        // Clean up
+        executionRepository.deleteById(saved.getId());
     }
 } 

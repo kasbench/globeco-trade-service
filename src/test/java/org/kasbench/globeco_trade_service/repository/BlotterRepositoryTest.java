@@ -36,7 +36,7 @@ public class BlotterRepositoryTest extends org.kasbench.globeco_trade_service.Ab
         Assertions.assertTrue(blotterRepository.findById(updated.getId()).isEmpty());
     }
 
-    @Disabled("Disabled: persistent failures with optimistic locking exception detection in test environment")
+    // @Disabled("Disabled: persistent failures with optimistic locking exception detection in test environment")
     @Test
     void testOptimisticConcurrency() {
         // Disabled: persistent failures with optimistic locking exception detection in test environment

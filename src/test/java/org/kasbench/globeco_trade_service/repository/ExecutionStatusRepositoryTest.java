@@ -35,7 +35,7 @@ public class ExecutionStatusRepositoryTest extends org.kasbench.globeco_trade_se
     }
 
     @Test
-    @Disabled("Disabled: persistent failures with optimistic locking exception detection in test environment")
+    // @Disabled("Disabled: persistent failures with optimistic locking exception detection in test environment")
     void testOptimisticConcurrency() {
         ExecutionStatus status = new ExecutionStatus();
         status.setAbbreviation("NEW");
