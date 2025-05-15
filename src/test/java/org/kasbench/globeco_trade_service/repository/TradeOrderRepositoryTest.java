@@ -2,18 +2,15 @@ package org.kasbench.globeco_trade_service.repository;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.AfterEach;
 import org.kasbench.globeco_trade_service.entity.Blotter;
 import org.kasbench.globeco_trade_service.entity.TradeOrder;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.dao.OptimisticLockingFailureException;
-import org.springframework.test.annotation.DirtiesContext;
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.concurrent.ThreadLocalRandom;
-import java.util.UUID;
 import java.util.Random;
 
 @SpringBootTest

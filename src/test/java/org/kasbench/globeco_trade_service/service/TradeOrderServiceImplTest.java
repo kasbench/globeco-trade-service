@@ -2,7 +2,6 @@ package org.kasbench.globeco_trade_service.service;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.Disabled;
 import org.kasbench.globeco_trade_service.entity.Blotter;
 import org.kasbench.globeco_trade_service.entity.TradeOrder;
 import org.kasbench.globeco_trade_service.repository.BlotterRepository;

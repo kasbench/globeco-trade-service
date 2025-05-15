@@ -2,13 +2,9 @@ package org.kasbench.globeco_trade_service.repository;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.Disabled;
 import org.kasbench.globeco_trade_service.entity.Blotter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
-import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
-import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
 
 @SpringBootTest
 public class BlotterRepositoryTest extends org.kasbench.globeco_trade_service.AbstractPostgresContainerTest {

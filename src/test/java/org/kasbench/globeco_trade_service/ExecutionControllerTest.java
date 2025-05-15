@@ -27,8 +27,6 @@ public class ExecutionControllerTest extends org.kasbench.globeco_trade_service.
     @Autowired
     private ObjectMapper objectMapper;
     @Autowired
-    private ExecutionRepository executionRepository;
-    @Autowired
     private ExecutionStatusRepository executionStatusRepository;
     @Autowired
     private BlotterRepository blotterRepository;

@@ -1,7 +1,6 @@
 package org.kasbench.globeco_trade_service.repository;
 
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.Disabled;
 import org.kasbench.globeco_trade_service.entity.Destination;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
