@@ -88,6 +88,7 @@ PLEASE REMEMBER: When logging to cursor-log.md, append each entry beneath the pr
 54. Please update the README.md file by adding full documentation of the **executionStatus** data model and API.  Please add an entry with this prompt and your actions in the cursor-log.md file following the instructions in the file.
 55. Please update the OpenAPI schema @openapi.yaml in the project root.  Please add the full specification for the **executionStatus** API.  Please add an entry with this prompt and your actions in the cursor-log.md file following the instructions in the file.
 
+IMPORTANT: SKIPPED 28 - 31.  GO BACK BEFORE PROCEEDING.  GO BACK TO ExecutionServiceImplTest and re-enable.
 
 
 56. Please compare the README.md file to the code to verify that the README is completely consistent with the code.  If it is not, please make the required updates. Please add an entry with this prompt and your actions to the end of the cursor-log.md file following the instructions in the file.
@@ -96,4 +97,6 @@ PLEASE REMEMBER: When logging to cursor-log.md, append each entry beneath the pr
 59. We will be deploying this service to Kubernetes.  Please implement liveness, readiness, and startup health checks.  Please update the README.md file and openapi.yaml spec with the health check APIs.  Please be sure the URLs in the spec match the URLs in the API. Please add an entry with this prompt and your actions to the end of the cursor-log.md file following the instructions in the file.
 60. Please create all the files necessary to deploy to this application as a service to Kubernetes.  Please include the liveness, readiness, and startup probes you just created.  The deployment should start with one instance of the service and should scale up to a maximum of 100 instances.  It should have up 100 millicores and 200 MiB of memory.  The liveness probe should have a timeout (`timeoutSeconds`) of 240 seconds.  The name of the service is `globeco-trade-service` in the `globeco` namespace.  You do not need to create the namespace. Please add an entry with this prompt and your actions to the end of the cursor-log.md file following the instructions in the file.
 61. Please expose the OpenAPI schema as an endpoint using Springdoc OpenAPI.  Please add an entry with this prompt and your actions to the end of the cursor-log.md file following the instructions in the file.
+
+IMPORTANT: SKIPPED 28 - 31.   GO BACK TO ExecutionServiceImplTest and re-enable.
 
