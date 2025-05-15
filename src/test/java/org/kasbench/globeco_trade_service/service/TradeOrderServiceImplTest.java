@@ -130,6 +130,7 @@ public class TradeOrderServiceImplTest {
         Assertions.assertFalse(tradeOrderService.getAllTradeOrders().isEmpty());
     }
 
+    @SuppressWarnings("null")
     @Test
     @DirtiesContext
     void testCacheEvictedOnCreateUpdateDelete() {

@@ -4,7 +4,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.kasbench.globeco_trade_service.entity.TradeType;
-import org.kasbench.globeco_trade_service.repository.TradeTypeRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.cache.CacheManager;
@@ -21,8 +20,6 @@ import static org.junit.jupiter.api.Assertions.*;
 public class TradeTypeServiceImplTest {
     @Autowired
     private TradeTypeService tradeTypeService;
-    @Autowired
-    private TradeTypeRepository tradeTypeRepository;
     @Autowired
     private CacheManager cacheManager;
 
@@ -70,6 +67,7 @@ public class TradeTypeServiceImplTest {
         assertThrows(IllegalArgumentException.class, () -> tradeTypeService.deleteTradeType(created.getId(), created.getVersion() + 1));
     }
 
+    @SuppressWarnings("null")
     @Test
     void testGetAllTradeTypesUsesCache() {
         tradeTypeService.createTradeType(buildTradeType());
@@ -80,6 +78,7 @@ public class TradeTypeServiceImplTest {
         assertNotNull(cacheManager.getCache("tradeTypes").get(org.springframework.cache.interceptor.SimpleKey.EMPTY));
     }
 
+    @SuppressWarnings("null")
     @Test
     void testGetTradeTypeByIdUsesCache() {
         TradeType created = tradeTypeService.createTradeType(buildTradeType());
@@ -90,6 +89,7 @@ public class TradeTypeServiceImplTest {
         assertNotNull(cacheManager.getCache("tradeTypes").get(created.getId()));
     }
 
+    @SuppressWarnings("null")
     @Test
     void testCacheEvictedOnCreateUpdateDelete() {
         tradeTypeService.createTradeType(buildTradeType());

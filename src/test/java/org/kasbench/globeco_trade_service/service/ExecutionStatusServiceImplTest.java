@@ -4,7 +4,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.kasbench.globeco_trade_service.entity.ExecutionStatus;
-import org.kasbench.globeco_trade_service.repository.ExecutionStatusRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.cache.CacheManager;
@@ -22,8 +21,6 @@ import static org.junit.jupiter.api.Assertions.*;
 public class ExecutionStatusServiceImplTest {
     @Autowired
     private ExecutionStatusService executionStatusService;
-    @Autowired
-    private ExecutionStatusRepository executionStatusRepository;
     @Autowired
     private CacheManager cacheManager;
 
@@ -71,6 +68,7 @@ public class ExecutionStatusServiceImplTest {
         assertThrows(IllegalArgumentException.class, () -> executionStatusService.deleteExecutionStatus(created.getId(), created.getVersion() + 1));
     }
 
+    @SuppressWarnings("null")
     @Test
     void testGetAllExecutionStatusesUsesCache() {
         executionStatusService.createExecutionStatus(buildExecutionStatus());
@@ -81,6 +79,7 @@ public class ExecutionStatusServiceImplTest {
         assertNotNull(cacheManager.getCache("executionStatuses").get(org.springframework.cache.interceptor.SimpleKey.EMPTY));
     }
 
+    @SuppressWarnings("null")
     @Test
     void testGetExecutionStatusByIdUsesCache() {
         ExecutionStatus created = executionStatusService.createExecutionStatus(buildExecutionStatus());
@@ -91,6 +90,7 @@ public class ExecutionStatusServiceImplTest {
         assertNotNull(cacheManager.getCache("executionStatuses").get(created.getId()));
     }
 
+    @SuppressWarnings("null")
     @Test
     void testCacheEvictedOnCreateUpdateDelete() {
         executionStatusService.createExecutionStatus(buildExecutionStatus());

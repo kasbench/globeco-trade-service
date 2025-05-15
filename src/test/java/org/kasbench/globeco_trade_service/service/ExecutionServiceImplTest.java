@@ -10,13 +10,11 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.cache.CacheManager;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
-import org.junit.jupiter.api.Disabled;
 import org.springframework.cache.interceptor.SimpleKey;
 
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.Optional;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.ThreadLocalRandom;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -25,11 +23,8 @@ import static org.junit.jupiter.api.Assertions.*;
 @ExtendWith(SpringExtension.class)
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
 public class ExecutionServiceImplTest {
-    private static final AtomicInteger ORDER_ID_GENERATOR = new AtomicInteger(1000);
     @Autowired
     private ExecutionService executionService;
-    @Autowired
-    private ExecutionRepository executionRepository;
     @Autowired
     private ExecutionStatusRepository executionStatusRepository;
     @Autowired
@@ -145,6 +140,7 @@ public class ExecutionServiceImplTest {
         assertThrows(IllegalArgumentException.class, () -> executionService.deleteExecution(created.getId(), created.getVersion() + 1));
     }
 
+    @SuppressWarnings("null")
     @Test
     // @Disabled("Disabled: persistent failures, will revisit at the end of implementation")
     void testGetAllExecutionsUsesCache() {
@@ -158,6 +154,7 @@ public class ExecutionServiceImplTest {
         assertNotNull(cacheManager.getCache("executions").get(SimpleKey.EMPTY));
     }
 
+    @SuppressWarnings("null")
     @Test
     // @Disabled("Disabled: persistent failures, will revisit at the end of implementation")
     void testGetExecutionByIdUsesCache() {
@@ -171,6 +168,7 @@ public class ExecutionServiceImplTest {
         assertNotNull(cacheManager.getCache("executions").get(created.getId()));
     }
 
+    @SuppressWarnings("null")
     @Test
     // @Disabled("Disabled: persistent failures, will revisit at the end of implementation")
     void testCacheEvictedOnCreateUpdateDelete() {

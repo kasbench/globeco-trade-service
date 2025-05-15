@@ -3,7 +3,6 @@ package org.kasbench.globeco_trade_service;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.kasbench.globeco_trade_service.dto.BlotterResponseDTO;
 import org.kasbench.globeco_trade_service.dto.TradeOrderPostDTO;
 import org.kasbench.globeco_trade_service.dto.TradeOrderPutDTO;
 import org.kasbench.globeco_trade_service.entity.Blotter;

@@ -4,7 +4,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.kasbench.globeco_trade_service.entity.Destination;
-import org.kasbench.globeco_trade_service.repository.DestinationRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.cache.CacheManager;
@@ -22,8 +21,6 @@ import static org.junit.jupiter.api.Assertions.*;
 public class DestinationServiceImplTest {
     @Autowired
     private DestinationService destinationService;
-    @Autowired
-    private DestinationRepository destinationRepository;
     @Autowired
     private CacheManager cacheManager;
 
@@ -71,6 +68,7 @@ public class DestinationServiceImplTest {
         assertThrows(IllegalArgumentException.class, () -> destinationService.deleteDestination(created.getId(), created.getVersion() + 1));
     }
 
+    @SuppressWarnings("null")
     @Test
     void testGetAllDestinationsUsesCache() {
         destinationService.createDestination(buildDestination());
@@ -81,6 +79,7 @@ public class DestinationServiceImplTest {
         assertNotNull(cacheManager.getCache("destinations").get(SimpleKey.EMPTY));
     }
 
+    @SuppressWarnings("null")
     @Test
     void testGetDestinationByIdUsesCache() {
         Destination created = destinationService.createDestination(buildDestination());
@@ -91,6 +90,7 @@ public class DestinationServiceImplTest {
         assertNotNull(cacheManager.getCache("destinations").get(created.getId()));
     }
 
+    @SuppressWarnings("null")
     @Test
     void testCacheEvictedOnCreateUpdateDelete() {
         destinationService.createDestination(buildDestination());
