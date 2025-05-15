@@ -198,6 +198,102 @@ paths:
           description: Trade order deleted
         '404':
           description: Trade order not found
+  /destinations:
+    get:
+      summary: Get all destinations
+      operationId: getAllDestinations
+      tags: [Destination]
+      responses:
+        '200':
+          description: List of destinations
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/DestinationResponseDTO'
+    post:
+      summary: Create a new destination
+      operationId: createDestination
+      tags: [Destination]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DestinationPostDTO'
+      responses:
+        '201':
+          description: Destination created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DestinationResponseDTO'
+  /destinations/{id}:
+    get:
+      summary: Get a destination by ID
+      operationId: getDestinationById
+      tags: [Destination]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Destination found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DestinationResponseDTO'
+        '404':
+          description: Destination not found
+    put:
+      summary: Update a destination by ID
+      operationId: updateDestination
+      tags: [Destination]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DestinationPutDTO'
+      responses:
+        '200':
+          description: Destination updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DestinationResponseDTO'
+        '404':
+          description: Destination not found
+    delete:
+      summary: Delete a destination by ID and version
+      operationId: deleteDestination
+      tags: [Destination]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: version
+          in: query
+          required: true
+          schema:
+            type: integer
+      responses:
+        '204':
+          description: Destination deleted
+        '404':
+          description: Destination not found
 components:
   schemas:
     BlotterResponseDTO:
@@ -308,4 +404,36 @@ components:
           format: date-time
         blotterId:
           type: integer
-      required: [orderId, portfolioId, orderType, securityId, quantity, tradeTimestamp, blotterId] 
+      required: [orderId, portfolioId, orderType, securityId, quantity, tradeTimestamp, blotterId]
+    DestinationResponseDTO:
+      type: object
+      properties:
+        id:
+          type: integer
+        abbreviation:
+          type: string
+        description:
+          type: string
+        version:
+          type: integer
+      required: [id, abbreviation, description, version]
+    DestinationPutDTO:
+      type: object
+      properties:
+        id:
+          type: integer
+        abbreviation:
+          type: string
+        description:
+          type: string
+        version:
+          type: integer
+      required: [id, abbreviation, description, version]
+    DestinationPostDTO:
+      type: object
+      properties:
+        abbreviation:
+          type: string
+        description:
+          type: string
+      required: [abbreviation, description] 

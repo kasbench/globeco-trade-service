@@ -230,3 +230,92 @@ HTTP/1.1 200 OK
   }
 ]
 ```
+
+## Destination Data Model
+
+The **destination** table represents a trading destination (e.g., broker or exchange). Each destination has an abbreviation, a description, and a version for optimistic locking.
+
+### Entity Fields
+| Field         | Type    | Description                      |
+|-------------- |---------|----------------------------------|
+| id            | Integer | Unique identifier                |
+| abbreviation  | String  | Abbreviation for the destination |
+| description   | String  | Description of the destination   |
+| version       | Integer | Version for optimistic locking   |
+
+### DTOs
+
+#### DestinationResponseDTO (Response)
+| Field         | Type    | Description                      |
+|-------------- |---------|----------------------------------|
+| id            | Integer | Unique identifier                |
+| abbreviation  | String  | Abbreviation for the destination |
+| description   | String  | Description of the destination   |
+| version       | Integer | Version for optimistic locking   |
+
+#### DestinationPutDTO (PUT Request)
+| Field         | Type    | Description                      |
+|-------------- |---------|----------------------------------|
+| id            | Integer | Unique identifier                |
+| abbreviation  | String  | Abbreviation for the destination |
+| description   | String  | Description of the destination   |
+| version       | Integer | Version for optimistic locking   |
+
+#### DestinationPostDTO (POST Request)
+| Field         | Type    | Description                      |
+|-------------- |---------|----------------------------------|
+| abbreviation  | String  | Abbreviation for the destination |
+| description   | String  | Description of the destination   |
+
+## Destination API
+
+All endpoints are prefixed with `/api/v1`.
+
+| Verb   | URI                              | Request DTO            | Response DTO                | Description                                 |
+|--------|-----------------------------------|------------------------|-----------------------------|---------------------------------------------|
+| GET    | /api/v1/destinations             |                        | [DestinationResponseDTO]    | Get all destinations                        |
+| GET    | /api/v1/destinations/{id}        |                        | DestinationResponseDTO      | Get a single destination by ID              |
+| POST   | /api/v1/destinations             | DestinationPostDTO     | DestinationResponseDTO      | Create a new destination                    |
+| PUT    | /api/v1/destinations/{id}        | DestinationPutDTO      | DestinationResponseDTO      | Update an existing destination by ID        |
+| DELETE | /api/v1/destinations/{id}?version={version} |                |                             | Delete a destination by ID and version       |
+
+### Example Request/Response
+
+#### Create Destination (POST)
+```
+POST /api/v1/destinations
+Content-Type: application/json
+{
+  "abbreviation": "ML",
+  "description": "Merrill Lynch"
+}
+```
+
+#### Response
+```
+HTTP/1.1 201 Created
+{
+  "id": 1,
+  "abbreviation": "ML",
+  "description": "Merrill Lynch",
+  "version": 1
+}
+```
+
+#### Get All Destinations (GET)
+```
+GET /api/v1/destinations
+```
+
+#### Response
+```
+HTTP/1.1 200 OK
+[
+  {
+    "id": 1,
+    "abbreviation": "ML",
+    "description": "Merrill Lynch",
+    "version": 1
+  }
+]
+```
