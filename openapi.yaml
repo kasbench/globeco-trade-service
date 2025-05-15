@@ -591,6 +591,54 @@ paths:
           description: Execution not found
         '409':
           description: Version mismatch
+  /health/liveness:
+    get:
+      summary: Liveness probe
+      operationId: livenessProbe
+      tags: [Health]
+      responses:
+        '200':
+          description: Service is alive
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: UP
+  /health/readiness:
+    get:
+      summary: Readiness probe
+      operationId: readinessProbe
+      tags: [Health]
+      responses:
+        '200':
+          description: Service is ready
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: UP
+  /health/startup:
+    get:
+      summary: Startup probe
+      operationId: startupProbe
+      tags: [Health]
+      responses:
+        '200':
+          description: Service has started
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: UP
 components:
   schemas:
     BlotterResponseDTO:

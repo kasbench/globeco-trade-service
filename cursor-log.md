@@ -574,3 +574,46 @@ Action: Updated the log to record the request. Next, I will:
 1. Implement ExecutionController in the main package with endpoints for GET (all and by id), POST, PUT, and DELETE, mapping DTOs to entities and handling all CRUD operations as specified.
 2. Generate unit tests for ExecutionController using MockMvc to cover all endpoints (GET all, GET by id, POST, PUT, DELETE), verifying correct status codes, request/response mapping, and error handling.
 3. Ensure consistency with API URI, DTO, and test conventions used for other controllers.
+
+---
+
+Request: Compare the README.md file to the code to verify that the README is completely consistent with the code. If it is not, make the required updates. (step 56 of execution-plan.md)
+Request: Compare the openapi.yaml file to the code to verify that the openapi spec is completely consistent with the code. If it is not, make the required updates. (step 57 of execution-plan.md)
+
+Action: Reviewed all entities, DTOs, services, repositories, and controllers in the codebase and cross-checked with README.md and openapi.yaml. Verified that:
+- All data models, DTOs, and API endpoints are documented in README.md, with correct field names, types, and nesting.
+- All API endpoints, request/response schemas, and error responses are present and accurate in openapi.yaml.
+- No discrepancies found; both files are fully up to date and consistent with the codebase as implemented.
+
+---
+
+Request: Create a Dockerfile for this application. (step 58 of execution-plan.md)
+
+Action: Created a production-ready Dockerfile using a multi-stage build:
+1. Build stage uses gradle:8.7.0-jdk21 to build the Spring Boot fat jar with `gradle clean bootJar --no-daemon`.
+2. Runtime stage uses eclipse-temurin:21-jre-alpine for a minimal, secure Java 21 runtime.
+3. Runs as non-root user (UID 1000), exposes port 8002, and uses ENTRYPOINT to run the jar.
+4. Ensured best practices for image size, security, and reproducibility.
+
+---
+
+Request: Implement liveness, readiness, and startup health checks. Update the README.md file and openapi.yaml spec with the health check APIs. Ensure the URLs in the spec match the URLs in the API. (step 59 of execution-plan.md)
+
+Action: 
+1. Added HealthController exposing /api/v1/health/liveness, /api/v1/health/readiness, and /api/v1/health/startup endpoints, each returning 200 OK and { "status": "UP" }.
+2. Updated README.md to document the health check APIs, including endpoint URIs, descriptions, and example responses.
+3. Updated openapi.yaml to include the health check endpoints under /health/liveness, /health/readiness, and /health/startup, with correct response schemas and tags.
+4. Ensured all URLs and documentation are consistent between code, README, and OpenAPI spec.
+
+---
+
+Request: Create all the files necessary to deploy this application as a service to Kubernetes, including liveness, readiness, and startup probes, resource limits, and scaling. (step 60 of execution-plan.md)
+
+Action:
+1. Created k8s-deployment.yaml with:
+   - Deployment for globeco-trade-service in the globeco namespace, exposing port 8002.
+   - Liveness, readiness, and startup probes pointing to /api/v1/health/liveness, /readiness, and /startup with correct timeouts.
+   - Resource requests/limits: 100m CPU, 200Mi memory.
+   - HorizontalPodAutoscaler (HPA) scaling from 1 to 100 pods based on CPU utilization.
+   - ClusterIP Service exposing port 8002.
+2. Ensured all configuration matches the requirements in the execution plan.

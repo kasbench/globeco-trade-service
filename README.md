@@ -609,3 +609,15 @@ The **execution** table represents an execution of a trade order, including stat
   "version": 1
 }
 ```
+
+## Health Check APIs
+
+The service exposes standard health check endpoints for Kubernetes:
+
+| Verb | URI                        | Description                | Example Response         |
+|------|----------------------------|----------------------------|-------------------------|
+| GET  | /api/v1/health/liveness    | Liveness probe             | { "status": "UP" }    |
+| GET  | /api/v1/health/readiness   | Readiness probe            | { "status": "UP" }    |
+| GET  | /api/v1/health/startup     | Startup probe              | { "status": "UP" }    |
+
+All endpoints return HTTP 200 OK and a JSON body indicating the service is up.

@@ -1,0 +1,83 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: globeco-trade-service
+  namespace: globeco
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: globeco-trade-service
+  template:
+    metadata:
+      labels:
+        app: globeco-trade-service
+    spec:
+      containers:
+        - name: globeco-trade-service
+          image: globeco-trade-service:latest
+          ports:
+            - containerPort: 8002
+          resources:
+            requests:
+              cpu: 100m
+              memory: 200Mi
+            limits:
+              cpu: 100m
+              memory: 200Mi
+          livenessProbe:
+            httpGet:
+              path: /api/v1/health/liveness
+              port: 8002
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 240
+          readinessProbe:
+            httpGet:
+              path: /api/v1/health/readiness
+              port: 8002
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 5
+          startupProbe:
+            httpGet:
+              path: /api/v1/health/startup
+              port: 8002
+            failureThreshold: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+      restartPolicy: Always
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: globeco-trade-service
+  namespace: globeco
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: globeco-trade-service
+  minReplicas: 1
+  maxReplicas: 100
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 80
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: globeco-trade-service
+  namespace: globeco
+spec:
+  selector:
+    app: globeco-trade-service
+  ports:
+    - protocol: TCP
+      port: 8002
+      targetPort: 8002
+  type: ClusterIP 
