@@ -497,3 +497,115 @@ HTTP/1.1 200 OK
   }
 ]
 ```
+
+## Execution Data Model
+
+The **execution** table represents an execution of a trade order, including status, quantities, prices, and relationships to other entities.
+
+### Entity Fields
+| Field              | Type           | Description                                 |
+|--------------------|----------------|---------------------------------------------|
+| id                 | Integer        | Unique identifier                           |
+| executionTimestamp | OffsetDateTime | Timestamp of execution                      |
+| executionStatus    | ExecutionStatus| Status of the execution (FK)                |
+| blotter            | Blotter        | Blotter (FK, nullable)                      |
+| tradeType          | TradeType      | Trade type (FK, nullable)                   |
+| tradeOrder         | TradeOrder     | Trade order (FK)                            |
+| destination        | Destination    | Destination (FK)                            |
+| quantityOrdered    | Short          | Quantity ordered                            |
+| quantityPlaced     | BigDecimal     | Quantity placed                             |
+| quantityFilled     | BigDecimal     | Quantity filled                             |
+| limitPrice         | BigDecimal     | Limit price                                 |
+| version            | Integer        | Version for optimistic locking              |
+
+### DTOs
+
+#### ExecutionResponseDTO (Response)
+| Field              | Type                        | Description                                 |
+|--------------------|----------------------------|---------------------------------------------|
+| id                 | Integer                     | Unique identifier                           |
+| executionTimestamp | OffsetDateTime              | Timestamp of execution                      |
+| executionStatus    | ExecutionStatusResponseDTO  | Nested DTO for execution status             |
+| blotter            | BlotterResponseDTO          | Nested DTO for blotter                      |
+| tradeType          | TradeTypeResponseDTO        | Nested DTO for trade type                   |
+| tradeOrder         | TradeOrderResponseDTO       | Nested DTO for trade order                  |
+| destination        | DestinationResponseDTO      | Nested DTO for destination                  |
+| quantityOrdered    | Short                       | Quantity ordered                            |
+| quantityPlaced     | BigDecimal                  | Quantity placed                             |
+| quantityFilled     | BigDecimal                  | Quantity filled                             |
+| limitPrice         | BigDecimal                  | Limit price                                 |
+| version            | Integer                     | Version for optimistic locking              |
+
+#### ExecutionPutDTO (PUT Request)
+| Field              | Type           | Description                                 |
+|--------------------|----------------|---------------------------------------------|
+| id                 | Integer        | Unique identifier                           |
+| executionTimestamp | OffsetDateTime | Timestamp of execution                      |
+| executionStatusId  | Integer        | Foreign key to execution status             |
+| blotterId          | Integer        | Foreign key to blotter                      |
+| tradeTypeId        | Integer        | Foreign key to trade type                   |
+| tradeOrderId       | Integer        | Foreign key to trade order                  |
+| destinationId      | Integer        | Foreign key to destination                  |
+| quantityOrdered    | Short          | Quantity ordered                            |
+| quantityPlaced     | BigDecimal     | Quantity placed                             |
+| quantityFilled     | BigDecimal     | Quantity filled                             |
+| limitPrice         | BigDecimal     | Limit price                                 |
+| version            | Integer        | Version for optimistic locking              |
+
+#### ExecutionPostDTO (POST Request)
+| Field              | Type           | Description                                 |
+|--------------------|----------------|---------------------------------------------|
+| executionTimestamp | OffsetDateTime | Timestamp of execution                      |
+| executionStatusId  | Integer        | Foreign key to execution status             |
+| blotterId          | Integer        | Foreign key to blotter                      |
+| tradeTypeId        | Integer        | Foreign key to trade type                   |
+| tradeOrderId       | Integer        | Foreign key to trade order                  |
+| destinationId      | Integer        | Foreign key to destination                  |
+| quantityOrdered    | Short          | Quantity ordered                            |
+| quantityPlaced     | BigDecimal     | Quantity placed                             |
+| quantityFilled     | BigDecimal     | Quantity filled                             |
+| limitPrice         | BigDecimal     | Limit price                                 |
+
+### Execution APIs
+
+| Verb   | URI                              | Request DTO            | Response DTO                | Description                                 |
+|--------|-----------------------------------|------------------------|-----------------------------|---------------------------------------------|
+| GET    | /api/v1/executions               |                        | [ExecutionResponseDTO]      | Get all executions                          |
+| GET    | /api/v1/executions/{id}          |                        | ExecutionResponseDTO        | Get a single execution by ID                |
+| POST   | /api/v1/executions               | ExecutionPostDTO       | ExecutionResponseDTO        | Create a new execution                      |
+| PUT    | /api/v1/executions/{id}          | ExecutionPutDTO        | ExecutionResponseDTO        | Update an existing execution by ID          |
+| DELETE | /api/v1/executions/{id}?version={version} |                |                             | Delete an execution by ID and version        |
+
+#### Example: Create Execution (POST)
+```json
+{
+  "executionTimestamp": "2024-06-10T12:00:00Z",
+  "executionStatusId": 1,
+  "blotterId": 1,
+  "tradeTypeId": 1,
+  "tradeOrderId": 1,
+  "destinationId": 1,
+  "quantityOrdered": 10,
+  "quantityPlaced": 100.00,
+  "quantityFilled": 0.00,
+  "limitPrice": 10.00
+}
+```
+
+#### Example: Execution Response (GET)
+```json
+{
+  "id": 1,
+  "executionTimestamp": "2024-06-10T12:00:00Z",
+  "executionStatus": { "id": 1, "abbreviation": "NEW", "description": "New", "version": 1 },
+  "blotter": { "id": 1, "abbreviation": "EQ", "name": "Equity", "version": 1 },
+  "tradeType": { "id": 1, "abbreviation": "BUY", "description": "Buy", "version": 1 },
+  "tradeOrder": { "id": 1, "orderId": 123456, "portfolioId": "PORT1", "orderType": "BUY", "securityId": "SEC1", "quantity": 100.00, "limitPrice": 10.00, "tradeTimestamp": "2024-06-10T12:00:00Z", "version": 1, "blotter": { "id": 1, "abbreviation": "EQ", "name": "Equity", "version": 1 } },
+  "destination": { "id": 1, "abbreviation": "ML", "description": "Merrill Lynch", "version": 1 },
+  "quantityOrdered": 10,
+  "quantityPlaced": 100.00,
+  "quantityFilled": 0.00,
+  "limitPrice": 10.00,
+  "version": 1
+}
+```

@@ -488,6 +488,109 @@ paths:
           description: Execution status not found
         '409':
           description: Version mismatch
+  /executions:
+    get:
+      summary: Get all executions
+      operationId: getAllExecutions
+      tags: [Execution]
+      responses:
+        '200':
+          description: List of executions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ExecutionResponseDTO'
+    post:
+      summary: Create a new execution
+      operationId: createExecution
+      tags: [Execution]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ExecutionPostDTO'
+      responses:
+        '201':
+          description: Execution created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExecutionResponseDTO'
+        '400':
+          description: Invalid input
+    
+  /executions/{id}:
+    get:
+      summary: Get a single execution by ID
+      operationId: getExecutionById
+      tags: [Execution]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Execution found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExecutionResponseDTO'
+        '404':
+          description: Execution not found
+    put:
+      summary: Update an existing execution by ID
+      operationId: updateExecution
+      tags: [Execution]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ExecutionPutDTO'
+      responses:
+        '200':
+          description: Execution updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExecutionResponseDTO'
+        '400':
+          description: Invalid input
+        '404':
+          description: Execution not found
+    delete:
+      summary: Delete an execution by ID and version
+      operationId: deleteExecution
+      tags: [Execution]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: version
+          in: query
+          required: true
+          schema:
+            type: integer
+      responses:
+        '204':
+          description: Execution deleted
+        '404':
+          description: Execution not found
+        '409':
+          description: Version mismatch
 components:
   schemas:
     BlotterResponseDTO:
@@ -694,4 +797,93 @@ components:
           type: string
         description:
           type: string
-      required: [abbreviation, description] 
+      required: [abbreviation, description]
+    ExecutionResponseDTO:
+      type: object
+      properties:
+        id:
+          type: integer
+        executionTimestamp:
+          type: string
+          format: date-time
+        executionStatus:
+          $ref: '#/components/schemas/ExecutionStatusResponseDTO'
+        blotter:
+          $ref: '#/components/schemas/BlotterResponseDTO'
+        tradeType:
+          $ref: '#/components/schemas/TradeTypeResponseDTO'
+        tradeOrder:
+          $ref: '#/components/schemas/TradeOrderResponseDTO'
+        destination:
+          $ref: '#/components/schemas/DestinationResponseDTO'
+        quantityOrdered:
+          type: integer
+        quantityPlaced:
+          type: number
+          format: double
+        quantityFilled:
+          type: number
+          format: double
+        limitPrice:
+          type: number
+          format: double
+        version:
+          type: integer
+    ExecutionPutDTO:
+      type: object
+      properties:
+        id:
+          type: integer
+        executionTimestamp:
+          type: string
+          format: date-time
+        executionStatusId:
+          type: integer
+        blotterId:
+          type: integer
+        tradeTypeId:
+          type: integer
+        tradeOrderId:
+          type: integer
+        destinationId:
+          type: integer
+        quantityOrdered:
+          type: integer
+        quantityPlaced:
+          type: number
+          format: double
+        quantityFilled:
+          type: number
+          format: double
+        limitPrice:
+          type: number
+          format: double
+        version:
+          type: integer
+    ExecutionPostDTO:
+      type: object
+      properties:
+        executionTimestamp:
+          type: string
+          format: date-time
+        executionStatusId:
+          type: integer
+        blotterId:
+          type: integer
+        tradeTypeId:
+          type: integer
+        tradeOrderId:
+          type: integer
+        destinationId:
+          type: integer
+        quantityOrdered:
+          type: integer
+        quantityPlaced:
+          type: number
+          format: double
+        quantityFilled:
+          type: number
+          format: double
+        limitPrice:
+          type: number
+          format: double 
