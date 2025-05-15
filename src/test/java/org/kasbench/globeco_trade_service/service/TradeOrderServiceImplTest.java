@@ -77,7 +77,7 @@ public class TradeOrderServiceImplTest extends org.kasbench.globeco_trade_servic
         Assertions.assertTrue(tradeOrderService.getTradeOrderById(tradeOrder.getId()).isEmpty());
     }
 
-    @Disabled("Disabled: persistent failures with optimistic locking exception detection in test environment")  
+    // @Disabled("Disabled: persistent failures with optimistic locking exception detection in test environment")  
     @Test
     void testOptimisticConcurrency() {
         TradeOrder tradeOrder = createTradeOrder();

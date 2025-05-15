@@ -659,3 +659,17 @@ Action:
 - The test was failing due to constraint violations from non-unique test data. Making all test data unique ensures the test only checks for optimistic locking, not unrelated constraint errors.
 
 ---
+
+**2024-05-15**
+
+**Request:** Remove the non-idiomatic optimistic concurrency test from BlotterServiceImplTest and rely on the repository-level test for concurrency, as per best practices.
+
+**Actions:**
+1. Removed testOptimisticConcurrency from BlotterServiceImplTest, since optimistic locking is reliably tested at the repository level.
+2. Removed the line in BlotterServiceImpl.updateBlotter that set the version field, restoring idiomatic JPA usage.
+3. Ran BlotterServiceImplTest and the full test suite; confirmed all tests now pass successfully.
+
+**Rationale:**
+- Service-level optimistic concurrency tests are unreliable due to JPA's entity management. Repository-level tests are the correct place to verify optimistic locking behavior.
+
+---

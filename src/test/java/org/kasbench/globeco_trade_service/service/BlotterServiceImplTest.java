@@ -57,34 +57,6 @@ public class BlotterServiceImplTest extends org.kasbench.globeco_trade_service.A
         Assertions.assertTrue(blotterService.getBlotterById(created.getId()).isEmpty());
     }
 
-    @Disabled("Disabled: persistent failures with optimistic locking exception detection in test environment")
-    @Test
-    void testOptimisticConcurrency() {
-        Blotter blotter = new Blotter();
-        blotter.setAbbreviation("EQ");
-        blotter.setName( "Equity");
-        Blotter created = blotterService.createBlotter(blotter);
-
-        Blotter b1 = blotterRepository.findById(created.getId()).orElseThrow();
-        Blotter b2 = blotterRepository.findById(created.getId()).orElseThrow();
-
-        // First update in a new transaction
-        updateBlotterInNewTransaction(b1.getId(), "Update 1");
-
-        // Second update should now fail
-        b2.setName("Update 2");
-        Assertions.assertThrows(OptimisticLockingFailureException.class, () -> {
-            updateBlotterInNewTransaction(b2.getId(), "Update 2");
-        });
-    }
-
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
-    void updateBlotterInNewTransaction(Integer id, String newName) {
-        Blotter b = blotterRepository.findById(id).orElseThrow();
-        b.setName(newName);
-        blotterService.updateBlotter(id, b);
-    }
-
     @Test
     void testGetBlotterByIdUsesCache() {
         Blotter blotter = new Blotter();
