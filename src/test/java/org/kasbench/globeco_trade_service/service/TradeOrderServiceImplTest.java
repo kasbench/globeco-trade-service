@@ -16,12 +16,11 @@ import java.time.OffsetDateTime;
 import java.util.Optional;
 import java.util.concurrent.ThreadLocalRandom;
 import org.springframework.cache.CacheManager;
-import org.springframework.test.annotation.DirtiesContext;
 import java.util.UUID;
 import org.kasbench.globeco_trade_service.repository.ExecutionRepository;
 
 @SpringBootTest
-public class TradeOrderServiceImplTest {
+public class TradeOrderServiceImplTest extends org.kasbench.globeco_trade_service.AbstractPostgresContainerTest {
     @Autowired
     private TradeOrderService tradeOrderService;
     @Autowired
@@ -102,7 +101,6 @@ public class TradeOrderServiceImplTest {
     }
 
     @Test
-    @DirtiesContext
     void testGetTradeOrderByIdUsesCache() {
         TradeOrder tradeOrder = createTradeOrder();
         Integer id = tradeOrder.getId();
@@ -117,7 +115,6 @@ public class TradeOrderServiceImplTest {
     }
 
     @Test
-    @DirtiesContext
     void testGetAllTradeOrdersUsesCache() {
         createTradeOrder();
         // First call: should hit DB
@@ -132,7 +129,6 @@ public class TradeOrderServiceImplTest {
 
     @SuppressWarnings("null")
     @Test
-    @DirtiesContext
     void testCacheEvictedOnCreateUpdateDelete() {
         TradeOrder tradeOrder = createTradeOrder();
         Integer id = tradeOrder.getId();

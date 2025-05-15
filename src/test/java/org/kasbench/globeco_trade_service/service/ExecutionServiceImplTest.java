@@ -20,9 +20,7 @@ import java.util.concurrent.ThreadLocalRandom;
 import static org.junit.jupiter.api.Assertions.*;
 
 @SpringBootTest
-@ExtendWith(SpringExtension.class)
-@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
-public class ExecutionServiceImplTest {
+public class ExecutionServiceImplTest extends org.kasbench.globeco_trade_service.AbstractPostgresContainerTest {
     @Autowired
     private ExecutionService executionService;
     @Autowired

@@ -9,22 +9,19 @@ import org.kasbench.globeco_trade_service.entity.*;
 import org.kasbench.globeco_trade_service.repository.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
+import java.util.concurrent.ThreadLocalRandom;
 
 import static org.hamcrest.Matchers.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@SpringBootTest
 @AutoConfigureMockMvc
-@Transactional
-public class ExecutionControllerTest {
+public class ExecutionControllerTest extends org.kasbench.globeco_trade_service.AbstractPostgresContainerTest {
     @Autowired
     private MockMvc mockMvc;
     @Autowired
@@ -66,13 +63,13 @@ public class ExecutionControllerTest {
         tradeType = tradeTypeRepository.saveAndFlush(tradeType);
 
         tradeOrder = new TradeOrder();
-        tradeOrder.setOrderId(123456);
+        tradeOrder.setOrderId(ThreadLocalRandom.current().nextInt(1_000_000, Integer.MAX_VALUE));
         tradeOrder.setPortfolioId("PORT1");
         tradeOrder.setOrderType("BUY");
         tradeOrder.setSecurityId("SEC1");
-        tradeOrder.setQuantity(new BigDecimal("100.00"));
-        tradeOrder.setLimitPrice(new BigDecimal("10.00"));
-        tradeOrder.setTradeTimestamp(OffsetDateTime.now());
+        tradeOrder.setQuantity(new java.math.BigDecimal("100.00"));
+        tradeOrder.setLimitPrice(new java.math.BigDecimal("10.00"));
+        tradeOrder.setTradeTimestamp(java.time.OffsetDateTime.now());
         tradeOrder.setBlotter(blotter);
         tradeOrder = tradeOrderRepository.saveAndFlush(tradeOrder);
 

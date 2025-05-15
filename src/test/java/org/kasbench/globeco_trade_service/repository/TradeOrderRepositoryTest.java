@@ -3,37 +3,50 @@ package org.kasbench.globeco_trade_service.repository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.AfterEach;
 import org.kasbench.globeco_trade_service.entity.Blotter;
 import org.kasbench.globeco_trade_service.entity.TradeOrder;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
-import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
+import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.test.annotation.DirtiesContext;
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.UUID;
+import java.util.Random;
 
-@DataJpaTest
-@AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
-@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
-public class TradeOrderRepositoryTest {
+@SpringBootTest
+public class TradeOrderRepositoryTest extends org.kasbench.globeco_trade_service.AbstractPostgresContainerTest {
     @Autowired
     private TradeOrderRepository tradeOrderRepository;
     @Autowired
     private BlotterRepository blotterRepository;
 
+    private TradeOrder tradeOrder;
+    private Blotter blotter;
+
+    private static String randomAlphaNum(int len) {
+        String chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+        StringBuilder sb = new StringBuilder();
+        Random r = new Random();
+        for (int i = 0; i < len; i++) {
+            sb.append(chars.charAt(r.nextInt(chars.length())));
+        }
+        return sb.toString();
+    }
+
     private TradeOrder createTradeOrder() {
-        Blotter blotter = new Blotter();
-        blotter.setAbbreviation("EQ");
-        blotter.setName("Equity");
+        blotter = new Blotter();
+        blotter.setAbbreviation("EQ" + ThreadLocalRandom.current().nextInt(1_000_000));
+        blotter.setName("Equity" + ThreadLocalRandom.current().nextInt(1_000_000));
         blotter = blotterRepository.saveAndFlush(blotter);
 
-        TradeOrder tradeOrder = new TradeOrder();
+        tradeOrder = new TradeOrder();
         tradeOrder.setOrderId(ThreadLocalRandom.current().nextInt(1_000_000, 2_000_000));
-        tradeOrder.setPortfolioId("PORT123");
+        tradeOrder.setPortfolioId(randomAlphaNum(12));
         tradeOrder.setOrderType("BUY");
-        tradeOrder.setSecurityId("SEC456");
+        tradeOrder.setSecurityId(randomAlphaNum(12));
         tradeOrder.setQuantity(new BigDecimal("100.25"));
         tradeOrder.setLimitPrice(new BigDecimal("10.50"));
         tradeOrder.setTradeTimestamp(OffsetDateTime.now());
@@ -41,17 +54,28 @@ public class TradeOrderRepositoryTest {
         return tradeOrderRepository.saveAndFlush(tradeOrder);
     }
 
+    @AfterEach
+    void tearDown() {
+        if (tradeOrder != null && tradeOrder.getId() != null) {
+            tradeOrderRepository.deleteById(tradeOrder.getId());
+        }
+        if (blotter != null && blotter.getId() != null) {
+            blotterRepository.deleteById(blotter.getId());
+        }
+    }
+
     @Test
     void testCrud() {
-        TradeOrder tradeOrder = createTradeOrder();
+        tradeOrder = createTradeOrder();
         Integer id = tradeOrder.getId();
-        Assertions.assertNotNull(tradeOrderRepository.findById(id));
+        Assertions.assertTrue(tradeOrderRepository.findById(id).isPresent());
         tradeOrder.setOrderType("SELL");
         tradeOrderRepository.saveAndFlush(tradeOrder);
         TradeOrder found = tradeOrderRepository.findById(id).orElseThrow();
-        Assertions.assertEquals("SELL", found.getOrderType());
+        Assertions.assertEquals("SELL", found.getOrderType().trim());
         tradeOrderRepository.deleteById(id);
         Assertions.assertTrue(tradeOrderRepository.findById(id).isEmpty());
+        tradeOrder = null; // Prevent double delete in @AfterEach
     }
 
     @Disabled("Disabled: persistent failures with optimistic locking exception detection in test environment")

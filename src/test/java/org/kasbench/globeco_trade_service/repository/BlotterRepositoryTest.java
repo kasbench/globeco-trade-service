@@ -5,12 +5,13 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Disabled;
 import org.kasbench.globeco_trade_service.entity.Blotter;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
 
-@DataJpaTest
-@AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
-public class BlotterRepositoryTest {
+@SpringBootTest
+public class BlotterRepositoryTest extends org.kasbench.globeco_trade_service.AbstractPostgresContainerTest {
     @Autowired
     private BlotterRepository blotterRepository;
     

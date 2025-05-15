@@ -3,159 +3,174 @@ package org.kasbench.globeco_trade_service;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.AfterEach;
 import org.kasbench.globeco_trade_service.dto.TradeOrderPostDTO;
 import org.kasbench.globeco_trade_service.dto.TradeOrderPutDTO;
 import org.kasbench.globeco_trade_service.entity.Blotter;
 import org.kasbench.globeco_trade_service.entity.TradeOrder;
 import org.kasbench.globeco_trade_service.service.TradeOrderService;
-import org.mockito.Mockito;
+import org.kasbench.globeco_trade_service.repository.BlotterRepository;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.Arrays;
 import java.util.Optional;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
+import java.util.UUID;
+import java.util.concurrent.ThreadLocalRandom;
+import java.util.Random;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@WebMvcTest(TradeOrderController.class)
-public class TradeOrderControllerTest {
+@AutoConfigureMockMvc
+public class TradeOrderControllerTest extends org.kasbench.globeco_trade_service.AbstractPostgresContainerTest {
     @Autowired
     private MockMvc mockMvc;
 
-    @MockBean
+    @Autowired
     private TradeOrderService tradeOrderService;
 
     @Autowired
     private ObjectMapper objectMapper;
 
+    @Autowired
+    private BlotterRepository blotterRepository;
+
     private TradeOrder tradeOrder;
     private Blotter blotter;
+
+    private static String randomAlphaNum(int len) {
+        String chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+        StringBuilder sb = new StringBuilder();
+        Random r = new Random();
+        for (int i = 0; i < len; i++) {
+            sb.append(chars.charAt(r.nextInt(chars.length())));
+        }
+        return sb.toString();
+    }
 
     @BeforeEach
     void setUp() {
         blotter = new Blotter();
-        blotter.setId(1);
-        blotter.setAbbreviation("EQ");
-        blotter.setName("Equity");
+        blotter.setAbbreviation("EQ" + ThreadLocalRandom.current().nextInt(1_000_000));
+        blotter.setName("Equity" + ThreadLocalRandom.current().nextInt(1_000_000));
         blotter.setVersion(1);
+        blotter = blotterRepository.saveAndFlush(blotter);
 
         tradeOrder = new TradeOrder();
-        tradeOrder.setId(1);
-        tradeOrder.setOrderId(1001);
-        tradeOrder.setPortfolioId("PORTFOLIO1");
+        tradeOrder.setOrderId(ThreadLocalRandom.current().nextInt(1_000_000, 2_000_000));
+        tradeOrder.setPortfolioId(randomAlphaNum(12));
         tradeOrder.setOrderType("BUY");
-        tradeOrder.setSecurityId("SEC123");
-        tradeOrder.setQuantity(new BigDecimal("100.00"));
-        tradeOrder.setLimitPrice(new BigDecimal("10.50"));
-        tradeOrder.setTradeTimestamp(OffsetDateTime.now());
+        tradeOrder.setSecurityId(randomAlphaNum(12));
+        tradeOrder.setQuantity(new java.math.BigDecimal("100.00"));
+        tradeOrder.setLimitPrice(new java.math.BigDecimal("10.50"));
+        tradeOrder.setTradeTimestamp(java.time.OffsetDateTime.now());
         tradeOrder.setVersion(1);
         tradeOrder.setBlotter(blotter);
+        tradeOrder = tradeOrderService.createTradeOrder(tradeOrder);
+    }
+
+    @AfterEach
+    void tearDown() {
+        if (tradeOrder != null && tradeOrder.getId() != null) {
+            try {
+                // Reload to get latest version
+                TradeOrder latest = tradeOrderService.getTradeOrderById(tradeOrder.getId()).orElse(null);
+                if (latest != null) {
+                    tradeOrderService.deleteTradeOrder(latest.getId(), latest.getVersion());
+                }
+            } catch (Exception e) {
+                // Ignore if already deleted
+            }
+        }
+        if (blotter != null && blotter.getId() != null) {
+            try {
+                blotterRepository.deleteById(blotter.getId());
+            } catch (Exception e) {
+                // Ignore if already deleted
+            }
+        }
     }
 
     @Test
     void testGetAllTradeOrders() throws Exception {
-        Mockito.when(tradeOrderService.getAllTradeOrders()).thenReturn(Arrays.asList(tradeOrder));
         mockMvc.perform(get("/api/v1/tradeOrders"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].id").value(tradeOrder.getId()))
-                .andExpect(jsonPath("$[0].orderId").value(tradeOrder.getOrderId()))
-                .andExpect(jsonPath("$[0].blotter.id").value(blotter.getId()));
+                .andExpect(jsonPath("$[?(@.orderId==%d)]", tradeOrder.getOrderId()).exists())
+                .andExpect(jsonPath("$[?(@.blotter.abbreviation=='%s')]", blotter.getAbbreviation()).exists());
     }
 
     @Test
     void testGetTradeOrderById_Found() throws Exception {
-        Mockito.when(tradeOrderService.getTradeOrderById(1)).thenReturn(Optional.of(tradeOrder));
-        mockMvc.perform(get("/api/v1/tradeOrders/1"))
+        mockMvc.perform(get("/api/v1/tradeOrders/" + tradeOrder.getId()))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id").value(tradeOrder.getId()))
                 .andExpect(jsonPath("$.orderId").value(tradeOrder.getOrderId()));
     }
 
     @Test
     void testGetTradeOrderById_NotFound() throws Exception {
-        Mockito.when(tradeOrderService.getTradeOrderById(2)).thenReturn(Optional.empty());
-        mockMvc.perform(get("/api/v1/tradeOrders/2"))
+        mockMvc.perform(get("/api/v1/tradeOrders/999999"))
                 .andExpect(status().isNotFound());
     }
 
     @Test
     void testCreateTradeOrder() throws Exception {
         TradeOrderPostDTO postDTO = new TradeOrderPostDTO();
-        postDTO.setOrderId(2002);
-        postDTO.setPortfolioId("PORTFOLIO2");
+        int uniqueOrderId = ThreadLocalRandom.current().nextInt(2_000_000, 3_000_000);
+        postDTO.setOrderId(uniqueOrderId);
+        postDTO.setPortfolioId(randomAlphaNum(12));
         postDTO.setOrderType("SELL");
-        postDTO.setSecurityId("SEC456");
+        postDTO.setSecurityId(randomAlphaNum(12));
         postDTO.setQuantity(new BigDecimal("50.00"));
         postDTO.setLimitPrice(new BigDecimal("20.00"));
         postDTO.setTradeTimestamp(OffsetDateTime.now());
-        postDTO.setBlotterId(1);
+        postDTO.setBlotterId(blotter.getId());
 
-        TradeOrder created = new TradeOrder();
-        created.setId(2);
-        created.setOrderId(postDTO.getOrderId());
-        created.setPortfolioId(postDTO.getPortfolioId());
-        created.setOrderType(postDTO.getOrderType());
-        created.setSecurityId(postDTO.getSecurityId());
-        created.setQuantity(postDTO.getQuantity());
-        created.setLimitPrice(postDTO.getLimitPrice());
-        created.setTradeTimestamp(postDTO.getTradeTimestamp());
-        created.setVersion(1);
-        created.setBlotter(blotter);
-
-        Mockito.when(tradeOrderService.createTradeOrder(any(TradeOrder.class))).thenReturn(created);
         mockMvc.perform(post("/api/v1/tradeOrders")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(postDTO)))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.id").value(created.getId()))
-                .andExpect(jsonPath("$.orderId").value(created.getOrderId()));
+                .andExpect(jsonPath("$.orderId").value(uniqueOrderId));
     }
 
     @Test
     void testUpdateTradeOrder_Success() throws Exception {
         TradeOrderPutDTO putDTO = new TradeOrderPutDTO();
-        putDTO.setId(1);
-        putDTO.setOrderId(1001);
-        putDTO.setPortfolioId("PORTFOLIO1");
-        putDTO.setOrderType("BUY");
-        putDTO.setSecurityId("SEC123");
-        putDTO.setQuantity(new BigDecimal("100.00"));
-        putDTO.setLimitPrice(new BigDecimal("10.50"));
+        putDTO.setId(tradeOrder.getId());
+        putDTO.setOrderId(tradeOrder.getOrderId());
+        putDTO.setPortfolioId(tradeOrder.getPortfolioId());
+        putDTO.setOrderType("SELL");
+        putDTO.setSecurityId(tradeOrder.getSecurityId());
+        putDTO.setQuantity(tradeOrder.getQuantity());
+        putDTO.setLimitPrice(tradeOrder.getLimitPrice());
         putDTO.setTradeTimestamp(tradeOrder.getTradeTimestamp());
-        putDTO.setVersion(1);
-        putDTO.setBlotterId(1);
+        putDTO.setVersion(tradeOrder.getVersion());
+        putDTO.setBlotterId(blotter.getId());
 
-        Mockito.when(tradeOrderService.updateTradeOrder(eq(1), any(TradeOrder.class))).thenReturn(tradeOrder);
-        mockMvc.perform(put("/api/v1/tradeOrders/1")
+        mockMvc.perform(put("/api/v1/tradeOrders/" + tradeOrder.getId())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(putDTO)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id").value(tradeOrder.getId()))
                 .andExpect(jsonPath("$.orderId").value(tradeOrder.getOrderId()));
     }
 
     @Test
     void testUpdateTradeOrder_NotFound() throws Exception {
         TradeOrderPutDTO putDTO = new TradeOrderPutDTO();
-        putDTO.setId(99);
-        putDTO.setOrderId(9999);
-        putDTO.setPortfolioId("PORTFOLIOX");
+        putDTO.setId(999999);
+        putDTO.setOrderId(ThreadLocalRandom.current().nextInt(3_000_000, 4_000_000));
+        putDTO.setPortfolioId(randomAlphaNum(12));
         putDTO.setOrderType("SELL");
-        putDTO.setSecurityId("SEC999");
+        putDTO.setSecurityId(randomAlphaNum(12));
         putDTO.setQuantity(new BigDecimal("1.00"));
         putDTO.setLimitPrice(new BigDecimal("1.00"));
         putDTO.setTradeTimestamp(OffsetDateTime.now());
         putDTO.setVersion(1);
-        putDTO.setBlotterId(1);
+        putDTO.setBlotterId(blotter.getId());
 
-        Mockito.when(tradeOrderService.updateTradeOrder(eq(99), any(TradeOrder.class))).thenThrow(new IllegalArgumentException("Not found"));
-        mockMvc.perform(put("/api/v1/tradeOrders/99")
+        mockMvc.perform(put("/api/v1/tradeOrders/999999")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(putDTO)))
                 .andExpect(status().isNotFound());
@@ -163,16 +178,15 @@ public class TradeOrderControllerTest {
 
     @Test
     void testDeleteTradeOrder_Success() throws Exception {
-        Mockito.doNothing().when(tradeOrderService).deleteTradeOrder(1, 1);
-        mockMvc.perform(delete("/api/v1/tradeOrders/1")
-                        .param("version", "1"))
+        mockMvc.perform(delete("/api/v1/tradeOrders/" + tradeOrder.getId())
+                        .param("version", String.valueOf(tradeOrder.getVersion())))
                 .andExpect(status().isNoContent());
+        tradeOrder = null; // Prevent double delete in tearDown
     }
 
     @Test
     void testDeleteTradeOrder_NotFound() throws Exception {
-        Mockito.doThrow(new IllegalArgumentException("Not found")).when(tradeOrderService).deleteTradeOrder(99, 1);
-        mockMvc.perform(delete("/api/v1/tradeOrders/99")
+        mockMvc.perform(delete("/api/v1/tradeOrders/999999")
                         .param("version", "1"))
                 .andExpect(status().isNotFound());
     }

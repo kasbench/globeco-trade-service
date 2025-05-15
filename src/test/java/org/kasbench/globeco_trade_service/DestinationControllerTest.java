@@ -7,26 +7,22 @@ import org.kasbench.globeco_trade_service.dto.DestinationPostDTO;
 import org.kasbench.globeco_trade_service.dto.DestinationPutDTO;
 import org.kasbench.globeco_trade_service.entity.Destination;
 import org.kasbench.globeco_trade_service.service.DestinationService;
-import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.Arrays;
 import java.util.Optional;
 
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@WebMvcTest(DestinationController.class)
-public class DestinationControllerTest {
+@AutoConfigureMockMvc
+public class DestinationControllerTest extends org.kasbench.globeco_trade_service.AbstractPostgresContainerTest {
     @Autowired
     private MockMvc mockMvc;
-    @MockBean
+    @Autowired
     private DestinationService destinationService;
     @Autowired
     private ObjectMapper objectMapper;
@@ -36,34 +32,30 @@ public class DestinationControllerTest {
     @BeforeEach
     void setup() {
         destination = new Destination();
-        destination.setId(1);
         destination.setAbbreviation("ML");
         destination.setDescription("Merrill Lynch");
         destination.setVersion(1);
+        destination = destinationService.createDestination(destination);
     }
 
     @Test
     void testGetAllDestinations() throws Exception {
-        Mockito.when(destinationService.getAllDestinations()).thenReturn(Arrays.asList(destination));
         mockMvc.perform(get("/api/v1/destinations"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].id").value(1))
-                .andExpect(jsonPath("$[0].abbreviation").value("ML"));
+                .andExpect(jsonPath("$[?(@.abbreviation=='ML' && @.description=='Merrill Lynch')]").exists());
     }
 
     @Test
     void testGetDestinationByIdFound() throws Exception {
-        Mockito.when(destinationService.getDestinationById(1)).thenReturn(Optional.of(destination));
-        mockMvc.perform(get("/api/v1/destinations/1"))
+        mockMvc.perform(get("/api/v1/destinations/" + destination.getId()))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id").value(1))
+                .andExpect(jsonPath("$.id").value(destination.getId()))
                 .andExpect(jsonPath("$.abbreviation").value("ML"));
     }
 
     @Test
     void testGetDestinationByIdNotFound() throws Exception {
-        Mockito.when(destinationService.getDestinationById(2)).thenReturn(Optional.empty());
-        mockMvc.perform(get("/api/v1/destinations/2"))
+        mockMvc.perform(get("/api/v1/destinations/999999"))
                 .andExpect(status().isNotFound());
     }
 
@@ -72,29 +64,27 @@ public class DestinationControllerTest {
         DestinationPostDTO postDTO = new DestinationPostDTO();
         postDTO.setAbbreviation("ML");
         postDTO.setDescription("Merrill Lynch");
-        Mockito.when(destinationService.createDestination(any(Destination.class))).thenReturn(destination);
         mockMvc.perform(post("/api/v1/destinations")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(postDTO)))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.id").value(1))
+                .andExpect(jsonPath("$.id").exists())
                 .andExpect(jsonPath("$.abbreviation").value("ML"));
     }
 
     @Test
     void testUpdateDestinationFound() throws Exception {
         DestinationPutDTO putDTO = new DestinationPutDTO();
-        putDTO.setId(1);
+        putDTO.setId(destination.getId());
         putDTO.setAbbreviation("ML");
         putDTO.setDescription("Updated");
         putDTO.setVersion(1);
         Destination updated = new Destination();
-        updated.setId(1);
+        updated.setId(destination.getId());
         updated.setAbbreviation("ML");
         updated.setDescription("Updated");
         updated.setVersion(1);
-        Mockito.when(destinationService.updateDestination(eq(1), any(Destination.class))).thenReturn(updated);
-        mockMvc.perform(put("/api/v1/destinations/1")
+        mockMvc.perform(put("/api/v1/destinations/" + destination.getId())
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(putDTO)))
                 .andExpect(status().isOk())
@@ -104,12 +94,11 @@ public class DestinationControllerTest {
     @Test
     void testUpdateDestinationNotFound() throws Exception {
         DestinationPutDTO putDTO = new DestinationPutDTO();
-        putDTO.setId(2);
+        putDTO.setId(999999);
         putDTO.setAbbreviation("XX");
         putDTO.setDescription("Not Found");
         putDTO.setVersion(1);
-        Mockito.when(destinationService.updateDestination(eq(2), any(Destination.class))).thenThrow(new IllegalArgumentException("Not found"));
-        mockMvc.perform(put("/api/v1/destinations/2")
+        mockMvc.perform(put("/api/v1/destinations/999999")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(putDTO)))
                 .andExpect(status().isNotFound());
@@ -117,15 +106,13 @@ public class DestinationControllerTest {
 
     @Test
     void testDeleteDestinationFound() throws Exception {
-        Mockito.doNothing().when(destinationService).deleteDestination(1, 1);
-        mockMvc.perform(delete("/api/v1/destinations/1?version=1"))
+        mockMvc.perform(delete("/api/v1/destinations/" + destination.getId() + "?version=" + destination.getVersion()))
                 .andExpect(status().isNoContent());
     }
 
     @Test
     void testDeleteDestinationNotFound() throws Exception {
-        Mockito.doThrow(new IllegalArgumentException("Not found")).when(destinationService).deleteDestination(2, 1);
-        mockMvc.perform(delete("/api/v1/destinations/2?version=1"))
+        mockMvc.perform(delete("/api/v1/destinations/999999?version=1"))
                 .andExpect(status().isNotFound());
     }
 } 

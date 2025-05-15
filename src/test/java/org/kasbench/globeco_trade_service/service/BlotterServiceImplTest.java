@@ -11,11 +11,10 @@ import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.cache.CacheManager;
-import org.springframework.test.annotation.DirtiesContext;
 import java.util.Optional;
 
 @SpringBootTest
-public class BlotterServiceImplTest {
+public class BlotterServiceImplTest extends org.kasbench.globeco_trade_service.AbstractPostgresContainerTest {
     @Autowired
     private BlotterService blotterService;
     @Autowired
@@ -87,7 +86,6 @@ public class BlotterServiceImplTest {
     }
 
     @Test
-    @DirtiesContext
     void testGetBlotterByIdUsesCache() {
         Blotter blotter = new Blotter();
         blotter.setAbbreviation("EQ");
@@ -108,7 +106,6 @@ public class BlotterServiceImplTest {
     }
 
     @Test
-    @DirtiesContext
     void testGetAllBlottersUsesCache() {
         Blotter blotter = new Blotter();
         blotter.setAbbreviation("EQ");
@@ -127,7 +124,6 @@ public class BlotterServiceImplTest {
 
     @SuppressWarnings("null")
     @Test
-    @DirtiesContext
     void testCacheEvictedOnCreateUpdateDelete() {
         Blotter blotter = new Blotter();
         blotter.setAbbreviation("EQ");

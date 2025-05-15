@@ -5,18 +5,18 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.kasbench.globeco_trade_service.entity.*;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
+import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
+import org.junit.jupiter.api.Assertions;
 
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-@DataJpaTest
-@ExtendWith(SpringExtension.class)
-public class ExecutionRepositoryTest {
+@SpringBootTest
+public class ExecutionRepositoryTest extends org.kasbench.globeco_trade_service.AbstractPostgresContainerTest {
     @Autowired
     private ExecutionRepository executionRepository;
     @Autowired
@@ -87,7 +87,7 @@ public class ExecutionRepositoryTest {
         found.setQuantityFilled(new BigDecimal("50.00"));
         executionRepository.save(found);
         Execution updated = executionRepository.findById(found.getId()).orElse(null);
-        assertEquals(new BigDecimal("50.00"), updated.getQuantityFilled());
+        Assertions.assertEquals(0, updated.getQuantityFilled().compareTo(new BigDecimal("50.00")));
         executionRepository.deleteById(updated.getId());
         assertFalse(executionRepository.findById(updated.getId()).isPresent());
     }

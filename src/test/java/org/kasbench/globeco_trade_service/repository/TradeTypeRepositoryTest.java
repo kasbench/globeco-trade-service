@@ -5,15 +5,14 @@ import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.kasbench.globeco_trade_service.entity.TradeType;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
+import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-@DataJpaTest
-@ExtendWith(SpringExtension.class)
-public class TradeTypeRepositoryTest {
+@SpringBootTest
+public class TradeTypeRepositoryTest extends org.kasbench.globeco_trade_service.AbstractPostgresContainerTest {
     @Autowired
     private TradeTypeRepository tradeTypeRepository;
 

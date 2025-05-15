@@ -626,3 +626,36 @@ Action:
 1. Created OpenApiController to serve the static openapi.yaml file at /api/v1/openapi.yaml using Spring's Resource handling.
 2. Endpoint returns the OpenAPI YAML with content type application/yaml, making the API spec available for documentation and tooling.
 3. Ensured endpoint path and behavior are consistent with project conventions and requirements.
+
+---
+
+**2024-05-15**
+
+**Request:** Update all controller test classes to extend AbstractPostgresContainerTest and use integration-style testing with the real database (Testcontainers), removing @WebMvcTest/@MockBean and using @AutoConfigureMockMvc and real beans. Fix linter/import issues as needed.
+
+**Actions:**
+- Updated BlotterControllerTest, ExecutionControllerTest, ExecutionStatusControllerTest, DestinationControllerTest, TradeOrderControllerTest, and TradeTypeControllerTest to extend AbstractPostgresContainerTest and use @AutoConfigureMockMvc.
+- Removed @WebMvcTest and @MockBean from controller tests, using @Autowired for real service/repository beans.
+- Fixed linter errors by adding missing imports and updating test setup to persist entities using the real service/repository.
+- Ensured all controller tests now use the PostgreSQL Testcontainer for integration testing, consistent with service/repository tests.
+
+**Rationale:**
+- This ensures all tests use the same database context and fixes the "Unable to determine Dialect without JDBC metadata" error.
+- Maintains codebase consistency and follows the required logging and consistency rules.
+
+---
+
+**2024-05-15**
+
+**Request:** Fix the last remaining test error (contextLoads) by ensuring GlobecoTradeServiceApplicationTests uses the Testcontainers PostgreSQL instance.
+
+**Actions:**
+1. Updated GlobecoTradeServiceApplicationTests to extend AbstractPostgresContainerTest, so it uses the dynamic Testcontainers datasource like all other tests.
+2. Removed incorrect import for org.testcontainers.junit.jupiter.AbstractPostgresContainerTest.
+3. Ran the contextLoads test and confirmed it now passes.
+4. Ran the full test suite and confirmed that **all tests now pass successfully**.
+
+**Rationale:**
+- The contextLoads test was failing because it used the default datasource config, not the Testcontainers instance. Extending the base test class ensures all tests use the same dynamic datasource and context.
+
+---
