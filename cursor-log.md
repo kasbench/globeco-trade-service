@@ -705,3 +705,11 @@ Rationale:
 ---
 
 Reviewed and revised documentation/supplemental-requirement-1.md for clarity, specificity, and consistency. Incorporated explicit instructions for database migration (including the new execution_service_id_ndx index), DTO/service updates, error handling, naming conventions, and added example request/response payloads for the new API. Improved structure and removed redundant wording as per user request.
+
+Request: Review and update V1__init_schema.sql to add the execution_service_id column and execution_service_id_ndx index to the execution table, as required by the supplemental requirements.
+
+Actions:
+1. Reviewed V1__init_schema.sql and confirmed that execution_service_id column and execution_service_id_ndx index were missing from the execution table.
+2. Added a nullable integer column execution_service_id to the execution table definition.
+3. Added a CREATE INDEX statement for execution_service_id_ndx on the execution_service_id column.
+4. Ensured the schema now matches the requirements in documentation/supplemental-requirement-1.md.

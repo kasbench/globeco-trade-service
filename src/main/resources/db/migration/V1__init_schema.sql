@@ -32,6 +32,7 @@ CREATE TABLE public.execution (
 	quantity_filled decimal(18,8) NOT NULL DEFAULT 0,
 	limit_price decimal(18,8),
 	version integer NOT NULL DEFAULT 1,
+	execution_service_id integer NULL,
 	CONSTRAINT execution_pk PRIMARY KEY (id)
 );
 
@@ -106,4 +107,6 @@ ON DELETE RESTRICT ON UPDATE CASCADE;
 -- object: blotter__fk | type: CONSTRAINT --
 ALTER TABLE public.execution ADD CONSTRAINT blotter__fk FOREIGN KEY (blotter_id)
 REFERENCES public.blotter (id) MATCH FULL
-ON DELETE SET NULL ON UPDATE CASCADE; 
+ON DELETE SET NULL ON UPDATE CASCADE;
+
+CREATE INDEX execution_service_id_ndx ON public.execution (execution_service_id); 
