@@ -49,6 +49,7 @@ CREATE TABLE public.execution (
 	quantity_placed decimal(18,8) NOT NULL,
 	quantity_filled decimal(18,8) NOT NULL DEFAULT 0,
 	limit_price decimal(18,8),
+	execution_service_id integer,
 	version integer NOT NULL DEFAULT 1,
 	CONSTRAINT execution_pk PRIMARY KEY (id)
 );
@@ -157,6 +158,15 @@ ON DELETE RESTRICT ON UPDATE CASCADE;
 ALTER TABLE public.execution ADD CONSTRAINT blotter__fk FOREIGN KEY (blotter_id)
 REFERENCES public.blotter (id) MATCH FULL
 ON DELETE SET NULL ON UPDATE CASCADE;
+-- ddl-end --
+
+-- object: execution_service_id_ndx | type: INDEX --
+-- DROP INDEX IF EXISTS public.execution_service_id_ndx CASCADE;
+CREATE UNIQUE INDEX execution_service_id_ndx ON public.execution
+USING btree
+(
+	execution_service_id
+);
 -- ddl-end --
 
 
