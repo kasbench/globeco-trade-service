@@ -721,3 +721,15 @@ Actions:
 2. Updated ExecutionServiceImplTest to set and assert executionServiceId in create, update, and get tests.
 3. Updated ExecutionControllerTest to set and assert executionServiceId in API create, update, and get tests.
 4. Ensured all logic and tests are consistent with the new schema and requirements.
+
+Request: Update README.md and openapi.yaml to document the executionServiceId field in the Execution entity, DTOs, and example payloads, and to clarify naming conventions.
+
+Actions:
+1. Updated README.md to add executionServiceId to the Execution data model, ExecutionResponseDTO, ExecutionPutDTO, and ExecutionPostDTO tables, and to all example request/response payloads. Added a note about naming conventions (snake_case for DB, camelCase for Java/DTO).
+2. Updated openapi.yaml to add executionServiceId (type: integer, nullable) to ExecutionResponseDTO, ExecutionPutDTO, and ExecutionPostDTO schemas. Ensured all relevant documentation and schema references are updated.
+
+Request: Add a global CORS configuration to allow all origins, methods, and headers.
+
+Actions:
+1. Added a WebMvcConfigurer bean in GlobecoTradeServiceApplication.java that configures CORS to allow all origins, methods, and headers for all endpoints.
+2. Ensured the configuration is global and consistent with the requirements in supplemental-requirement-1.md.

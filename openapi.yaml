@@ -875,6 +875,9 @@ components:
         limitPrice:
           type: number
           format: double
+        executionServiceId:
+          type: integer
+          nullable: true
         version:
           type: integer
     ExecutionPutDTO:
@@ -906,6 +909,9 @@ components:
         limitPrice:
           type: number
           format: double
+        executionServiceId:
+          type: integer
+          nullable: true
         version:
           type: integer
     ExecutionPostDTO:
@@ -934,4 +940,9 @@ components:
           format: double
         limitPrice:
           type: number
-          format: double 
+          format: double
+        executionServiceId:
+          type: integer
+          nullable: true
+        version:
+          type: integer 

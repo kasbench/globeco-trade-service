@@ -516,6 +516,7 @@ The **execution** table represents an execution of a trade order, including stat
 | quantityPlaced     | BigDecimal     | Quantity placed                             |
 | quantityFilled     | BigDecimal     | Quantity filled                             |
 | limitPrice         | BigDecimal     | Limit price                                 |
+| executionServiceId | Integer        | ID from the external execution service (nullable) |
 | version            | Integer        | Version for optimistic locking              |
 
 ### DTOs
@@ -534,6 +535,7 @@ The **execution** table represents an execution of a trade order, including stat
 | quantityPlaced     | BigDecimal                  | Quantity placed                             |
 | quantityFilled     | BigDecimal                  | Quantity filled                             |
 | limitPrice         | BigDecimal                  | Limit price                                 |
+| executionServiceId | Integer                     | ID from the external execution service (nullable) |
 | version            | Integer                     | Version for optimistic locking              |
 
 #### ExecutionPutDTO (PUT Request)
@@ -550,6 +552,7 @@ The **execution** table represents an execution of a trade order, including stat
 | quantityPlaced     | BigDecimal     | Quantity placed                             |
 | quantityFilled     | BigDecimal     | Quantity filled                             |
 | limitPrice         | BigDecimal     | Limit price                                 |
+| executionServiceId | Integer        | ID from the external execution service (nullable) |
 | version            | Integer        | Version for optimistic locking              |
 
 #### ExecutionPostDTO (POST Request)
@@ -565,6 +568,7 @@ The **execution** table represents an execution of a trade order, including stat
 | quantityPlaced     | BigDecimal     | Quantity placed                             |
 | quantityFilled     | BigDecimal     | Quantity filled                             |
 | limitPrice         | BigDecimal     | Limit price                                 |
+| executionServiceId | Integer        | ID from the external execution service (nullable) |
 
 ### Execution APIs
 
@@ -588,7 +592,8 @@ The **execution** table represents an execution of a trade order, including stat
   "quantityOrdered": 10,
   "quantityPlaced": 100.00,
   "quantityFilled": 0.00,
-  "limitPrice": 10.00
+  "limitPrice": 10.00,
+  "executionServiceId": 55555
 }
 ```
 
@@ -606,6 +611,7 @@ The **execution** table represents an execution of a trade order, including stat
   "quantityPlaced": 100.00,
   "quantityFilled": 0.00,
   "limitPrice": 10.00,
+  "executionServiceId": 55555,
   "version": 1
 }
 ```
