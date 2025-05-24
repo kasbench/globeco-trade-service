@@ -11,6 +11,12 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.web.client.RestTemplate;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.client.HttpStatusCodeException;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.*;
 
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
@@ -36,6 +42,8 @@ public class ExecutionControllerTest extends org.kasbench.globeco_trade_service.
     private TradeOrderRepository tradeOrderRepository;
     @Autowired
     private DestinationRepository destinationRepository;
+    @MockBean
+    private RestTemplate restTemplate;
 
     private ExecutionStatus status;
     private Blotter blotter;
@@ -202,5 +210,70 @@ public class ExecutionControllerTest extends org.kasbench.globeco_trade_service.
     void testGetExecutionNotFound() throws Exception {
         mockMvc.perform(get("/api/v1/executions/999999"))
                 .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void testSubmitExecutionSuccess() throws Exception {
+        ExecutionPostDTO postDTO = buildPostDTO();
+        String postJson = objectMapper.writeValueAsString(postDTO);
+        String response = mockMvc.perform(post("/api/v1/executions")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(postJson))
+                .andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString();
+        int id = objectMapper.readTree(response).get("id").asInt();
+        java.util.Map<String, Object> responseMap = new java.util.HashMap<>();
+        responseMap.put("id", 99999);
+        when(restTemplate.postForEntity(anyString(), any(), eq(java.util.Map.class)))
+            .thenReturn(ResponseEntity.ok(responseMap));
+        mockMvc.perform(post("/api/v1/execution/" + id + "/submit"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("submitted"));
+    }
+
+    @Test
+    void testSubmitExecutionClientError() throws Exception {
+        ExecutionPostDTO postDTO = buildPostDTO();
+        String postJson = objectMapper.writeValueAsString(postDTO);
+        String response = mockMvc.perform(post("/api/v1/executions")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(postJson))
+                .andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString();
+        int id = objectMapper.readTree(response).get("id").asInt();
+        HttpStatusCodeException ex = mock(HttpStatusCodeException.class);
+        when(ex.getRawStatusCode()).thenReturn(400);
+        when(ex.getResponseBodyAsString()).thenReturn("Bad Request");
+        when(restTemplate.postForEntity(anyString(), any(), eq(java.util.Map.class)))
+            .thenThrow(ex);
+        mockMvc.perform(post("/api/v1/execution/" + id + "/submit"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error", containsString("Client error")));
+    }
+
+    @Test
+    void testSubmitExecutionServerError() throws Exception {
+        ExecutionPostDTO postDTO = buildPostDTO();
+        String postJson = objectMapper.writeValueAsString(postDTO);
+        String response = mockMvc.perform(post("/api/v1/executions")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(postJson))
+                .andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString();
+        int id = objectMapper.readTree(response).get("id").asInt();
+        HttpStatusCodeException ex = mock(HttpStatusCodeException.class);
+        when(ex.getRawStatusCode()).thenReturn(500);
+        when(restTemplate.postForEntity(anyString(), any(), eq(java.util.Map.class)))
+            .thenThrow(ex);
+        mockMvc.perform(post("/api/v1/execution/" + id + "/submit"))
+                .andExpect(status().isInternalServerError())
+                .andExpect(jsonPath("$.error", containsString("unavailable")));
+    }
+
+    @Test
+    void testSubmitExecutionNotFound() throws Exception {
+        mockMvc.perform(post("/api/v1/execution/-1/submit"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.error", containsString("not found")));
     }
 } 

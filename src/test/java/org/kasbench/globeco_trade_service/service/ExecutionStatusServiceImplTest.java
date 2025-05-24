@@ -8,6 +8,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.cache.CacheManager;
 import java.util.Optional;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -20,7 +21,7 @@ public class ExecutionStatusServiceImplTest extends org.kasbench.globeco_trade_s
 
     private ExecutionStatus buildExecutionStatus() {
         ExecutionStatus status = new ExecutionStatus();
-        status.setAbbreviation("NEW" + ThreadLocalRandom.current().nextInt(1_000_000, Integer.MAX_VALUE));
+        status.setAbbreviation("NEW" + System.nanoTime());
         status.setDescription("New");
         return status;
     }

@@ -751,3 +751,10 @@ Actions:
 1. Added submitExecution(Integer id) to ExecutionService and ExecutionServiceImpl, with logic to map fields, call the external execution service, handle responses, update execution_service_id and status, and log errors.
 2. Added a new endpoint POST /api/v1/execution/{id}/submit to ExecutionController, returning 200 on success, 400/500 on error, with appropriate error messages and status codes.
 3. Ensured all logic and error handling matches the requirements in supplemental-requirement-1.md.
+
+Request: Add unit and controller tests for the submitExecution API, covering all required scenarios (success, client/server error, not found, unexpected response).
+
+Actions:
+1. Added unit tests to ExecutionServiceImplTest for submitExecution: success, client error, server error, not found, and unexpected response, using Mockito to mock RestTemplate.
+2. Added integration/controller tests to ExecutionControllerTest for POST /api/v1/execution/{id}/submit: success, client error, server error, and not found, using MockMvc and MockBean for RestTemplate.
+3. Ensured all tests match the requirements and error handling logic in the implementation.

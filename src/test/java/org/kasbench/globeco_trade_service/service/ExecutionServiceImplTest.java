@@ -6,8 +6,15 @@ import org.kasbench.globeco_trade_service.entity.*;
 import org.kasbench.globeco_trade_service.repository.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.cache.CacheManager;
 import org.springframework.cache.interceptor.SimpleKey;
+import org.springframework.web.client.RestTemplate;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.client.HttpStatusCodeException;
+import org.mockito.Mockito;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.*;
 
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
@@ -32,6 +39,8 @@ public class ExecutionServiceImplTest extends org.kasbench.globeco_trade_service
     private DestinationRepository destinationRepository;
     @Autowired
     private CacheManager cacheManager;
+    @MockBean
+    private RestTemplate restTemplate;
 
     private ExecutionStatus status;
     private Blotter blotter;
@@ -191,5 +200,63 @@ public class ExecutionServiceImplTest extends org.kasbench.globeco_trade_service
         Execution toDelete = executionService.getAllExecutions().get(0);
         executionService.deleteExecution(toDelete.getId(), toDelete.getVersion());
         assertNull(cacheManager.getCache("executions").get(SimpleKey.EMPTY));
+    }
+
+    @Test
+    void testSubmitExecutionSuccess() {
+        Execution execution = buildExecution();
+        execution = executionService.createExecution(execution);
+        java.util.Map<String, Object> responseMap = new java.util.HashMap<>();
+        responseMap.put("id", 99999);
+        when(restTemplate.postForEntity(anyString(), any(), eq(java.util.Map.class)))
+            .thenReturn(ResponseEntity.ok(responseMap));
+        ExecutionService.SubmitResult result = executionService.submitExecution(execution.getId());
+        assertEquals("submitted", result.getStatus());
+        assertNull(result.getError());
+    }
+
+    @Test
+    void testSubmitExecutionClientError() {
+        Execution execution = buildExecution();
+        execution = executionService.createExecution(execution);
+        HttpStatusCodeException ex = mock(HttpStatusCodeException.class);
+        when(ex.getRawStatusCode()).thenReturn(400);
+        when(ex.getResponseBodyAsString()).thenReturn("Bad Request");
+        when(restTemplate.postForEntity(anyString(), any(), eq(java.util.Map.class)))
+            .thenThrow(ex);
+        ExecutionService.SubmitResult result = executionService.submitExecution(execution.getId());
+        assertNull(result.getStatus());
+        assertTrue(result.getError().contains("Client error"));
+    }
+
+    @Test
+    void testSubmitExecutionServerError() {
+        Execution execution = buildExecution();
+        execution = executionService.createExecution(execution);
+        HttpStatusCodeException ex = mock(HttpStatusCodeException.class);
+        when(ex.getRawStatusCode()).thenReturn(500);
+        when(restTemplate.postForEntity(anyString(), any(), eq(java.util.Map.class)))
+            .thenThrow(ex);
+        ExecutionService.SubmitResult result = executionService.submitExecution(execution.getId());
+        assertNull(result.getStatus());
+        assertTrue(result.getError().contains("unavailable"));
+    }
+
+    @Test
+    void testSubmitExecutionNotFound() {
+        ExecutionService.SubmitResult result = executionService.submitExecution(-1);
+        assertNull(result.getStatus());
+        assertTrue(result.getError().contains("not found"));
+    }
+
+    @Test
+    void testSubmitExecutionUnexpectedResponse() {
+        Execution execution = buildExecution();
+        execution = executionService.createExecution(execution);
+        when(restTemplate.postForEntity(anyString(), any(), eq(java.util.Map.class)))
+            .thenReturn(ResponseEntity.ok(new java.util.HashMap<>()));
+        ExecutionService.SubmitResult result = executionService.submitExecution(execution.getId());
+        assertNull(result.getStatus());
+        assertTrue(result.getError().contains("Unexpected response"));
     }
 } 
