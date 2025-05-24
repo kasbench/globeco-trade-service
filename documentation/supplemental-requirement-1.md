@@ -56,6 +56,7 @@ This API calls the POST `/api/v1/executions` API of the globeco-execution-servic
 | securityId                 | execution.tradeOrder.securityId            |
 | quantity                   | execution.quantity                         |
 | limitPrice                 | execution.limitPrice                       |
+| tradeServiceExecutionId | execution.id
 | version                    | 1                                          |
 ---
 

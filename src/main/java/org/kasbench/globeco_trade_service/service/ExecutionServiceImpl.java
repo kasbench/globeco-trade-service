@@ -7,6 +7,11 @@ import org.springframework.cache.annotation.Cacheable;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.client.RestTemplate;
+import org.springframework.web.client.HttpStatusCodeException;
+import org.springframework.http.ResponseEntity;
+import org.springframework.http.HttpStatus;
+import org.springframework.beans.factory.annotation.Value;
 
 import java.util.List;
 import java.util.Optional;
@@ -19,6 +24,9 @@ public class ExecutionServiceImpl implements ExecutionService {
     private final TradeTypeRepository tradeTypeRepository;
     private final TradeOrderRepository tradeOrderRepository;
     private final DestinationRepository destinationRepository;
+    private final RestTemplate restTemplate;
+    @Value("${execution.service.base-url:http://globeco-execution-service:8084}")
+    private String executionServiceBaseUrl;
 
     @Autowired
     public ExecutionServiceImpl(
@@ -27,13 +35,15 @@ public class ExecutionServiceImpl implements ExecutionService {
             BlotterRepository blotterRepository,
             TradeTypeRepository tradeTypeRepository,
             TradeOrderRepository tradeOrderRepository,
-            DestinationRepository destinationRepository) {
+            DestinationRepository destinationRepository,
+            RestTemplate restTemplate) {
         this.executionRepository = executionRepository;
         this.executionStatusRepository = executionStatusRepository;
         this.blotterRepository = blotterRepository;
         this.tradeTypeRepository = tradeTypeRepository;
         this.tradeOrderRepository = tradeOrderRepository;
         this.destinationRepository = destinationRepository;
+        this.restTemplate = restTemplate;
     }
 
     @Override
@@ -88,6 +98,55 @@ public class ExecutionServiceImpl implements ExecutionService {
             throw new IllegalArgumentException("Version mismatch for execution: " + id);
         }
         executionRepository.deleteById(id);
+    }
+
+    @Override
+    @Transactional
+    public SubmitResult submitExecution(Integer id) {
+        Optional<Execution> opt = executionRepository.findById(id);
+        if (opt.isEmpty()) {
+            return new SubmitResult(null, "Execution not found");
+        }
+        Execution execution = opt.get();
+        // Build DTO for external service
+        java.util.Map<String, Object> payload = new java.util.HashMap<>();
+        payload.put("executionStatus", execution.getExecutionStatus().getAbbreviation());
+        payload.put("tradeType", execution.getTradeType().getAbbreviation());
+        payload.put("destination", execution.getDestination().getAbbreviation());
+        payload.put("securityId", execution.getTradeOrder().getSecurityId());
+        payload.put("quantity", execution.getQuantityPlaced());
+        payload.put("limitPrice", execution.getLimitPrice());
+        payload.put("tradeServiceExecutionId", execution.getId());
+        payload.put("version", 1);
+        String url = executionServiceBaseUrl + "/api/v1/executions";
+        try {
+            ResponseEntity<java.util.Map> response = restTemplate.postForEntity(url, payload, java.util.Map.class);
+            if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null && response.getBody().get("id") != null) {
+                Integer extId = (Integer) response.getBody().get("id");
+                execution.setExecutionServiceId(extId);
+                // Update status to SENT
+                ExecutionStatus sentStatus = executionStatusRepository.findAll().stream().filter(s -> "SENT".equals(s.getAbbreviation())).findFirst().orElse(null);
+                if (sentStatus != null) {
+                    execution.setExecutionStatus(sentStatus);
+                }
+                executionRepository.save(execution);
+                return new SubmitResult("submitted", null);
+            } else {
+                return new SubmitResult(null, "Unexpected response from execution service");
+            }
+        } catch (HttpStatusCodeException ex) {
+            org.springframework.http.HttpStatus status = org.springframework.http.HttpStatus.valueOf(ex.getRawStatusCode());
+            if (status.is4xxClientError()) {
+                return new SubmitResult(null, "Client error: " + ex.getResponseBodyAsString());
+            } else if (status.is5xxServerError()) {
+                return new SubmitResult(null, "Failed to submit execution: execution service unavailable");
+            } else {
+                return new SubmitResult(null, "Error: " + ex.getMessage());
+            }
+        } catch (Exception ex) {
+            ex.printStackTrace();
+            return new SubmitResult(null, "Error: " + ex.getMessage());
+        }
     }
 
     private void resolveRelationships(Execution execution) {

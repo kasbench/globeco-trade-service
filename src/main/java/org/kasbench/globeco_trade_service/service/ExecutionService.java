@@ -10,4 +10,20 @@ public interface ExecutionService {
     Execution createExecution(Execution execution);
     Execution updateExecution(Integer id, Execution execution);
     void deleteExecution(Integer id, Integer version);
+
+    class SubmitResult {
+        private String status;
+        private String error;
+        public SubmitResult() {}
+        public SubmitResult(String status, String error) {
+            this.status = status;
+            this.error = error;
+        }
+        public String getStatus() { return status; }
+        public void setStatus(String status) { this.status = status; }
+        public String getError() { return error; }
+        public void setError(String error) { this.error = error; }
+    }
+
+    SubmitResult submitExecution(Integer id);
 } 

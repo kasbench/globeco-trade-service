@@ -733,3 +733,21 @@ Request: Add a global CORS configuration to allow all origins, methods, and head
 Actions:
 1. Added a WebMvcConfigurer bean in GlobecoTradeServiceApplication.java that configures CORS to allow all origins, methods, and headers for all endpoints.
 2. Ensured the configuration is global and consistent with the requirements in supplemental-requirement-1.md.
+
+Request: Create a GitHub Actions workflow for multi-architecture Docker builds and DockerHub deployment, as required by the supplemental requirements.
+
+Actions:
+1. Created .github/workflows/docker-publish.yml with a workflow that:
+   - Triggers on push to main and on workflow_dispatch.
+   - Sets up QEMU and Docker Buildx for multi-arch builds.
+   - Logs in to DockerHub using repository secrets.
+   - Builds and pushes a Docker image for linux/amd64 and linux/arm64 using the project Dockerfile.
+   - Tags the image as latest and with the commit SHA.
+2. Ensured the workflow is consistent with project conventions and requirements.
+
+Request: Implement the submitExecution API endpoint in ExecutionController and the supporting service logic in ExecutionService/ExecutionServiceImpl, including error handling and field mapping as per requirements.
+
+Actions:
+1. Added submitExecution(Integer id) to ExecutionService and ExecutionServiceImpl, with logic to map fields, call the external execution service, handle responses, update execution_service_id and status, and log errors.
+2. Added a new endpoint POST /api/v1/execution/{id}/submit to ExecutionController, returning 200 on success, 400/500 on error, with appropriate error messages and status codes.
+3. Ensured all logic and error handling matches the requirements in supplemental-requirement-1.md.

@@ -117,6 +117,10 @@
           "limitPrice": {
             "type": "number"
           },
+          "tradeServiceExecutionId": {
+            "type": "integer",
+            "format": "int32"
+          },
           "version": {
             "type": "integer",
             "format": "int32"
