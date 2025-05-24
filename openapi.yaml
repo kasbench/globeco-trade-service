@@ -639,6 +639,58 @@ paths:
                   status:
                     type: string
                     example: UP
+  /api/v1/execution/{id}/submit:
+    post:
+      summary: Submit an execution to the external execution service
+      description: >
+        Submits the execution with the given ID to the globeco-execution-service. On success, updates the local execution's execution_service_id and status to SENT.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Submission successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: submitted
+        '400':
+          description: Client error from execution service
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: Client error: Bad Request
+        '404':
+          description: Execution not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: Execution not found
+        '500':
+          description: Server error or execution service unavailable
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: Failed to submit execution: execution service unavailable
 components:
   schemas:
     BlotterResponseDTO:

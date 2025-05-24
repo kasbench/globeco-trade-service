@@ -616,6 +616,73 @@ The **execution** table represents an execution of a trade order, including stat
 }
 ```
 
+## Submit Execution API
+
+### Endpoint
+
+`POST /api/v1/execution/{id}/submit`
+
+Submits an execution to the external execution service (globeco-execution-service on port 8084). On success, updates the local execution's `execution_service_id` and status to SENT.
+
+### Field Mapping
+
+| Execution Service DTO Field | Trade Service Field                        |
+|----------------------------|--------------------------------------------|
+| executionStatus            | execution.executionStatus.abbreviation     |
+| tradeType                  | execution.tradeType.abbreviation           |
+| destination                | execution.destination.abbreviation         |
+| securityId                 | execution.tradeOrder.securityId            |
+| quantity                   | execution.quantityPlaced                   |
+| limitPrice                 | execution.limitPrice                       |
+| tradeServiceExecutionId    | execution.id                               |
+| version                    | 1                                          |
+
+### Example Request
+
+```
+POST /api/v1/execution/123/submit
+Content-Type: application/json
+
+{}
+```
+
+### Example Success Response
+
+```
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{
+  "status": "submitted"
+}
+```
+
+### Example Error Response (Execution Service Unavailable)
+
+```
+HTTP/1.1 500 Internal Server Error
+Content-Type: application/json
+
+{
+  "error": "Failed to submit execution: execution service unavailable"
+}
+```
+
+### Error Handling
+- 200 OK: Submission successful, status updated
+- 400 Bad Request: Client error from execution service
+- 404 Not Found: Execution not found
+- 500 Internal Server Error: Server error or execution service unavailable
+
+### Test Scenarios
+- Successful submission and status update
+- Execution service returns client error (400)
+- Execution service returns server error (500)
+- Database update failure
+- Execution not found
+
+_Implemented in `ExecutionSubmitController`._
+
 ## Health Check APIs
 
 The service exposes standard health check endpoints for Kubernetes:

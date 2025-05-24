@@ -446,7 +446,7 @@ Action: Updated the log to record the request. Next, I will:
 
 Request: Update the OpenAPI schema openapi.yaml in the project root. Add the full specification for the destination API.
 
-Action: Updated the log to record the request. Next, I will:
+Actions:
 1. Updated openapi.yaml to include the full OpenAPI 3.0.3 specification for the destination API, documenting all endpoints (GET all, GET by id, POST, PUT, DELETE), request/response schemas, parameters, and error responses. Ensured consistency with README.md and requirements.md documentation. All actions logged as required.
 
 ---
@@ -758,3 +758,10 @@ Actions:
 1. Added unit tests to ExecutionServiceImplTest for submitExecution: success, client error, server error, not found, and unexpected response, using Mockito to mock RestTemplate.
 2. Added integration/controller tests to ExecutionControllerTest for POST /api/v1/execution/{id}/submit: success, client error, server error, and not found, using MockMvc and MockBean for RestTemplate.
 3. Ensured all tests match the requirements and error handling logic in the implementation.
+
+Request: Update README.md and openapi.yaml to document the new submitExecution API, including endpoint, field mapping, examples, error handling, and test scenarios.
+
+Actions:
+1. Updated README.md with a new section for POST /api/v1/execution/{id}/submit, including endpoint description, field mapping, example requests/responses, error handling, and test scenarios.
+2. Updated openapi.yaml to add the POST /api/v1/execution/{id}/submit endpoint, with path, parameters, responses, and example payloads.
+3. Ensured documentation is consistent with requirements and implementation.
