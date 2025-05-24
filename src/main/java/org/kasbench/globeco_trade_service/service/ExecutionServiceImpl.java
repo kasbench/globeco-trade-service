@@ -54,6 +54,10 @@ public class ExecutionServiceImpl implements ExecutionService {
     public Execution createExecution(Execution execution) {
         execution.setId(null); // Ensure ID is not set for new entity
         resolveRelationships(execution);
+        // Set executionServiceId if provided
+        if (execution.getExecutionServiceId() != null) {
+            execution.setExecutionServiceId(execution.getExecutionServiceId());
+        }
         return executionRepository.save(execution);
     }
 
@@ -68,6 +72,8 @@ public class ExecutionServiceImpl implements ExecutionService {
         existing.setQuantityPlaced(execution.getQuantityPlaced());
         existing.setQuantityFilled(execution.getQuantityFilled());
         existing.setLimitPrice(execution.getLimitPrice());
+        // Set executionServiceId if provided
+        existing.setExecutionServiceId(execution.getExecutionServiceId());
         resolveRelationshipsForUpdate(existing, execution);
         return executionRepository.save(existing);
     }

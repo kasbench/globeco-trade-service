@@ -14,6 +14,7 @@ public class ExecutionPostDTO {
     private BigDecimal quantityPlaced;
     private BigDecimal quantityFilled;
     private BigDecimal limitPrice;
+    private Integer executionServiceId;
 
     public OffsetDateTime getExecutionTimestamp() {
         return executionTimestamp;
@@ -74,5 +75,11 @@ public class ExecutionPostDTO {
     }
     public void setLimitPrice(BigDecimal limitPrice) {
         this.limitPrice = limitPrice;
+    }
+    public Integer getExecutionServiceId() {
+        return executionServiceId;
+    }
+    public void setExecutionServiceId(Integer executionServiceId) {
+        this.executionServiceId = executionServiceId;
     }
 } 

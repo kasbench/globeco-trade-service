@@ -16,6 +16,7 @@ public class ExecutionPutDTO {
     private BigDecimal quantityFilled;
     private BigDecimal limitPrice;
     private Integer version;
+    private Integer executionServiceId;
 
     public Integer getId() {
         return id;
@@ -88,5 +89,11 @@ public class ExecutionPutDTO {
     }
     public void setVersion(Integer version) {
         this.version = version;
+    }
+    public Integer getExecutionServiceId() {
+        return executionServiceId;
+    }
+    public void setExecutionServiceId(Integer executionServiceId) {
+        this.executionServiceId = executionServiceId;
     }
 } 

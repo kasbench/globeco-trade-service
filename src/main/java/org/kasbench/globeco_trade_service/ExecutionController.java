@@ -65,6 +65,7 @@ public class ExecutionController {
         dto.setQuantityFilled(execution.getQuantityFilled());
         dto.setLimitPrice(execution.getLimitPrice());
         dto.setVersion(execution.getVersion());
+        dto.setExecutionServiceId(execution.getExecutionServiceId());
         // Nested DTOs
         if (execution.getExecutionStatus() != null) {
             ExecutionStatusResponseDTO statusDTO = new ExecutionStatusResponseDTO();
@@ -129,6 +130,7 @@ public class ExecutionController {
         execution.setQuantityPlaced(dto.getQuantityPlaced());
         execution.setQuantityFilled(dto.getQuantityFilled());
         execution.setLimitPrice(dto.getLimitPrice());
+        execution.setExecutionServiceId(dto.getExecutionServiceId());
         // Set relationships by id
         ExecutionStatus status = new ExecutionStatus();
         status.setId(dto.getExecutionStatusId());
@@ -159,6 +161,7 @@ public class ExecutionController {
         execution.setQuantityPlaced(dto.getQuantityPlaced());
         execution.setQuantityFilled(dto.getQuantityFilled());
         execution.setLimitPrice(dto.getLimitPrice());
+        execution.setExecutionServiceId(dto.getExecutionServiceId());
         // Set relationships by id
         ExecutionStatus status = new ExecutionStatus();
         status.setId(dto.getExecutionStatusId());

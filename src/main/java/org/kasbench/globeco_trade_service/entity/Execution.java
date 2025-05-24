@@ -46,6 +46,9 @@ public class Execution {
     @Column(name = "limit_price", precision = 18, scale = 8)
     private BigDecimal limitPrice;
 
+    @Column(name = "execution_service_id")
+    private Integer executionServiceId;
+
     @Version
     @Column(nullable = false)
     private Integer version = 1;
@@ -73,6 +76,8 @@ public class Execution {
     public void setQuantityFilled(BigDecimal quantityFilled) { this.quantityFilled = quantityFilled; }
     public BigDecimal getLimitPrice() { return limitPrice; }
     public void setLimitPrice(BigDecimal limitPrice) { this.limitPrice = limitPrice; }
+    public Integer getExecutionServiceId() { return executionServiceId; }
+    public void setExecutionServiceId(Integer executionServiceId) { this.executionServiceId = executionServiceId; }
     public Integer getVersion() { return version; }
     public void setVersion(Integer version) { this.version = version; }
 } 

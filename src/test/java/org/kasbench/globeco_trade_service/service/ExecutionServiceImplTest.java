@@ -101,21 +101,27 @@ public class ExecutionServiceImplTest extends org.kasbench.globeco_trade_service
     // @Disabled("Disabled: persistent failures, will revisit at the end of implementation")
     void testCreateAndGetExecution() {
         Execution execution = buildExecution();
+        execution.setExecutionServiceId(12345);
         Execution created = executionService.createExecution(execution);
         assertNotNull(created.getId());
+        assertEquals(12345, created.getExecutionServiceId());
         Optional<Execution> found = executionService.getExecutionById(created.getId());
         assertTrue(found.isPresent());
         assertEquals(created.getId(), found.get().getId());
+        assertEquals(12345, found.get().getExecutionServiceId());
     }
 
     @Test
     // @Disabled("Disabled: persistent failures, will revisit at the end of implementation")
     void testUpdateExecution() {
         Execution execution = buildExecution();
+        execution.setExecutionServiceId(111);
         Execution created = executionService.createExecution(execution);
         created.setQuantityFilled(new BigDecimal("50.00"));
+        created.setExecutionServiceId(222);
         Execution updated = executionService.updateExecution(created.getId(), created);
         assertEquals(new BigDecimal("50.00"), updated.getQuantityFilled());
+        assertEquals(222, updated.getExecutionServiceId());
     }
 
     @Test

@@ -89,6 +89,7 @@ public class ExecutionControllerTest extends org.kasbench.globeco_trade_service.
         dto.setQuantityPlaced(new BigDecimal("100.00"));
         dto.setQuantityFilled(new BigDecimal("0.00"));
         dto.setLimitPrice(new BigDecimal("10.00"));
+        dto.setExecutionServiceId(55555);
         return dto;
     }
 
@@ -102,13 +103,15 @@ public class ExecutionControllerTest extends org.kasbench.globeco_trade_service.
                 .content(postJson))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.id").exists())
+                .andExpect(jsonPath("$.executionServiceId").value(55555))
                 .andReturn().getResponse().getContentAsString();
         int id = objectMapper.readTree(response).get("id").asInt();
         // Get by id
         mockMvc.perform(get("/api/v1/executions/" + id))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(id))
-                .andExpect(jsonPath("$.executionStatus.abbreviation").value("NEW"));
+                .andExpect(jsonPath("$.executionStatus.abbreviation").value("NEW"))
+                .andExpect(jsonPath("$.executionServiceId").value(55555));
     }
 
     @Test
@@ -148,6 +151,7 @@ public class ExecutionControllerTest extends org.kasbench.globeco_trade_service.
         putDTO.setQuantityFilled(new BigDecimal("50.00"));
         putDTO.setLimitPrice(new BigDecimal("20.00"));
         putDTO.setVersion(version);
+        putDTO.setExecutionServiceId(77777);
         String putJson = objectMapper.writeValueAsString(putDTO);
         mockMvc.perform(put("/api/v1/executions/" + id)
                 .contentType(MediaType.APPLICATION_JSON)
@@ -156,7 +160,8 @@ public class ExecutionControllerTest extends org.kasbench.globeco_trade_service.
                 .andExpect(jsonPath("$.quantityOrdered").value(20))
                 .andExpect(jsonPath("$.quantityPlaced").value(200.00))
                 .andExpect(jsonPath("$.quantityFilled").value(50.00))
-                .andExpect(jsonPath("$.limitPrice").value(20.00));
+                .andExpect(jsonPath("$.limitPrice").value(20.00))
+                .andExpect(jsonPath("$.executionServiceId").value(77777));
     }
 
     @Test
