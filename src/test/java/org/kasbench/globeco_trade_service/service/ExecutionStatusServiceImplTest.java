@@ -3,6 +3,7 @@ package org.kasbench.globeco_trade_service.service;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.kasbench.globeco_trade_service.entity.ExecutionStatus;
+import org.kasbench.globeco_trade_service.repository.ExecutionRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.cache.CacheManager;
@@ -18,6 +19,8 @@ public class ExecutionStatusServiceImplTest extends org.kasbench.globeco_trade_s
     private ExecutionStatusService executionStatusService;
     @Autowired
     private CacheManager cacheManager;
+    @Autowired
+    private ExecutionRepository executionRepository;
 
     private ExecutionStatus buildExecutionStatus() {
         ExecutionStatus status = new ExecutionStatus();
@@ -102,6 +105,10 @@ public class ExecutionStatusServiceImplTest extends org.kasbench.globeco_trade_s
         assertNotNull(cacheManager.getCache("executionStatuses").get(org.springframework.cache.interceptor.SimpleKey.EMPTY));
         // Delete
         ExecutionStatus toDelete = executionStatusService.getAllExecutionStatuses().get(0);
+        // Clean up Executions referencing this status
+        executionRepository.findAll().stream()
+            .filter(e -> e.getExecutionStatus() != null && e.getExecutionStatus().getId().equals(toDelete.getId()))
+            .forEach(e -> executionRepository.deleteById(e.getId()));
         executionStatusService.deleteExecutionStatus(toDelete.getId(), toDelete.getVersion());
         assertNull(cacheManager.getCache("executionStatuses").get(org.springframework.cache.interceptor.SimpleKey.EMPTY));
     }

@@ -48,6 +48,7 @@ public class TradeOrderServiceImpl implements TradeOrderService {
         } else {
             tradeOrder.setBlotter(null);
         }
+        tradeOrder.setTradeTimestamp(java.time.OffsetDateTime.now());
         return tradeOrderRepository.save(tradeOrder);
     }
 

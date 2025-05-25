@@ -765,3 +765,7 @@ Actions:
 1. Updated README.md with a new section for POST /api/v1/execution/{id}/submit, including endpoint description, field mapping, example requests/responses, error handling, and test scenarios.
 2. Updated openapi.yaml to add the POST /api/v1/execution/{id}/submit endpoint, with path, parameters, responses, and example payloads.
 3. Ensured documentation is consistent with requirements and implementation.
+
+Request: Please go ahead and make the change to fix the foreign key constraint violation in ExecutionStatusServiceImplTest.
+
+Action: Updated ExecutionStatusServiceImplTest to inject ExecutionRepository and, in testCacheEvictedOnCreateUpdateDelete, delete all Executions referencing the ExecutionStatus before deleting the ExecutionStatus. This prevents foreign key constraint violations during the test.
