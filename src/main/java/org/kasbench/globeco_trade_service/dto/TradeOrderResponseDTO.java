@@ -9,9 +9,9 @@ public class TradeOrderResponseDTO {
     private java.math.BigDecimal quantity;
     private java.math.BigDecimal limitPrice;
     private java.time.OffsetDateTime tradeTimestamp;
-    private Integer version;
     private BlotterResponseDTO blotter;
-
+    private Integer version;
+  
     public Integer getId() {
         return id;
     }
@@ -60,16 +60,16 @@ public class TradeOrderResponseDTO {
     public void setTradeTimestamp(java.time.OffsetDateTime tradeTimestamp) {
         this.tradeTimestamp = tradeTimestamp;
     }
-    public Integer getVersion() {
-        return version;
-    }
-    public void setVersion(Integer version) {
-        this.version = version;
-    }
     public BlotterResponseDTO getBlotter() {
         return blotter;
     }
     public void setBlotter(BlotterResponseDTO blotter) {
         this.blotter = blotter;
+    }
+    public Integer getVersion() {
+        return version;
+    }
+    public void setVersion(Integer version) {
+        this.version = version;
     }
 } 

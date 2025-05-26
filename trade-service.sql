@@ -27,8 +27,9 @@ CREATE TABLE public.trade_order (
 	quantity decimal(18,8) NOT NULL,
 	limit_price decimal(18,8),
 	trade_timestamp timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP,
-	version integer NOT NULL DEFAULT 1,
 	blotter_id integer,
+	submitted boolean NOT NULL DEFAULT false,
+	version integer NOT NULL DEFAULT 1,
 	CONSTRAINT trade_pk PRIMARY KEY (id)
 );
 -- ddl-end --
