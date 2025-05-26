@@ -4,7 +4,7 @@ In this requirement, we will be adding the following two new APIs
 
 ## 1. POST api/v1/tradeOrder/{id}/submit
 
-This API creates an execution record from a trade_order record.  The following table shows the fields in the new input DTO and how they map to the new record in the execution table:
+This API creates an execution record from a trade_order record.  The following table shows the fields in the new input DTO (`TradeOrderSubmitDTO`) and how they map to the new record in the execution table:
 
 | DTO field | `execution` table column |
 | --- | --- |
@@ -40,11 +40,17 @@ The remaining fields are mapped as follows
 
 Set the `submitted` column on the `trade_order` record to true.
 
-Return the execution response DTO
+Return the execution response DTO.
+
+**Error Handling and Status Codes:**
+- 201 Created: Execution created successfully, returns ExecutionResponseDTO
+- 400 Bad Request: Invalid input or mapping
+- 404 Not Found: Trade order not found
+- 500 Internal Server Error: Unexpected error
 
 ### Steps
 
-1. Create the new input DTO
+1. Create the new input DTO (`TradeOrderSubmitDTO`)
 2. Update the controller and service with the new API
 3. Update the tests
 4. Update the README.md
@@ -76,4 +82,12 @@ For a successful POST,
 - set quantityPlaced to the value of quantityOrdered
 - set executionStatus to 2 (SENT)
 - return the ExecutionResponseDTO.
+
+**Error Handling and Status Codes:**
+- 200 OK: Submission successful, returns updated ExecutionResponseDTO
+- 400 Bad Request: Client error from execution service
+- 404 Not Found: Execution not found
+- 500 Internal Server Error: Execution service unavailable or unexpected error
+
+If the external execution service call fails, return an appropriate error message and status code as above.
 
