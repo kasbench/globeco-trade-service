@@ -642,25 +642,68 @@ paths:
   /api/v1/execution/{id}/submit:
     post:
       summary: Submit an execution to the external execution service
-      description: >
-        Submits the execution with the given ID to the globeco-execution-service. On success, updates the local execution's execution_service_id and status to SENT.
+      tags:
+        - execution-controller
       parameters:
         - name: id
           in: path
           required: true
           schema:
             type: integer
+            format: int32
       responses:
         '200':
           description: Submission successful
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  status:
-                    type: string
-                    example: submitted
+                $ref: '#/components/schemas/ExecutionResponseDTO'
+              examples:
+                success:
+                  value:
+                    id: 1
+                    executionTimestamp: '2024-06-10T12:00:00Z'
+                    executionStatus:
+                      id: 2
+                      abbreviation: SENT
+                      description: Sent
+                      version: 1
+                    blotter:
+                      id: 1
+                      abbreviation: EQ
+                      name: Equity
+                      version: 1
+                    tradeType:
+                      id: 1
+                      abbreviation: BUY
+                      description: Buy
+                      version: 1
+                    tradeOrder:
+                      id: 1
+                      orderId: 123456
+                      portfolioId: PORT1
+                      orderType: BUY
+                      securityId: SEC1
+                      quantity: "100.00"
+                      limitPrice: "10.00"
+                      tradeTimestamp: '2024-06-10T12:00:00Z'
+                      version: 1
+                      blotter:
+                        id: 1
+                        abbreviation: EQ
+                        name: Equity
+                        version: 1
+                    destination:
+                      id: 1
+                      abbreviation: ML
+                      description: Merrill Lynch
+                      version: 1
+                    quantityOrdered: "10.00"
+                    quantityPlaced: "10.00"
+                    quantityFilled: "0.00"
+                    limitPrice: "10.00"
+                    executionServiceId: 99999
+                    version: 1
         '400':
           description: Client error from execution service
           content:
@@ -921,21 +964,30 @@ components:
         destination:
           $ref: '#/components/schemas/DestinationResponseDTO'
         quantityOrdered:
-          type: integer
+          type: string
+          format: decimal
+          example: "10.00"
+          description: BigDecimal serialized as a string with two decimal places
         quantityPlaced:
-          type: number
-          format: double
+          type: string
+          format: decimal
+          example: "10.00"
+          description: BigDecimal serialized as a string with two decimal places
         quantityFilled:
-          type: number
-          format: double
+          type: string
+          format: decimal
+          example: "0.00"
+          description: BigDecimal serialized as a string with two decimal places
         limitPrice:
-          type: number
-          format: double
+          type: string
+          format: decimal
+          example: "10.00"
+          description: BigDecimal serialized as a string with two decimal places
+        version:
+          type: integer
         executionServiceId:
           type: integer
           nullable: true
-        version:
-          type: integer
     ExecutionPutDTO:
       type: object
       properties:

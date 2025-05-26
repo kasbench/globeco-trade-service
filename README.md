@@ -626,7 +626,7 @@ The **execution** table represents an execution of a trade order, including stat
 
 `POST /api/v1/execution/{id}/submit`
 
-Submits an execution to the external execution service (globeco-execution-service on port 8084). On success, updates the local execution's `execution_service_id` and status to SENT.
+Submits an execution to the external execution service (globeco-execution-service on port 8084). On success, updates the local execution's `execution_service_id`, sets `quantityPlaced` to `quantityOrdered`, and status to SENT (id=2).
 
 ### Field Mapping
 
@@ -657,26 +657,26 @@ HTTP/1.1 200 OK
 Content-Type: application/json
 
 {
-  "status": "submitted"
+  "id": 1,
+  "executionTimestamp": "2024-06-10T12:00:00Z",
+  "executionStatus": { "id": 2, "abbreviation": "SENT", "description": "Sent", "version": 1 },
+  "blotter": { "id": 1, "abbreviation": "EQ", "name": "Equity", "version": 1 },
+  "tradeType": { "id": 1, "abbreviation": "BUY", "description": "Buy", "version": 1 },
+  "tradeOrder": { "id": 1, "orderId": 123456, "portfolioId": "PORT1", "orderType": "BUY", "securityId": "SEC1", "quantity": "100.00", "limitPrice": "10.00", "tradeTimestamp": "2024-06-10T12:00:00Z", "version": 1, "blotter": { "id": 1, "abbreviation": "EQ", "name": "Equity", "version": 1 } },
+  "destination": { "id": 1, "abbreviation": "ML", "description": "Merrill Lynch", "version": 1 },
+  "quantityOrdered": "10.00",
+  "quantityPlaced": "10.00",
+  "quantityFilled": "0.00",
+  "limitPrice": "10.00",
+  "executionServiceId": 99999,
+  "version": 1
 }
 ```
 
-### Example Error Response (Execution Service Unavailable)
-
-```
-HTTP/1.1 500 Internal Server Error
-Content-Type: application/json
-
-{
-  "error": "Failed to submit execution: execution service unavailable"
-}
-```
-
-### Error Handling
-- 200 OK: Submission successful, status updated
-- 400 Bad Request: Client error from execution service
-- 404 Not Found: Execution not found
-- 500 Internal Server Error: Server error or execution service unavailable
+### Notes
+- All BigDecimal fields (quantityOrdered, quantityPlaced, quantityFilled, limitPrice) are serialized as strings with two decimal places in the response.
+- On error, the response is `{ "error": "..." }` with appropriate status code (400, 404, 500).
+- The endpoint returns the full updated ExecutionResponseDTO, not just a status string.
 
 ### Test Scenarios
 - Successful submission and status update
