@@ -7,11 +7,15 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.kasbench.globeco_trade_service.entity.Execution;
+import org.kasbench.globeco_trade_service.dto.ExecutionResponseDTO;
 
 @RestController
 @RequestMapping("/api/v1")
 public class ExecutionSubmitController {
     private final ExecutionService executionService;
+    @Autowired
+    private ExecutionController executionController;
 
     @Autowired
     public ExecutionSubmitController(ExecutionService executionService) {
@@ -22,7 +26,14 @@ public class ExecutionSubmitController {
     public ResponseEntity<?> submitExecution(@PathVariable Integer id) {
         ExecutionService.SubmitResult result = executionService.submitExecution(id);
         if (result.getStatus() != null && result.getStatus().equals("submitted")) {
-            return ResponseEntity.ok(java.util.Map.of("status", "submitted"));
+            var opt = executionService.getExecutionById(id);
+            if (opt.isPresent()) {
+                Execution execution = opt.get();
+                ExecutionResponseDTO dto = executionController.toResponseDTO(execution);
+                return ResponseEntity.ok(dto);
+            } else {
+                return ResponseEntity.status(404).body(java.util.Map.of("error", "Execution not found after submit"));
+            }
         } else if (result.getError() != null) {
             String error = result.getError();
             if (error.contains("not found")) {

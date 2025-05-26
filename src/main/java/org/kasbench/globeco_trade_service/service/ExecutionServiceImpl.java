@@ -124,8 +124,10 @@ public class ExecutionServiceImpl implements ExecutionService {
             if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null && response.getBody().get("id") != null) {
                 Integer extId = (Integer) response.getBody().get("id");
                 execution.setExecutionServiceId(extId);
-                // Update status to SENT
-                ExecutionStatus sentStatus = executionStatusRepository.findAll().stream().filter(s -> "SENT".equals(s.getAbbreviation())).findFirst().orElse(null);
+                // Set quantityPlaced to quantityOrdered
+                execution.setQuantityPlaced(execution.getQuantityOrdered());
+                // Set status to SENT (id=2)
+                ExecutionStatus sentStatus = executionStatusRepository.findById(2).orElse(null);
                 if (sentStatus != null) {
                     execution.setExecutionStatus(sentStatus);
                 }

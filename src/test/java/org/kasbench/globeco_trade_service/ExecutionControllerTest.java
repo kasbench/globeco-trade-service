@@ -228,7 +228,10 @@ public class ExecutionControllerTest extends org.kasbench.globeco_trade_service.
             .thenReturn(ResponseEntity.ok(responseMap));
         mockMvc.perform(post("/api/v1/execution/" + id + "/submit"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.status").value("submitted"));
+                .andExpect(jsonPath("$.id").value(id))
+                .andExpect(jsonPath("$.executionServiceId").value(99999))
+                .andExpect(jsonPath("$.executionStatus.abbreviation").value("SENT"))
+                .andExpect(jsonPath("$.quantityPlaced").value("10.00"));
     }
 
     @Test

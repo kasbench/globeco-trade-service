@@ -800,3 +800,9 @@ Fixed the type of quantityOrdered in Execution entity, ExecutionResponseDTO, and
 Added logging to TradeOrderController.submitTradeOrder and a toString() override in TradeOrderSubmitDTO to help diagnose the persistent 400 error in the submit endpoint test. This will confirm if the controller is being entered and what the deserialized DTO looks like.
 
 Resolved the BigDecimal serialization issue for ExecutionResponseDTO: added BigDecimalTwoPlacesSerializer to ensure all BigDecimal fields are serialized as strings with two decimal places. Updated ExecutionResponseDTO to use this serializer for quantityOrdered, quantityPlaced, quantityFilled, and limitPrice. All TradeOrderControllerTest tests now pass, including the strict JSONPath assertion for "10.00".
+
+Completed part 2 of supplemental-requirement-3.md:
+- Updated ExecutionSubmitController to return the full ExecutionResponseDTO on success.
+- Updated ExecutionServiceImpl to set quantityPlaced to quantityOrdered and status to SENT (id=2).
+- Updated ExecutionControllerTest to assert on the new response format for submitExecutionSuccess.
+- All tests pass, and the implementation matches the requirements for POST /api/v1/execution/{id}/submit.

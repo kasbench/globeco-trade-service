@@ -56,7 +56,7 @@ public class ExecutionController {
         return ResponseEntity.noContent().build();
     }
 
-    private ExecutionResponseDTO toResponseDTO(Execution execution) {
+    public ExecutionResponseDTO toResponseDTO(Execution execution) {
         ExecutionResponseDTO dto = new ExecutionResponseDTO();
         dto.setId(execution.getId());
         dto.setExecutionTimestamp(execution.getExecutionTimestamp());
