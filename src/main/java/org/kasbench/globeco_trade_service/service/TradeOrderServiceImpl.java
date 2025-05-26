@@ -2,8 +2,19 @@ package org.kasbench.globeco_trade_service.service;
 
 import org.kasbench.globeco_trade_service.entity.TradeOrder;
 import org.kasbench.globeco_trade_service.entity.Blotter;
+import org.kasbench.globeco_trade_service.entity.Execution;
+import org.kasbench.globeco_trade_service.entity.ExecutionStatus;
+import org.kasbench.globeco_trade_service.entity.TradeType;
+import org.kasbench.globeco_trade_service.entity.Destination;
 import org.kasbench.globeco_trade_service.repository.TradeOrderRepository;
 import org.kasbench.globeco_trade_service.repository.BlotterRepository;
+import org.kasbench.globeco_trade_service.repository.ExecutionRepository;
+import org.kasbench.globeco_trade_service.repository.TradeTypeRepository;
+import org.kasbench.globeco_trade_service.repository.ExecutionStatusRepository;
+import org.kasbench.globeco_trade_service.repository.DestinationRepository;
+import org.kasbench.globeco_trade_service.dto.TradeOrderSubmitDTO;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.cache.annotation.CacheEvict;
@@ -17,11 +28,22 @@ import java.util.Optional;
 public class TradeOrderServiceImpl implements TradeOrderService {
     private final TradeOrderRepository tradeOrderRepository;
     private final BlotterRepository blotterRepository;
+    private final ExecutionRepository executionRepository;
+    private final TradeTypeRepository tradeTypeRepository;
+    private final ExecutionStatusRepository executionStatusRepository;
+    private final DestinationRepository destinationRepository;
+    private static final Logger logger = LoggerFactory.getLogger(TradeOrderServiceImpl.class);
 
     @Autowired
-    public TradeOrderServiceImpl(TradeOrderRepository tradeOrderRepository, BlotterRepository blotterRepository) {
+    public TradeOrderServiceImpl(TradeOrderRepository tradeOrderRepository, BlotterRepository blotterRepository,
+                                 ExecutionRepository executionRepository, TradeTypeRepository tradeTypeRepository,
+                                 ExecutionStatusRepository executionStatusRepository, DestinationRepository destinationRepository) {
         this.tradeOrderRepository = tradeOrderRepository;
         this.blotterRepository = blotterRepository;
+        this.executionRepository = executionRepository;
+        this.tradeTypeRepository = tradeTypeRepository;
+        this.executionStatusRepository = executionStatusRepository;
+        this.destinationRepository = destinationRepository;
     }
 
     @Override
@@ -89,5 +111,57 @@ public class TradeOrderServiceImpl implements TradeOrderService {
             throw new IllegalArgumentException("Version mismatch for tradeOrder: " + id);
         }
         tradeOrderRepository.deleteById(id);
+    }
+
+    @Override
+    @Transactional
+    public Execution submitTradeOrder(Integer tradeOrderId, TradeOrderSubmitDTO dto) {
+        logger.info("TradeOrderServiceImpl.submitTradeOrder called with tradeOrderId={} and dto={}", tradeOrderId, dto);
+        try {
+            TradeOrder tradeOrder = tradeOrderRepository.findById(tradeOrderId)
+                    .orElseThrow(() -> new IllegalArgumentException("TradeOrder not found: " + tradeOrderId));
+            if (dto.getQuantity() == null) {
+                throw new IllegalArgumentException("Quantity must not be null");
+            }
+            // Normalize orderType before switch
+            String normalizedOrderType = tradeOrder.getOrderType() == null ? null : tradeOrder.getOrderType().trim().toUpperCase();
+            // Map order_type to trade_type_id
+            Integer tradeTypeId = switch (normalizedOrderType) {
+                case "BUY" -> 1;
+                case "SELL" -> 2;
+                case "SHORT" -> 3;
+                case "COVER" -> 4;
+                case "EXRC" -> 5;
+                default -> throw new IllegalArgumentException("Unknown order_type: " + tradeOrder.getOrderType());
+            };
+            TradeType tradeType = tradeTypeRepository.findById(tradeTypeId)
+                    .orElseThrow(() -> new IllegalArgumentException("TradeType not found: " + tradeTypeId));
+            ExecutionStatus status = executionStatusRepository.findById(1)
+                    .orElseThrow(() -> new IllegalArgumentException("ExecutionStatus not found: 1"));
+            Destination destination = destinationRepository.findById(dto.getDestinationId())
+                    .orElseThrow(() -> new IllegalArgumentException("Destination not found: " + dto.getDestinationId()));
+            Execution execution = new Execution();
+            execution.setExecutionTimestamp(java.time.OffsetDateTime.now());
+            execution.setExecutionStatus(status);
+            execution.setTradeType(tradeType);
+            execution.setTradeOrder(tradeOrder);
+            execution.setDestination(destination);
+            execution.setQuantityOrdered(dto.getQuantity());
+            execution.setQuantityPlaced(java.math.BigDecimal.ZERO);
+            execution.setQuantityFilled(java.math.BigDecimal.ZERO);
+            execution.setLimitPrice(tradeOrder.getLimitPrice());
+            execution.setExecutionServiceId(null);
+            execution.setVersion(1);
+            if (tradeOrder.getBlotter() != null) {
+                execution.setBlotter(tradeOrder.getBlotter());
+            }
+            Execution saved = executionRepository.save(execution);
+            tradeOrder.setSubmitted(true);
+            tradeOrderRepository.save(tradeOrder);
+            return saved;
+        } catch (Exception e) {
+            logger.error("Exception in TradeOrderServiceImpl.submitTradeOrder: {}: {}", e.getClass().getName(), e.getMessage(), e);
+            throw e;
+        }
     }
 } 

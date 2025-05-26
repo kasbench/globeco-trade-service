@@ -2,6 +2,9 @@ package org.kasbench.globeco_trade_service.dto;
 
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.fasterxml.jackson.databind.ser.std.ToStringSerializer;
+import org.kasbench.globeco_trade_service.dto.BigDecimalTwoPlacesSerializer;
 
 public class ExecutionResponseDTO {
     private Integer id;
@@ -11,9 +14,13 @@ public class ExecutionResponseDTO {
     private TradeTypeResponseDTO tradeType;
     private TradeOrderResponseDTO tradeOrder;
     private DestinationResponseDTO destination;
-    private Short quantityOrdered;
+    @JsonSerialize(using = BigDecimalTwoPlacesSerializer.class)
+    private java.math.BigDecimal quantityOrdered;
+    @JsonSerialize(using = BigDecimalTwoPlacesSerializer.class)
     private BigDecimal quantityPlaced;
+    @JsonSerialize(using = BigDecimalTwoPlacesSerializer.class)
     private BigDecimal quantityFilled;
+    @JsonSerialize(using = BigDecimalTwoPlacesSerializer.class)
     private BigDecimal limitPrice;
     private Integer version;
     private Integer executionServiceId;
@@ -60,10 +67,10 @@ public class ExecutionResponseDTO {
     public void setDestination(DestinationResponseDTO destination) {
         this.destination = destination;
     }
-    public Short getQuantityOrdered() {
+    public java.math.BigDecimal getQuantityOrdered() {
         return quantityOrdered;
     }
-    public void setQuantityOrdered(Short quantityOrdered) {
+    public void setQuantityOrdered(java.math.BigDecimal quantityOrdered) {
         this.quantityOrdered = quantityOrdered;
     }
     public BigDecimal getQuantityPlaced() {
@@ -95,5 +102,23 @@ public class ExecutionResponseDTO {
     }
     public void setExecutionServiceId(Integer executionServiceId) {
         this.executionServiceId = executionServiceId;
+    }
+
+    public String toString() {
+        return "ExecutionResponseDTO{" +
+                "id=" + id +
+                ", executionTimestamp=" + executionTimestamp +
+                ", executionStatus=" + executionStatus +
+                ", blotter=" + blotter +
+                ", tradeType=" + tradeType +
+                ", tradeOrder=" + tradeOrder +
+                ", destination=" + destination +
+                ", quantityOrdered=" + quantityOrdered +
+                ", quantityPlaced=" + quantityPlaced +
+                ", quantityFilled=" + quantityFilled +
+                ", limitPrice=" + limitPrice +
+                ", version=" + version +
+                ", executionServiceId=" + executionServiceId +
+                '}';
     }
 } 

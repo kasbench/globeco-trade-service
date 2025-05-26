@@ -42,7 +42,7 @@
 | trade_type_id | integer |  | &#10003; |  |  |  |  |
 | trade_order_id | integer |  | &#10003; |  | &#10003; |  |  |
 | destination_id | integer |  | &#10003; |  | &#10003; |  |  |
-| quantity_ordered | smallint |  |  |  |  |  |  |
+| quantity_ordered | decimal(18,8) |  |  |  |  |  |  |
 | quantity_placed | decimal(18,8) |  |  |  | &#10003; |  |  |
 | quantity_filled | decimal(18,8) |  |  |  | &#10003; | 0 |  |
 | limit_price | decimal(18,8) |  |  |  |  |  |  |
@@ -127,6 +127,6 @@
 
 ---
 
-Generated at _2025-05-26T08:05:49_ by **pgModeler 1.2.0-beta1**
+Generated at _2025-05-26T18:09:00_ by **pgModeler 1.2.0-beta1**
 [PostgreSQL Database Modeler - pgmodeler.io ](https://pgmodeler.io)
 Copyright © 2006 - 2025 Raphael Araújo e Silva 

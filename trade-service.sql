@@ -46,7 +46,7 @@ CREATE TABLE public.execution (
 	trade_type_id integer,
 	trade_order_id integer NOT NULL,
 	destination_id integer NOT NULL,
-	quantity_ordered smallint,
+	quantity_ordered decimal(18,8),
 	quantity_placed decimal(18,8) NOT NULL,
 	quantity_filled decimal(18,8) NOT NULL DEFAULT 0,
 	limit_price decimal(18,8),

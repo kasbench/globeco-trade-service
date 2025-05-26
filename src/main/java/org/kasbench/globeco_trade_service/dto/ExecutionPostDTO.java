@@ -10,7 +10,7 @@ public class ExecutionPostDTO {
     private Integer tradeTypeId;
     private Integer tradeOrderId;
     private Integer destinationId;
-    private Short quantityOrdered;
+    private BigDecimal quantityOrdered;
     private BigDecimal quantityPlaced;
     private BigDecimal quantityFilled;
     private BigDecimal limitPrice;
@@ -52,10 +52,10 @@ public class ExecutionPostDTO {
     public void setDestinationId(Integer destinationId) {
         this.destinationId = destinationId;
     }
-    public Short getQuantityOrdered() {
+    public BigDecimal getQuantityOrdered() {
         return quantityOrdered;
     }
-    public void setQuantityOrdered(Short quantityOrdered) {
+    public void setQuantityOrdered(BigDecimal quantityOrdered) {
         this.quantityOrdered = quantityOrdered;
     }
     public BigDecimal getQuantityPlaced() {

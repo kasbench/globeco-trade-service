@@ -516,7 +516,7 @@ The **execution** table represents an execution of a trade order, including stat
 | tradeType          | TradeType      | Trade type (FK, nullable)                   |
 | tradeOrder         | TradeOrder     | Trade order (FK)                            |
 | destination        | Destination    | Destination (FK)                            |
-| quantityOrdered    | Short          | Quantity ordered                            |
+| quantityOrdered    | BigDecimal          | Quantity ordered                            |
 | quantityPlaced     | BigDecimal     | Quantity placed                             |
 | quantityFilled     | BigDecimal     | Quantity filled                             |
 | limitPrice         | BigDecimal     | Limit price                                 |
@@ -535,7 +535,7 @@ The **execution** table represents an execution of a trade order, including stat
 | tradeType          | TradeTypeResponseDTO        | Nested DTO for trade type                   |
 | tradeOrder         | TradeOrderResponseDTO       | Nested DTO for trade order                  |
 | destination        | DestinationResponseDTO      | Nested DTO for destination                  |
-| quantityOrdered    | Short                       | Quantity ordered                            |
+| quantityOrdered    | BigDecimal                       | Quantity ordered                            |
 | quantityPlaced     | BigDecimal                  | Quantity placed                             |
 | quantityFilled     | BigDecimal                  | Quantity filled                             |
 | limitPrice         | BigDecimal                  | Limit price                                 |
@@ -552,7 +552,7 @@ The **execution** table represents an execution of a trade order, including stat
 | tradeTypeId        | Integer        | Foreign key to trade type                   |
 | tradeOrderId       | Integer        | Foreign key to trade order                  |
 | destinationId      | Integer        | Foreign key to destination                  |
-| quantityOrdered    | Short          | Quantity ordered                            |
+| quantityOrdered    | BigDecimal          | Quantity ordered                            |
 | quantityPlaced     | BigDecimal     | Quantity placed                             |
 | quantityFilled     | BigDecimal     | Quantity filled                             |
 | limitPrice         | BigDecimal     | Limit price                                 |
@@ -568,7 +568,7 @@ The **execution** table represents an execution of a trade order, including stat
 | tradeTypeId        | Integer        | Foreign key to trade type                   |
 | tradeOrderId       | Integer        | Foreign key to trade order                  |
 | destinationId      | Integer        | Foreign key to destination                  |
-| quantityOrdered    | Short          | Quantity ordered                            |
+| quantityOrdered    | BigDecimal          | Quantity ordered                            |
 | quantityPlaced     | BigDecimal     | Quantity placed                             |
 | quantityFilled     | BigDecimal     | Quantity filled                             |
 | limitPrice         | BigDecimal     | Limit price                                 |

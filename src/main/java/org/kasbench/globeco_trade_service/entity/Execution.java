@@ -34,8 +34,8 @@ public class Execution {
     @JoinColumn(name = "destination_id", nullable = false)
     private Destination destination;
 
-    @Column(name = "quantity_ordered")
-    private Short quantityOrdered;
+    @Column(name = "quantity_ordered", nullable = false, precision = 18, scale = 8)
+    private BigDecimal quantityOrdered;
 
     @Column(name = "quantity_placed", nullable = false, precision = 18, scale = 8)
     private BigDecimal quantityPlaced;
@@ -68,8 +68,8 @@ public class Execution {
     public void setTradeOrder(TradeOrder tradeOrder) { this.tradeOrder = tradeOrder; }
     public Destination getDestination() { return destination; }
     public void setDestination(Destination destination) { this.destination = destination; }
-    public Short getQuantityOrdered() { return quantityOrdered; }
-    public void setQuantityOrdered(Short quantityOrdered) { this.quantityOrdered = quantityOrdered; }
+    public BigDecimal getQuantityOrdered() { return quantityOrdered; }
+    public void setQuantityOrdered(BigDecimal quantityOrdered) { this.quantityOrdered = quantityOrdered; }
     public BigDecimal getQuantityPlaced() { return quantityPlaced; }
     public void setQuantityPlaced(BigDecimal quantityPlaced) { this.quantityPlaced = quantityPlaced; }
     public BigDecimal getQuantityFilled() { return quantityFilled; }

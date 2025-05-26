@@ -99,7 +99,7 @@ public class ExecutionServiceImplTest extends org.kasbench.globeco_trade_service
         Destination destinationWithId = new Destination();
         destinationWithId.setId(destination.getId());
         execution.setDestination(destinationWithId);
-        execution.setQuantityOrdered((short) 10);
+        execution.setQuantityOrdered(new BigDecimal("10.00"));
         execution.setQuantityPlaced(new BigDecimal("100.00"));
         execution.setQuantityFilled(new BigDecimal("0.00"));
         execution.setLimitPrice(new BigDecimal("10.00"));

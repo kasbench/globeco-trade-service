@@ -93,7 +93,7 @@ public class ExecutionControllerTest extends org.kasbench.globeco_trade_service.
         dto.setTradeTypeId(tradeType.getId());
         dto.setTradeOrderId(tradeOrder.getId());
         dto.setDestinationId(destination.getId());
-        dto.setQuantityOrdered((short) 10);
+        dto.setQuantityOrdered(new BigDecimal("10.00"));
         dto.setQuantityPlaced(new BigDecimal("100.00"));
         dto.setQuantityFilled(new BigDecimal("0.00"));
         dto.setLimitPrice(new BigDecimal("10.00"));
@@ -154,7 +154,7 @@ public class ExecutionControllerTest extends org.kasbench.globeco_trade_service.
         putDTO.setTradeTypeId(tradeType.getId());
         putDTO.setTradeOrderId(tradeOrder.getId());
         putDTO.setDestinationId(destination.getId());
-        putDTO.setQuantityOrdered((short) 20);
+        putDTO.setQuantityOrdered(new BigDecimal("20.00"));
         putDTO.setQuantityPlaced(new BigDecimal("200.00"));
         putDTO.setQuantityFilled(new BigDecimal("50.00"));
         putDTO.setLimitPrice(new BigDecimal("20.00"));
@@ -165,10 +165,10 @@ public class ExecutionControllerTest extends org.kasbench.globeco_trade_service.
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(putJson))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.quantityOrdered").value(20))
-                .andExpect(jsonPath("$.quantityPlaced").value(200.00))
-                .andExpect(jsonPath("$.quantityFilled").value(50.00))
-                .andExpect(jsonPath("$.limitPrice").value(20.00))
+                .andExpect(jsonPath("$.quantityOrdered").value("20.00"))
+                .andExpect(jsonPath("$.quantityPlaced").value("200.00"))
+                .andExpect(jsonPath("$.quantityFilled").value("50.00"))
+                .andExpect(jsonPath("$.limitPrice").value("20.00"))
                 .andExpect(jsonPath("$.executionServiceId").value(77777));
     }
 

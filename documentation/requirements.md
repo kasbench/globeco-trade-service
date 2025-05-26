@@ -421,7 +421,7 @@ The owner of all database objects is `postgres`.
 | tradeType          | TradeTypeResponseDTO        | Nested DTO for trade type                   |
 | tradeOrder         | TradeOrderResponseDTO       | Nested DTO for trade order                  |
 | destination        | DestinationResponseDTO      | Nested DTO for destination                  |
-| quantityOrdered    | Short                       | Quantity ordered                            |
+| quantityOrdered    | BigDecimal                       | Quantity ordered                            |
 | quantityPlaced     | BigDecimal                  | Quantity placed                             |
 | quantityFilled     | BigDecimal                  | Quantity filled                             |
 | limitPrice         | BigDecimal                  | Limit price                                 |
@@ -438,7 +438,7 @@ The owner of all database objects is `postgres`.
 | tradeTypeId        | Integer        | Foreign key to trade type                   |
 | tradeOrderId       | Integer        | Foreign key to trade order                  |
 | destinationId      | Integer        | Foreign key to destination                  |
-| quantityOrdered    | Short          | Quantity ordered                            |
+| quantityOrdered    | BigDecimal          | Quantity ordered                            |
 | quantityPlaced     | BigDecimal     | Quantity placed                             |
 | quantityFilled     | BigDecimal     | Quantity filled                             |
 | limitPrice         | BigDecimal     | Limit price                                 |
@@ -454,7 +454,7 @@ The owner of all database objects is `postgres`.
 | tradeTypeId        | Integer        | Foreign key to trade type                   |
 | tradeOrderId       | Integer        | Foreign key to trade order                  |
 | destinationId      | Integer        | Foreign key to destination                  |
-| quantityOrdered    | Short          | Quantity ordered                            |
+| quantityOrdered    | BigDecimal          | Quantity ordered                            |
 | quantityPlaced     | BigDecimal     | Quantity placed                             |
 | quantityFilled     | BigDecimal     | Quantity filled                             |
 | limitPrice         | BigDecimal     | Limit price                                 |

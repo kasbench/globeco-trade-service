@@ -6,10 +6,17 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.AfterEach;
 import org.kasbench.globeco_trade_service.dto.TradeOrderPostDTO;
 import org.kasbench.globeco_trade_service.dto.TradeOrderPutDTO;
+import org.kasbench.globeco_trade_service.dto.TradeOrderSubmitDTO;
 import org.kasbench.globeco_trade_service.entity.Blotter;
 import org.kasbench.globeco_trade_service.entity.TradeOrder;
+import org.kasbench.globeco_trade_service.entity.ExecutionStatus;
+import org.kasbench.globeco_trade_service.entity.TradeType;
+import org.kasbench.globeco_trade_service.entity.Destination;
 import org.kasbench.globeco_trade_service.service.TradeOrderService;
 import org.kasbench.globeco_trade_service.repository.BlotterRepository;
+import org.kasbench.globeco_trade_service.repository.ExecutionStatusRepository;
+import org.kasbench.globeco_trade_service.repository.TradeTypeRepository;
+import org.kasbench.globeco_trade_service.repository.DestinationRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
@@ -35,6 +42,15 @@ public class TradeOrderControllerTest extends org.kasbench.globeco_trade_service
     @Autowired
     private BlotterRepository blotterRepository;
 
+    @Autowired
+    private ExecutionStatusRepository executionStatusRepository;
+
+    @Autowired
+    private TradeTypeRepository tradeTypeRepository;
+
+    @Autowired
+    private DestinationRepository destinationRepository;
+
     private TradeOrder tradeOrder;
     private Blotter blotter;
 
@@ -50,6 +66,31 @@ public class TradeOrderControllerTest extends org.kasbench.globeco_trade_service
 
     @BeforeEach
     void setUp() {
+        // Ensure required ExecutionStatus and TradeType exist
+        if (executionStatusRepository.findById(1).isEmpty()) {
+            ExecutionStatus status = new ExecutionStatus();
+            status.setId(1);
+            status.setAbbreviation("NEW");
+            status.setDescription("New");
+            status.setVersion(1);
+            executionStatusRepository.saveAndFlush(status);
+        }
+        if (tradeTypeRepository.findById(1).isEmpty()) {
+            TradeType tradeType = new TradeType();
+            tradeType.setId(1);
+            tradeType.setAbbreviation("BUY");
+            tradeType.setDescription("Buy");
+            tradeType.setVersion(1);
+            tradeTypeRepository.saveAndFlush(tradeType);
+        }
+        if (destinationRepository.findById(1).isEmpty()) {
+            Destination dest = new Destination();
+            dest.setId(1);
+            dest.setAbbreviation("DEST1");
+            dest.setDescription("Test Destination");
+            dest.setVersion(1);
+            destinationRepository.saveAndFlush(dest);
+        }
         blotter = new Blotter();
         blotter.setAbbreviation("EQ" + ThreadLocalRandom.current().nextInt(1_000_000));
         blotter.setName("Equity" + ThreadLocalRandom.current().nextInt(1_000_000));
@@ -190,5 +231,58 @@ public class TradeOrderControllerTest extends org.kasbench.globeco_trade_service
         mockMvc.perform(delete("/api/v1/tradeOrders/999999")
                         .param("version", "1"))
                 .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void testSubmitTradeOrder_Success() throws Exception {
+        TradeOrderSubmitDTO submitDTO = new TradeOrderSubmitDTO();
+        submitDTO.setQuantity(new BigDecimal("10"));
+        submitDTO.setDestinationId(1);
+        mockMvc.perform(post("/api/v1/tradeOrders/" + tradeOrder.getId() + "/submit")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(submitDTO)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.tradeOrder.id").value(tradeOrder.getId()))
+                .andExpect(jsonPath("$.quantityOrdered").value("10.00"))
+                .andExpect(jsonPath("$.destination.id").value(1));
+        // Assert tradeOrder.submitted is true
+        TradeOrder updated = tradeOrderService.getTradeOrderById(tradeOrder.getId()).orElseThrow();
+        org.junit.jupiter.api.Assertions.assertTrue(updated.getSubmitted());
+    }
+
+    @Test
+    void testSubmitTradeOrder_NotFound() throws Exception {
+        TradeOrderSubmitDTO submitDTO = new TradeOrderSubmitDTO();
+        submitDTO.setQuantity(new BigDecimal("10"));
+        submitDTO.setDestinationId(1);
+        mockMvc.perform(post("/api/v1/tradeOrders/999999/submit")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(submitDTO)))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void testSubmitTradeOrder_BadRequest() throws Exception {
+        // Set up a trade order with an invalid order_type
+        tradeOrder.setOrderType("INVALID");
+        tradeOrderService.updateTradeOrder(tradeOrder.getId(), tradeOrder);
+        TradeOrderSubmitDTO submitDTO = new TradeOrderSubmitDTO();
+        submitDTO.setQuantity(new BigDecimal("10"));
+        submitDTO.setDestinationId(1);
+        mockMvc.perform(post("/api/v1/tradeOrders/" + tradeOrder.getId() + "/submit")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(submitDTO)))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void testSubmitTradeOrder_MissingDestination() throws Exception {
+        TradeOrderSubmitDTO submitDTO = new TradeOrderSubmitDTO();
+        submitDTO.setQuantity(new BigDecimal("10"));
+        submitDTO.setDestinationId(999999);
+        mockMvc.perform(post("/api/v1/tradeOrders/" + tradeOrder.getId() + "/submit")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(submitDTO)))
+                .andExpect(status().isBadRequest());
     }
 } 

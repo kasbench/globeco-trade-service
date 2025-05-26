@@ -23,7 +23,7 @@ public class ExecutionEntityTest {
         execution.setTradeOrder(tradeOrder);
         Destination destination = new Destination(); destination.setId(6);
         execution.setDestination(destination);
-        execution.setQuantityOrdered((short) 10);
+        execution.setQuantityOrdered(new BigDecimal("10"));
         execution.setQuantityPlaced(new BigDecimal("100.12345678"));
         execution.setQuantityFilled(new BigDecimal("50.12345678"));
         execution.setLimitPrice(new BigDecimal("99.99"));
@@ -36,7 +36,7 @@ public class ExecutionEntityTest {
         assertEquals(tradeType, execution.getTradeType());
         assertEquals(tradeOrder, execution.getTradeOrder());
         assertEquals(destination, execution.getDestination());
-        assertEquals((short) 10, execution.getQuantityOrdered());
+        assertEquals(new BigDecimal("10"), execution.getQuantityOrdered());
         assertEquals(new BigDecimal("100.12345678"), execution.getQuantityPlaced());
         assertEquals(new BigDecimal("50.12345678"), execution.getQuantityFilled());
         assertEquals(new BigDecimal("99.99"), execution.getLimitPrice());
