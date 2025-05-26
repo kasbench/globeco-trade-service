@@ -11,10 +11,12 @@ CREATE TABLE public.trade_order (
 	order_type char(10) NOT NULL,
 	security_id char(24) NOT NULL,
 	quantity decimal(18,8) NOT NULL,
+	quantity_sent decimal(18,8) NOT NULL DEFAULT 0,
 	limit_price decimal(18,8),
 	trade_timestamp timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP,
-	version integer NOT NULL DEFAULT 1,
 	blotter_id integer,
+	submitted BOOLEAN DEFAULT FALSE,
+	version integer NOT NULL DEFAULT 1,
 	CONSTRAINT trade_pk PRIMARY KEY (id)
 );
 
@@ -31,8 +33,8 @@ CREATE TABLE public.execution (
 	quantity_placed decimal(18,8) NOT NULL,
 	quantity_filled decimal(18,8) NOT NULL DEFAULT 0,
 	limit_price decimal(18,8),
-	version integer NOT NULL DEFAULT 1,
 	execution_service_id integer NULL,
+	version integer NOT NULL DEFAULT 1,
 	CONSTRAINT execution_pk PRIMARY KEY (id)
 );
 

@@ -26,6 +26,7 @@ CREATE TABLE public.trade_order (
 	security_id char(24) NOT NULL,
 	quantity decimal(18,8) NOT NULL,
 	limit_price decimal(18,8),
+	quantity_sent decimal(18,8) NOT NULL DEFAULT 0,
 	trade_timestamp timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP,
 	blotter_id integer,
 	submitted boolean NOT NULL DEFAULT false,

@@ -93,6 +93,7 @@
 | security_id | char(24) |  |  |  | &#10003; |  |  |
 | quantity | decimal(18,8) |  |  |  | &#10003; |  |  |
 | limit_price | decimal(18,8) |  |  |  |  |  |  |
+| quantity_sent | decimal(18,8) |  |  |  | &#10003; | 0 |  |
 | trade_timestamp | timestamptz |  |  |  | &#10003; | CURRENT_TIMESTAMP |  |
 | blotter_id | integer |  | &#10003; |  |  |  |  |
 | submitted | boolean |  |  |  | &#10003; | false |  |
@@ -127,6 +128,6 @@
 
 ---
 
-Generated at _2025-05-26T18:09:00_ by **pgModeler 1.2.0-beta1**
+Generated at _2025-05-26T19:24:35_ by **pgModeler 1.2.0-beta1**
 [PostgreSQL Database Modeler - pgmodeler.io ](https://pgmodeler.io)
 Copyright © 2006 - 2025 Raphael Araújo e Silva 
