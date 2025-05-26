@@ -77,7 +77,6 @@ public class TradeOrderController {
         dto.setQuantity(tradeOrder.getQuantity());
         dto.setLimitPrice(tradeOrder.getLimitPrice());
         dto.setTradeTimestamp(tradeOrder.getTradeTimestamp());
-        dto.setVersion(tradeOrder.getVersion());
         if (tradeOrder.getBlotter() != null) {
             org.kasbench.globeco_trade_service.dto.BlotterResponseDTO blotterDTO = new org.kasbench.globeco_trade_service.dto.BlotterResponseDTO();
             blotterDTO.setId(tradeOrder.getBlotter().getId());
@@ -86,6 +85,8 @@ public class TradeOrderController {
             blotterDTO.setVersion(tradeOrder.getBlotter().getVersion());
             dto.setBlotter(blotterDTO);
         }
+        dto.setSubmitted(tradeOrder.getSubmitted());
+        dto.setVersion(tradeOrder.getVersion());
         return dto;
     }
 

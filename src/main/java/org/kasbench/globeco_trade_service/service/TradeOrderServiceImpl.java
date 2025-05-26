@@ -49,6 +49,9 @@ public class TradeOrderServiceImpl implements TradeOrderService {
             tradeOrder.setBlotter(null);
         }
         tradeOrder.setTradeTimestamp(java.time.OffsetDateTime.now());
+        if (tradeOrder.getSubmitted() == null) {
+            tradeOrder.setSubmitted(false);
+        }
         return tradeOrderRepository.save(tradeOrder);
     }
 
@@ -65,6 +68,7 @@ public class TradeOrderServiceImpl implements TradeOrderService {
         existing.setQuantity(tradeOrder.getQuantity());
         existing.setLimitPrice(tradeOrder.getLimitPrice());
         existing.setTradeTimestamp(tradeOrder.getTradeTimestamp());
+        existing.setSubmitted(tradeOrder.getSubmitted());
         if (tradeOrder.getBlotter() != null && tradeOrder.getBlotter().getId() != null) {
             Blotter blotter = blotterRepository.findById(tradeOrder.getBlotter().getId())
                     .orElseThrow(() -> new IllegalArgumentException("Blotter not found: " + tradeOrder.getBlotter().getId()));

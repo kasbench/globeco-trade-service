@@ -22,6 +22,7 @@ public class TradeOrderEntityTest {
         Blotter blotter = new Blotter();
         blotter.setId(5);
         tradeOrder.setBlotter(blotter);
+        tradeOrder.setSubmitted(true);
 
         assertEquals(1, tradeOrder.getId());
         assertEquals(100, tradeOrder.getOrderId());
@@ -33,6 +34,9 @@ public class TradeOrderEntityTest {
         assertEquals(now, tradeOrder.getTradeTimestamp());
         assertEquals(2, tradeOrder.getVersion());
         assertEquals(blotter, tradeOrder.getBlotter());
+        assertEquals(true, tradeOrder.getSubmitted());
+        tradeOrder.setSubmitted(null);
+        assertNull(tradeOrder.getSubmitted());
     }
 
     @Test

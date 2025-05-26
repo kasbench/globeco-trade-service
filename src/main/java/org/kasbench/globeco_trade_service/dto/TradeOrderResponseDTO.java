@@ -10,6 +10,7 @@ public class TradeOrderResponseDTO {
     private java.math.BigDecimal limitPrice;
     private java.time.OffsetDateTime tradeTimestamp;
     private BlotterResponseDTO blotter;
+    private Boolean submitted;
     private Integer version;
   
     public Integer getId() {
@@ -65,6 +66,12 @@ public class TradeOrderResponseDTO {
     }
     public void setBlotter(BlotterResponseDTO blotter) {
         this.blotter = blotter;
+    }
+    public Boolean getSubmitted() {
+        return submitted;
+    }
+    public void setSubmitted(Boolean submitted) {
+        this.submitted = submitted;
     }
     public Integer getVersion() {
         return version;

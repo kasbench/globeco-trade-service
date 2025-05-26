@@ -747,6 +747,10 @@ components:
         tradeTimestamp:
           type: string
           format: date-time
+        submitted:
+          type: boolean
+          nullable: true
+          description: Whether the order has been submitted (default: false, nullable)
         version:
           type: integer
         blotter:

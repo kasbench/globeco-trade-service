@@ -766,6 +766,22 @@ Actions:
 2. Updated openapi.yaml to add the POST /api/v1/execution/{id}/submit endpoint, with path, parameters, responses, and example payloads.
 3. Ensured documentation is consistent with requirements and implementation.
 
-Request: Please go ahead and make the change to fix the foreign key constraint violation in ExecutionStatusServiceImplTest.
+Request: @supplemental-requirement-2.md Please proceed with step 1
 
-Action: Updated ExecutionStatusServiceImplTest to inject ExecutionRepository and, in testCacheEvictedOnCreateUpdateDelete, delete all Executions referencing the ExecutionStatus before deleting the ExecutionStatus. This prevents foreign key constraint violations during the test.
+Action: Created Flyway migration src/main/resources/db/migration/V6__trade_order_add_submitted_column.sql to add a nullable boolean column 'submitted' to the trade_order table, with default false, as specified in step 1 of supplemental-requirement-2.md.
+
+Request: Please proceed with steps 2-4 of supplemental-requirement-2.md
+
+Action: Updated TradeOrderEntityTest, TradeOrderRepositoryTest, TradeOrderServiceImplTest, and TradeOrderControllerTest to cover the 'submitted' field. Tests now assert the default value is false, the field can be updated, and it is correctly serialized in API responses. POST/PUT DTOs remain unchanged as required.
+
+Request: Please proceed with steps 6 and 7 of supplemental-requirement-2.md
+
+Action: Updated README.md and openapi.yaml to document the new 'submitted' field in the TradeOrder data model, TradeOrderResponseDTO, and all relevant example responses. No changes were made to POST/PUT DTOs or requests, as required.
+
+Request: Please fix the attached test failures
+
+Action: Fixed TradeOrderController.toResponseDTO to set the 'submitted' field in the response DTO, ensuring API responses include the field and match the new schema and tests. This resolves assertion errors in TradeOrderControllerTest and related tests.
+
+Request: Please fix the attached two failures
+
+Action: Set the default value of the 'submitted' field to false in the TradeOrder entity, ensuring new entities have submitted == false unless explicitly set otherwise. This resolves assertion errors in repository and controller tests.

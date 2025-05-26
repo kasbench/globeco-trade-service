@@ -96,14 +96,16 @@ public class TradeOrderControllerTest extends org.kasbench.globeco_trade_service
         mockMvc.perform(get("/api/v1/tradeOrders"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[?(@.orderId==%d)]", tradeOrder.getOrderId()).exists())
-                .andExpect(jsonPath("$[?(@.blotter.abbreviation=='%s')]", blotter.getAbbreviation()).exists());
+                .andExpect(jsonPath("$[?(@.blotter.abbreviation=='%s')]", blotter.getAbbreviation()).exists())
+                .andExpect(jsonPath("$[?(@.orderId==%d)].submitted", tradeOrder.getOrderId()).value(false));
     }
 
     @Test
     void testGetTradeOrderById_Found() throws Exception {
         mockMvc.perform(get("/api/v1/tradeOrders/" + tradeOrder.getId()))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.orderId").value(tradeOrder.getOrderId()));
+                .andExpect(jsonPath("$.orderId").value(tradeOrder.getOrderId()))
+                .andExpect(jsonPath("$.submitted").value(false));
     }
 
     @Test
@@ -129,7 +131,8 @@ public class TradeOrderControllerTest extends org.kasbench.globeco_trade_service
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(postDTO)))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.orderId").value(uniqueOrderId));
+                .andExpect(jsonPath("$.orderId").value(uniqueOrderId))
+                .andExpect(jsonPath("$.submitted").value(false));
     }
 
     @Test
@@ -150,7 +153,8 @@ public class TradeOrderControllerTest extends org.kasbench.globeco_trade_service
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(putDTO)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.orderId").value(tradeOrder.getOrderId()));
+                .andExpect(jsonPath("$.orderId").value(tradeOrder.getOrderId()))
+                .andExpect(jsonPath("$.submitted").value(false));
     }
 
     @Test

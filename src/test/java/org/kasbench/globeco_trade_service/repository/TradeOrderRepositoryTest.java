@@ -66,10 +66,13 @@ public class TradeOrderRepositoryTest extends org.kasbench.globeco_trade_service
         tradeOrder = createTradeOrder();
         Integer id = tradeOrder.getId();
         Assertions.assertTrue(tradeOrderRepository.findById(id).isPresent());
+        Assertions.assertEquals(false, tradeOrder.getSubmitted());
         tradeOrder.setOrderType("SELL");
+        tradeOrder.setSubmitted(true);
         tradeOrderRepository.saveAndFlush(tradeOrder);
         TradeOrder found = tradeOrderRepository.findById(id).orElseThrow();
         Assertions.assertEquals("SELL", found.getOrderType().trim());
+        Assertions.assertEquals(true, found.getSubmitted());
         tradeOrderRepository.deleteById(id);
         Assertions.assertTrue(tradeOrderRepository.findById(id).isEmpty());
         tradeOrder = null; // Prevent double delete in @AfterEach

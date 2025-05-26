@@ -105,6 +105,7 @@ The **trade_order** table represents an order to trade a security. Each trade or
 | quantity        | BigDecimal     | Quantity ordered                            |
 | limitPrice      | BigDecimal     | Limit price                                 |
 | tradeTimestamp  | OffsetDateTime | Timestamp of the trade                      |
+| submitted       | Boolean        | Whether the order has been submitted (default: false, nullable) |
 | version         | Integer        | Version for optimistic locking              |
 | blotterId       | Integer        | Foreign key to blotter                      |
 
@@ -121,8 +122,9 @@ The **trade_order** table represents an order to trade a security. Each trade or
 | quantity        | BigDecimal            | Quantity ordered                            |
 | limitPrice      | BigDecimal            | Limit price                                 |
 | tradeTimestamp  | OffsetDateTime        | Timestamp of the trade                      |
-| version         | Integer               | Version for optimistic locking              |
 | blotter         | BlotterResponseDTO    | Nested DTO for blotter                      |
+| submitted       | Boolean               | Whether the order has been submitted (default: false, nullable) |
+| version         | Integer               | Version for optimistic locking              |
 
 #### TradeOrderPutDTO (PUT Request)
 | Field           | Type           | Description                                 |
@@ -192,6 +194,7 @@ HTTP/1.1 201 Created
   "quantity": 100.00,
   "limitPrice": 10.50,
   "tradeTimestamp": "2024-06-01T12:00:00Z",
+  "submitted": false,
   "version": 1,
   "blotter": {
     "id": 1,
@@ -220,6 +223,7 @@ HTTP/1.1 200 OK
     "quantity": 100.00,
     "limitPrice": 10.50,
     "tradeTimestamp": "2024-06-01T12:00:00Z",
+    "submitted": false,
     "version": 1,
     "blotter": {
       "id": 1,

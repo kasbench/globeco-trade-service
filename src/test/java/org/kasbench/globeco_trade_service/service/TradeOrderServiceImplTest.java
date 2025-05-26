@@ -57,6 +57,7 @@ public class TradeOrderServiceImplTest extends org.kasbench.globeco_trade_servic
         Optional<TradeOrder> found = tradeOrderService.getTradeOrderById(tradeOrder.getId());
         Assertions.assertTrue(found.isPresent());
         Assertions.assertEquals("PORT123", found.get().getPortfolioId());
+        Assertions.assertEquals(false, found.get().getSubmitted());
     }
 
     @Test
@@ -64,8 +65,10 @@ public class TradeOrderServiceImplTest extends org.kasbench.globeco_trade_servic
     void testUpdate() {
         TradeOrder tradeOrder = createTradeOrder();
         tradeOrder.setOrderType("SELL");
+        tradeOrder.setSubmitted(true);
         TradeOrder updated = tradeOrderService.updateTradeOrder(tradeOrder.getId(), tradeOrder);
         Assertions.assertEquals("SELL", updated.getOrderType());
+        Assertions.assertEquals(true, updated.getSubmitted());
     }
 
     @Test

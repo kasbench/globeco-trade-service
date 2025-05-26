@@ -32,13 +32,16 @@ public class TradeOrder {
     @Column(name = "trade_timestamp", nullable = false)
     private OffsetDateTime tradeTimestamp;
 
-    @Version
-    @Column(nullable = false)
-    private Integer version = 1;
-
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "blotter_id")
     private Blotter blotter;
+
+    @Column(name = "submitted")
+    private Boolean submitted = false;
+
+    @Version
+    @Column(nullable = false)
+    private Integer version = 1;
 
     public Integer getId() {
         return id;
@@ -99,5 +102,11 @@ public class TradeOrder {
     }
     public void setBlotter(Blotter blotter) {
         this.blotter = blotter;
+    }
+    public Boolean getSubmitted() {
+        return submitted;
+    }
+    public void setSubmitted(Boolean submitted) {
+        this.submitted = submitted;
     }
 } 
