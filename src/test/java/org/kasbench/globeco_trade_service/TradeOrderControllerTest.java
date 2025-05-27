@@ -17,6 +17,7 @@ import org.kasbench.globeco_trade_service.repository.BlotterRepository;
 import org.kasbench.globeco_trade_service.repository.ExecutionStatusRepository;
 import org.kasbench.globeco_trade_service.repository.TradeTypeRepository;
 import org.kasbench.globeco_trade_service.repository.DestinationRepository;
+import org.kasbench.globeco_trade_service.repository.TradeOrderRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
@@ -50,6 +51,9 @@ public class TradeOrderControllerTest extends org.kasbench.globeco_trade_service
 
     @Autowired
     private DestinationRepository destinationRepository;
+
+    @Autowired
+    private TradeOrderRepository tradeOrderRepository;
 
     private TradeOrder tradeOrder;
     private Blotter blotter;
@@ -236,7 +240,7 @@ public class TradeOrderControllerTest extends org.kasbench.globeco_trade_service
     @Test
     void testSubmitTradeOrder_Success() throws Exception {
         TradeOrderSubmitDTO submitDTO = new TradeOrderSubmitDTO();
-        submitDTO.setQuantity(new BigDecimal("10"));
+        submitDTO.setQuantity(new BigDecimal("10.00"));
         submitDTO.setDestinationId(1);
         mockMvc.perform(post("/api/v1/tradeOrders/" + tradeOrder.getId() + "/submit")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -245,9 +249,19 @@ public class TradeOrderControllerTest extends org.kasbench.globeco_trade_service
                 .andExpect(jsonPath("$.tradeOrder.id").value(tradeOrder.getId()))
                 .andExpect(jsonPath("$.quantityOrdered").value("10.00"))
                 .andExpect(jsonPath("$.destination.id").value(1));
-        // Assert tradeOrder.submitted is true
+        // Assert tradeOrder.submitted is false after partial submit
         TradeOrder updated = tradeOrderService.getTradeOrderById(tradeOrder.getId()).orElseThrow();
-        org.junit.jupiter.api.Assertions.assertTrue(updated.getSubmitted());
+        org.junit.jupiter.api.Assertions.assertFalse(updated.getSubmitted());
+        // Submit the remaining quantity
+        TradeOrderSubmitDTO submitDTO2 = new TradeOrderSubmitDTO();
+        submitDTO2.setQuantity(new BigDecimal("90.00"));
+        submitDTO2.setDestinationId(1);
+        mockMvc.perform(post("/api/v1/tradeOrders/" + tradeOrder.getId() + "/submit")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(submitDTO2)))
+                .andExpect(status().isCreated());
+        TradeOrder fullySubmitted = tradeOrderRepository.findById(tradeOrder.getId()).orElseThrow();
+        org.junit.jupiter.api.Assertions.assertTrue(fullySubmitted.getSubmitted());
     }
 
     @Test

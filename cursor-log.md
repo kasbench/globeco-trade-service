@@ -670,7 +670,7 @@ Action:
 3. Ran BlotterServiceImplTest and the full test suite; confirmed all tests now pass successfully.
 
 **Rationale:**
-- Service-level optimistic concurrency tests are unreliable due to JPA's entity management. Repository-level tests are the correct place to verify optimistic locking behavior.
+- Service-level optimistic tests are unreliable due to JPA's entity management. Repository-level tests are the correct place to verify optimistic locking behavior.
 
 ---
 
@@ -806,3 +806,10 @@ Completed part 2 of supplemental-requirement-3.md:
 - Updated ExecutionServiceImpl to set quantityPlaced to quantityOrdered and status to SENT (id=2).
 - Updated ExecutionControllerTest to assert on the new response format for submitExecutionSuccess.
 - All tests pass, and the implementation matches the requirements for POST /api/v1/execution/{id}/submit.
+
+Implemented supplemental-requirement-4.md:
+- Added quantity_sent column to trade_order table via Flyway migration.
+- Added quantitySent field to TradeOrder entity and TradeOrderResponseDTO.
+- Updated submitTradeOrder logic to enforce available quantity, increment quantitySent, and set submitted only when fully sent.
+- Updated controller to include quantitySent in responses.
+- Updated README.md and openapi.yaml to document the new field, business rules, and error message.

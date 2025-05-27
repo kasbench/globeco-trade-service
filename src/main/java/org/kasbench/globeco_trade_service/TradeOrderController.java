@@ -114,6 +114,7 @@ public class TradeOrderController {
         dto.setOrderType(tradeOrder.getOrderType());
         dto.setSecurityId(tradeOrder.getSecurityId());
         dto.setQuantity(tradeOrder.getQuantity());
+        dto.setQuantitySent(tradeOrder.getQuantitySent());
         dto.setLimitPrice(tradeOrder.getLimitPrice());
         dto.setTradeTimestamp(tradeOrder.getTradeTimestamp());
         if (tradeOrder.getBlotter() != null) {
@@ -138,6 +139,7 @@ public class TradeOrderController {
         tradeOrder.setQuantity(dto.getQuantity());
         tradeOrder.setLimitPrice(dto.getLimitPrice());
         tradeOrder.setTradeTimestamp(dto.getTradeTimestamp());
+        tradeOrder.setQuantitySent(java.math.BigDecimal.ZERO);
         if (dto.getBlotterId() != null) {
             Blotter blotter = new Blotter();
             blotter.setId(dto.getBlotterId());
@@ -156,12 +158,14 @@ public class TradeOrderController {
         tradeOrder.setQuantity(dto.getQuantity());
         tradeOrder.setLimitPrice(dto.getLimitPrice());
         tradeOrder.setTradeTimestamp(dto.getTradeTimestamp());
+        tradeOrder.setQuantitySent(java.math.BigDecimal.ZERO);
         tradeOrder.setVersion(dto.getVersion());
         if (dto.getBlotterId() != null) {
             Blotter blotter = new Blotter();
             blotter.setId(dto.getBlotterId());
             tradeOrder.setBlotter(blotter);
         }
+        tradeOrder.setQuantitySent(java.math.BigDecimal.ZERO);
         return tradeOrder;
     }
 

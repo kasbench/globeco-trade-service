@@ -74,6 +74,9 @@ public class TradeOrderServiceImpl implements TradeOrderService {
         if (tradeOrder.getSubmitted() == null) {
             tradeOrder.setSubmitted(false);
         }
+        if (tradeOrder.getQuantitySent() == null) {
+            tradeOrder.setQuantitySent(java.math.BigDecimal.ZERO);
+        }
         return tradeOrderRepository.save(tradeOrder);
     }
 
@@ -97,6 +100,11 @@ public class TradeOrderServiceImpl implements TradeOrderService {
             existing.setBlotter(blotter);
         } else {
             existing.setBlotter(null);
+        }
+        if (tradeOrder.getQuantitySent() == null) {
+            existing.setQuantitySent(java.math.BigDecimal.ZERO);
+        } else {
+            existing.setQuantitySent(tradeOrder.getQuantitySent());
         }
         return tradeOrderRepository.save(existing);
     }
@@ -122,6 +130,12 @@ public class TradeOrderServiceImpl implements TradeOrderService {
                     .orElseThrow(() -> new IllegalArgumentException("TradeOrder not found: " + tradeOrderId));
             if (dto.getQuantity() == null) {
                 throw new IllegalArgumentException("Quantity must not be null");
+            }
+            java.math.BigDecimal available = tradeOrder.getQuantity().subtract(
+                tradeOrder.getQuantitySent() == null ? java.math.BigDecimal.ZERO : tradeOrder.getQuantitySent()
+            );
+            if (dto.getQuantity().compareTo(available) > 0) {
+                throw new IllegalArgumentException("Requested quantity exceeds available quantity");
             }
             // Normalize orderType before switch
             String normalizedOrderType = tradeOrder.getOrderType() == null ? null : tradeOrder.getOrderType().trim().toUpperCase();
@@ -156,7 +170,14 @@ public class TradeOrderServiceImpl implements TradeOrderService {
                 execution.setBlotter(tradeOrder.getBlotter());
             }
             Execution saved = executionRepository.save(execution);
-            tradeOrder.setSubmitted(true);
+            // Increment quantitySent
+            java.math.BigDecimal newQuantitySent = (tradeOrder.getQuantitySent() == null ? java.math.BigDecimal.ZERO : tradeOrder.getQuantitySent()).add(dto.getQuantity());
+            newQuantitySent = newQuantitySent.setScale(tradeOrder.getQuantity().scale(), java.math.RoundingMode.HALF_UP);
+            tradeOrder.setQuantitySent(newQuantitySent);
+            // Only set submitted if fully sent (within 0.001)
+            if (tradeOrder.getQuantity().subtract(tradeOrder.getQuantitySent()).abs().compareTo(new java.math.BigDecimal("0.01")) <= 0) {
+                tradeOrder.setSubmitted(true);
+            }
             tradeOrderRepository.save(tradeOrder);
             return saved;
         } catch (Exception e) {

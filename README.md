@@ -235,6 +235,56 @@ HTTP/1.1 200 OK
 ]
 ```
 
+## Submit Trade Order API
+
+### Endpoint
+
+`POST /api/v1/tradeOrders/{id}/submit`
+
+Submits a trade order for execution. The request body must include:
+- `quantity`: The amount to submit (must not exceed available quantity)
+- `destinationId`: The destination for the execution
+
+### Business Rules
+- The value of `quantity` in the payload may not exceed `trade_order.quantity - trade_order.quantity_sent`. If it does, the API returns 400 Bad Request with the message: "Requested quantity exceeds available quantity".
+- On success, `trade_order.quantity_sent` is increased by the submitted `quantity`.
+- `trade_order.submitted` is set to true only if `trade_order.quantity == trade_order.quantity_sent`.
+
+### Example Response
+
+```
+{
+  "id": 1,
+  "orderId": 123456,
+  "portfolioId": "PORT1",
+  "orderType": "BUY",
+  "securityId": "SEC1",
+  "quantity": 100.00,
+  "quantitySent": 10.00,
+  "limitPrice": 10.00,
+  "tradeTimestamp": "2024-06-10T12:00:00Z",
+  "blotter": { "id": 1, "abbreviation": "EQ", "name": "Equity", "version": 1 },
+  "submitted": false,
+  "version": 1
+}
+```
+
+### Fields
+| Field         | Type      | Description                                      |
+|--------------|-----------|--------------------------------------------------|
+| quantity     | decimal   | Total order quantity                             |
+| quantitySent | decimal   | Cumulative quantity submitted for execution      |
+| submitted    | boolean   | True if all quantity has been submitted          |
+
+### Error Response
+If the requested quantity exceeds available quantity:
+```
+HTTP/1.1 400 Bad Request
+{
+  "error": "Requested quantity exceeds available quantity"
+}
+```
+
 ## Destination Data Model
 
 The **destination** table represents a trading destination (e.g., broker or exchange). Each destination has an abbreviation, a description, and a version for optimistic locking.
@@ -619,73 +669,6 @@ The **execution** table represents an execution of a trade order, including stat
   "version": 1
 }
 ```
-
-## Submit Execution API
-
-### Endpoint
-
-`POST /api/v1/execution/{id}/submit`
-
-Submits an execution to the external execution service (globeco-execution-service on port 8084). On success, updates the local execution's `execution_service_id`, sets `quantityPlaced` to `quantityOrdered`, and status to SENT (id=2).
-
-### Field Mapping
-
-| Execution Service DTO Field | Trade Service Field                        |
-|----------------------------|--------------------------------------------|
-| executionStatus            | execution.executionStatus.abbreviation     |
-| tradeType                  | execution.tradeType.abbreviation           |
-| destination                | execution.destination.abbreviation         |
-| securityId                 | execution.tradeOrder.securityId            |
-| quantity                   | execution.quantityPlaced                   |
-| limitPrice                 | execution.limitPrice                       |
-| tradeServiceExecutionId    | execution.id                               |
-| version                    | 1                                          |
-
-### Example Request
-
-```
-POST /api/v1/execution/123/submit
-Content-Type: application/json
-
-{}
-```
-
-### Example Success Response
-
-```
-HTTP/1.1 200 OK
-Content-Type: application/json
-
-{
-  "id": 1,
-  "executionTimestamp": "2024-06-10T12:00:00Z",
-  "executionStatus": { "id": 2, "abbreviation": "SENT", "description": "Sent", "version": 1 },
-  "blotter": { "id": 1, "abbreviation": "EQ", "name": "Equity", "version": 1 },
-  "tradeType": { "id": 1, "abbreviation": "BUY", "description": "Buy", "version": 1 },
-  "tradeOrder": { "id": 1, "orderId": 123456, "portfolioId": "PORT1", "orderType": "BUY", "securityId": "SEC1", "quantity": "100.00", "limitPrice": "10.00", "tradeTimestamp": "2024-06-10T12:00:00Z", "version": 1, "blotter": { "id": 1, "abbreviation": "EQ", "name": "Equity", "version": 1 } },
-  "destination": { "id": 1, "abbreviation": "ML", "description": "Merrill Lynch", "version": 1 },
-  "quantityOrdered": "10.00",
-  "quantityPlaced": "10.00",
-  "quantityFilled": "0.00",
-  "limitPrice": "10.00",
-  "executionServiceId": 99999,
-  "version": 1
-}
-```
-
-### Notes
-- All BigDecimal fields (quantityOrdered, quantityPlaced, quantityFilled, limitPrice) are serialized as strings with two decimal places in the response.
-- On error, the response is `{ "error": "..." }` with appropriate status code (400, 404, 500).
-- The endpoint returns the full updated ExecutionResponseDTO, not just a status string.
-
-### Test Scenarios
-- Successful submission and status update
-- Execution service returns client error (400)
-- Execution service returns server error (500)
-- Database update failure
-- Execution not found
-
-_Implemented in `ExecutionSubmitController`._
 
 ## Health Check APIs
 

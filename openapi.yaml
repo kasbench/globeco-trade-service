@@ -784,6 +784,9 @@ components:
         quantity:
           type: number
           format: double
+        quantitySent:
+          type: number
+          format: double
         limitPrice:
           type: number
           format: double
@@ -798,7 +801,7 @@ components:
           type: integer
         blotter:
           $ref: '#/components/schemas/BlotterResponseDTO'
-      required: [id, orderId, portfolioId, orderType, securityId, quantity, tradeTimestamp, version, blotter]
+      required: [id, orderId, portfolioId, orderType, securityId, quantity, quantitySent, tradeTimestamp, version, blotter]
     TradeOrderPutDTO:
       type: object
       properties:
@@ -1053,4 +1056,48 @@ components:
           type: integer
           nullable: true
         version:
-          type: integer 
+          type: integer
+  /api/v1/tradeOrders/{id}/submit:
+    post:
+      summary: Submit a trade order for execution
+      operationId: submitTradeOrder
+      tags: [TradeOrder]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TradeOrderSubmitDTO'
+      responses:
+        '201':
+          description: Trade order submitted and execution created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExecutionResponseDTO'
+        '400':
+          description: Bad request (e.g., requested quantity exceeds available quantity)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: Requested quantity exceeds available quantity
+        '404':
+          description: Trade order not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: TradeOrder not found 

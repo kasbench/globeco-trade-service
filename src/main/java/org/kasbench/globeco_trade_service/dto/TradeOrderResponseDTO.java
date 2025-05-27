@@ -7,6 +7,7 @@ public class TradeOrderResponseDTO {
     private String orderType;
     private String securityId;
     private java.math.BigDecimal quantity;
+    private java.math.BigDecimal quantitySent = java.math.BigDecimal.ZERO;
     private java.math.BigDecimal limitPrice;
     private java.time.OffsetDateTime tradeTimestamp;
     private BlotterResponseDTO blotter;
@@ -48,6 +49,12 @@ public class TradeOrderResponseDTO {
     }
     public void setQuantity(java.math.BigDecimal quantity) {
         this.quantity = quantity;
+    }
+    public java.math.BigDecimal getQuantitySent() {
+        return quantitySent;
+    }
+    public void setQuantitySent(java.math.BigDecimal quantitySent) {
+        this.quantitySent = quantitySent;
     }
     public java.math.BigDecimal getLimitPrice() {
         return limitPrice;

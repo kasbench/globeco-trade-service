@@ -26,6 +26,9 @@ public class TradeOrder {
     @Column(nullable = false, precision = 18, scale = 8)
     private BigDecimal quantity;
 
+    @Column(name = "quantity_sent", precision = 18, scale = 8)
+    private BigDecimal quantitySent = BigDecimal.ZERO;
+
     @Column(name = "limit_price", precision = 18, scale = 8)
     private BigDecimal limitPrice;
 
@@ -78,6 +81,12 @@ public class TradeOrder {
     }
     public void setQuantity(BigDecimal quantity) {
         this.quantity = quantity;
+    }
+    public BigDecimal getQuantitySent() {
+        return quantitySent;
+    }
+    public void setQuantitySent(BigDecimal quantitySent) {
+        this.quantitySent = quantitySent;
     }
     public BigDecimal getLimitPrice() {
         return limitPrice;
