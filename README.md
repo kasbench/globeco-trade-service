@@ -90,7 +90,7 @@ HTTP/1.1 200 OK
 ]
 ```
 
-## TradeOrder Data Model
+## TradeOrder Data Model (Updated)
 
 The **trade_order** table represents an order to trade a security. Each trade order has an orderId, portfolioId, orderType, securityId, quantity, limitPrice, tradeTimestamp, version for optimistic locking, and a reference to a blotter.
 
@@ -103,9 +103,10 @@ The **trade_order** table represents an order to trade a security. Each trade or
 | orderType       | String         | Order type                                  |
 | securityId      | String         | Security identifier                         |
 | quantity        | BigDecimal     | Quantity ordered                            |
+| quantitySent    | BigDecimal     | Cumulative quantity submitted for execution |
 | limitPrice      | BigDecimal     | Limit price                                 |
 | tradeTimestamp  | OffsetDateTime | Timestamp of the trade                      |
-| submitted       | Boolean        | Whether the order has been submitted (default: false, nullable) |
+| submitted       | Boolean        | True if all quantity has been submitted (difference between quantity and quantitySent is <= 0.001) |
 | version         | Integer        | Version for optimistic locking              |
 | blotterId       | Integer        | Foreign key to blotter                      |
 
@@ -120,10 +121,11 @@ The **trade_order** table represents an order to trade a security. Each trade or
 | orderType       | String                | Order type                                  |
 | securityId      | String                | Security identifier                         |
 | quantity        | BigDecimal            | Quantity ordered                            |
+| quantitySent    | BigDecimal            | Cumulative quantity submitted for execution |
 | limitPrice      | BigDecimal            | Limit price                                 |
 | tradeTimestamp  | OffsetDateTime        | Timestamp of the trade                      |
 | blotter         | BlotterResponseDTO    | Nested DTO for blotter                      |
-| submitted       | Boolean               | Whether the order has been submitted (default: false, nullable) |
+| submitted       | Boolean               | True if all quantity has been submitted (difference between quantity and quantitySent is <= 0.001) |
 | version         | Integer               | Version for optimistic locking              |
 
 #### TradeOrderPutDTO (PUT Request)
@@ -135,6 +137,7 @@ The **trade_order** table represents an order to trade a security. Each trade or
 | orderType       | String         | Order type                                  |
 | securityId      | String         | Security identifier                         |
 | quantity        | BigDecimal     | Quantity ordered                            |
+| quantitySent    | BigDecimal     | Cumulative quantity submitted for execution |
 | limitPrice      | BigDecimal     | Limit price                                 |
 | tradeTimestamp  | OffsetDateTime | Timestamp of the trade                      |
 | version         | Integer        | Version for optimistic locking              |
@@ -148,6 +151,7 @@ The **trade_order** table represents an order to trade a security. Each trade or
 | orderType       | String         | Order type                                  |
 | securityId      | String         | Security identifier                         |
 | quantity        | BigDecimal     | Quantity ordered                            |
+| quantitySent    | BigDecimal     | Cumulative quantity submitted for execution |
 | limitPrice      | BigDecimal     | Limit price                                 |
 | tradeTimestamp  | OffsetDateTime | Timestamp of the trade                      |
 | blotterId       | Integer        | Foreign key to blotter                      |
@@ -176,6 +180,7 @@ Content-Type: application/json
   "orderType": "BUY",
   "securityId": "SEC123",
   "quantity": 100.00,
+  "quantitySent": 10.00,
   "limitPrice": 10.50,
   "tradeTimestamp": "2024-06-01T12:00:00Z",
   "blotterId": 1
@@ -192,6 +197,7 @@ HTTP/1.1 201 Created
   "orderType": "BUY",
   "securityId": "SEC123",
   "quantity": 100.00,
+  "quantitySent": 10.00,
   "limitPrice": 10.50,
   "tradeTimestamp": "2024-06-01T12:00:00Z",
   "submitted": false,
@@ -221,6 +227,7 @@ HTTP/1.1 200 OK
     "orderType": "BUY",
     "securityId": "SEC123",
     "quantity": 100.00,
+    "quantitySent": 10.00,
     "limitPrice": 10.50,
     "tradeTimestamp": "2024-06-01T12:00:00Z",
     "submitted": false,
@@ -235,7 +242,7 @@ HTTP/1.1 200 OK
 ]
 ```
 
-## Submit Trade Order API
+## Submit Trade Order API (Updated)
 
 ### Endpoint
 
@@ -248,7 +255,7 @@ Submits a trade order for execution. The request body must include:
 ### Business Rules
 - The value of `quantity` in the payload may not exceed `trade_order.quantity - trade_order.quantity_sent`. If it does, the API returns 400 Bad Request with the message: "Requested quantity exceeds available quantity".
 - On success, `trade_order.quantity_sent` is increased by the submitted `quantity`.
-- `trade_order.submitted` is set to true only if `trade_order.quantity == trade_order.quantity_sent`.
+- `trade_order.submitted` is set to true only if the absolute difference between `trade_order.quantity` and `trade_order.quantity_sent` is less than or equal to 0.001.
 
 ### Example Response
 

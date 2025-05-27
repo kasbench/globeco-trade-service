@@ -796,7 +796,7 @@ components:
         submitted:
           type: boolean
           nullable: true
-          description: Whether the order has been submitted (default: false, nullable)
+          description: True if all quantity has been submitted (difference between quantity and quantitySent is <= 0.001)
         version:
           type: integer
         blotter:
