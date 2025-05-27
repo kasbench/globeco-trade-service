@@ -114,7 +114,7 @@ public class ExecutionServiceImpl implements ExecutionService {
         payload.put("tradeType", execution.getTradeType().getAbbreviation());
         payload.put("destination", execution.getDestination().getAbbreviation());
         payload.put("securityId", execution.getTradeOrder().getSecurityId());
-        payload.put("quantity", execution.getQuantityPlaced());
+        payload.put("quantity", execution.getQuantityOrdered());
         payload.put("limitPrice", execution.getLimitPrice());
         payload.put("tradeServiceExecutionId", execution.getId());
         payload.put("version", 1);
