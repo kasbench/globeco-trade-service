@@ -1,6 +1,7 @@
 package org.kasbench.globeco_trade_service.service;
 
 import org.kasbench.globeco_trade_service.entity.Execution;
+import org.kasbench.globeco_trade_service.dto.ExecutionPutFillDTO;
 import java.util.List;
 import java.util.Optional;
 
@@ -10,6 +11,7 @@ public interface ExecutionService {
     Execution createExecution(Execution execution);
     Execution updateExecution(Integer id, Execution execution);
     void deleteExecution(Integer id, Integer version);
+    Execution fillExecution(Integer id, ExecutionPutFillDTO fillDTO);
 
     class SubmitResult {
         private String status;

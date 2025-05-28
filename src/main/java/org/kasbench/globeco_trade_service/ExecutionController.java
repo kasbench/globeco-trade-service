@@ -56,6 +56,24 @@ public class ExecutionController {
         return ResponseEntity.noContent().build();
     }
 
+    @PutMapping("/{id}/fill")
+    public ResponseEntity<?> fillExecution(@PathVariable Integer id, @RequestBody ExecutionPutFillDTO fillDTO) {
+        try {
+            Execution updated = executionService.fillExecution(id, fillDTO);
+            return ResponseEntity.ok(toResponseDTO(updated));
+        } catch (IllegalArgumentException e) {
+            if (e.getMessage().contains("not found")) {
+                return ResponseEntity.notFound().build();
+            } else if (e.getMessage().contains("Version mismatch")) {
+                return ResponseEntity.status(HttpStatus.CONFLICT)
+                        .body(java.util.Map.of("error", e.getMessage()));
+            } else {
+                return ResponseEntity.badRequest()
+                        .body(java.util.Map.of("error", e.getMessage()));
+            }
+        }
+    }
+
     public ExecutionResponseDTO toResponseDTO(Execution execution) {
         ExecutionResponseDTO dto = new ExecutionResponseDTO();
         dto.setId(execution.getId());

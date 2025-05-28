@@ -5,6 +5,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.kasbench.globeco_trade_service.dto.ExecutionPostDTO;
 import org.kasbench.globeco_trade_service.dto.ExecutionPutDTO;
+import org.kasbench.globeco_trade_service.dto.ExecutionPutFillDTO;
 import org.kasbench.globeco_trade_service.entity.*;
 import org.kasbench.globeco_trade_service.repository.*;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -54,7 +55,7 @@ public class ExecutionControllerTest extends org.kasbench.globeco_trade_service.
     @BeforeEach
     void setup() {
         status = new ExecutionStatus();
-        status.setAbbreviation("NEW");
+        status.setAbbreviation("NEW" + System.nanoTime());
         status.setDescription("New");
         status = executionStatusRepository.saveAndFlush(status);
 
@@ -118,7 +119,7 @@ public class ExecutionControllerTest extends org.kasbench.globeco_trade_service.
         mockMvc.perform(get("/api/v1/executions/" + id))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(id))
-                .andExpect(jsonPath("$.executionStatus.abbreviation").value("NEW"))
+                .andExpect(jsonPath("$.executionStatus.abbreviation").value(status.getAbbreviation()))
                 .andExpect(jsonPath("$.executionServiceId").value(55555));
     }
 
@@ -132,7 +133,7 @@ public class ExecutionControllerTest extends org.kasbench.globeco_trade_service.
                 .andExpect(status().isCreated());
         mockMvc.perform(get("/api/v1/executions"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[*].executionStatus.abbreviation", hasItem("NEW")));
+                .andExpect(jsonPath("$[*].executionStatus.abbreviation", hasItem(status.getAbbreviation())));
     }
 
     @Test
@@ -278,5 +279,136 @@ public class ExecutionControllerTest extends org.kasbench.globeco_trade_service.
         mockMvc.perform(post("/api/v1/execution/-1/submit"))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.error", containsString("not found")));
+    }
+
+    @Test
+    void testFillExecutionSuccess() throws Exception {
+        // Create PART status
+        ExecutionStatus partStatus = new ExecutionStatus();
+        partStatus.setAbbreviation("PART" + System.nanoTime());
+        partStatus.setDescription("Partially Filled");
+        partStatus = executionStatusRepository.saveAndFlush(partStatus);
+        
+        // Create execution
+        ExecutionPostDTO postDTO = buildPostDTO();
+        String postJson = objectMapper.writeValueAsString(postDTO);
+        String response = mockMvc.perform(post("/api/v1/executions")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(postJson))
+                .andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString();
+        int id = objectMapper.readTree(response).get("id").asInt();
+        int version = objectMapper.readTree(response).get("version").asInt();
+        
+        // Fill execution
+        ExecutionPutFillDTO fillDTO = new ExecutionPutFillDTO();
+        fillDTO.setExecutionStatus(partStatus.getAbbreviation());
+        fillDTO.setQuantityFilled(new BigDecimal("50.00"));
+        fillDTO.setVersion(version);
+        String fillJson = objectMapper.writeValueAsString(fillDTO);
+        
+        mockMvc.perform(put("/api/v1/executions/" + id + "/fill")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(fillJson))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(id))
+                .andExpect(jsonPath("$.quantityFilled").value("50.00"))
+                .andExpect(jsonPath("$.executionStatus.abbreviation").value(partStatus.getAbbreviation()))
+                .andExpect(jsonPath("$.version").value(version + 1));
+    }
+
+    @Test
+    void testFillExecutionNotFound() throws Exception {
+        ExecutionPutFillDTO fillDTO = new ExecutionPutFillDTO();
+        fillDTO.setExecutionStatus("PART");
+        fillDTO.setQuantityFilled(new BigDecimal("50.00"));
+        fillDTO.setVersion(1);
+        String fillJson = objectMapper.writeValueAsString(fillDTO);
+        
+        mockMvc.perform(put("/api/v1/executions/-1/fill")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(fillJson))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void testFillExecutionVersionMismatch() throws Exception {
+        // Create execution
+        ExecutionPostDTO postDTO = buildPostDTO();
+        String postJson = objectMapper.writeValueAsString(postDTO);
+        String response = mockMvc.perform(post("/api/v1/executions")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(postJson))
+                .andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString();
+        int id = objectMapper.readTree(response).get("id").asInt();
+        int version = objectMapper.readTree(response).get("version").asInt();
+        
+        // Fill execution with wrong version
+        ExecutionPutFillDTO fillDTO = new ExecutionPutFillDTO();
+        fillDTO.setExecutionStatus("PART");
+        fillDTO.setQuantityFilled(new BigDecimal("50.00"));
+        fillDTO.setVersion(version + 1); // Wrong version
+        String fillJson = objectMapper.writeValueAsString(fillDTO);
+        
+        mockMvc.perform(put("/api/v1/executions/" + id + "/fill")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(fillJson))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.error", containsString("Version mismatch")));
+    }
+
+    @Test
+    void testFillExecutionInvalidStatus() throws Exception {
+        // Create execution
+        ExecutionPostDTO postDTO = buildPostDTO();
+        String postJson = objectMapper.writeValueAsString(postDTO);
+        String response = mockMvc.perform(post("/api/v1/executions")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(postJson))
+                .andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString();
+        int id = objectMapper.readTree(response).get("id").asInt();
+        int version = objectMapper.readTree(response).get("version").asInt();
+        
+        // Fill execution with invalid status
+        ExecutionPutFillDTO fillDTO = new ExecutionPutFillDTO();
+        fillDTO.setExecutionStatus("INVALID");
+        fillDTO.setQuantityFilled(new BigDecimal("50.00"));
+        fillDTO.setVersion(version);
+        String fillJson = objectMapper.writeValueAsString(fillDTO);
+        
+        mockMvc.perform(put("/api/v1/executions/" + id + "/fill")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(fillJson))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error", containsString("Invalid execution status")));
+    }
+
+    @Test
+    void testFillExecutionQuantityExceedsPlaced() throws Exception {
+        // Create execution
+        ExecutionPostDTO postDTO = buildPostDTO();
+        String postJson = objectMapper.writeValueAsString(postDTO);
+        String response = mockMvc.perform(post("/api/v1/executions")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(postJson))
+                .andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString();
+        int id = objectMapper.readTree(response).get("id").asInt();
+        int version = objectMapper.readTree(response).get("version").asInt();
+        
+        // Fill execution with quantity exceeding placed
+        ExecutionPutFillDTO fillDTO = new ExecutionPutFillDTO();
+        fillDTO.setExecutionStatus(status.getAbbreviation());
+        fillDTO.setQuantityFilled(new BigDecimal("200.00")); // Exceeds quantityPlaced (100.00)
+        fillDTO.setVersion(version);
+        String fillJson = objectMapper.writeValueAsString(fillDTO);
+        
+        mockMvc.perform(put("/api/v1/executions/" + id + "/fill")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(fillJson))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error", containsString("cannot exceed quantity placed")));
     }
 } 

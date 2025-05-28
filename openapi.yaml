@@ -591,6 +591,68 @@ paths:
           description: Execution not found
         '409':
           description: Version mismatch
+  /executions/{id}/fill:
+    put:
+      summary: Update execution fill information
+      operationId: fillExecution
+      tags: [Execution]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ExecutionPutFillDTO'
+      responses:
+        '200':
+          description: Execution fill updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExecutionResponseDTO'
+        '400':
+          description: Invalid input (invalid status, quantity out of range, etc.)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Quantity filled (150.00) cannot exceed quantity placed (100.00)"
+        '404':
+          description: Execution not found
+        '409':
+          description: Version mismatch (optimistic locking failure)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Version mismatch. Expected version: 2, provided: 1"
+  /health/startup:
+    get:
+      summary: Startup probe
+      operationId: startupProbe
+      tags: [Health]
+      responses:
+        '200':
+          description: Service has started
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: UP
   /health/liveness:
     get:
       summary: Liveness probe
@@ -615,22 +677,6 @@ paths:
       responses:
         '200':
           description: Service is ready
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  status:
-                    type: string
-                    example: UP
-  /health/startup:
-    get:
-      summary: Startup probe
-      operationId: startupProbe
-      tags: [Health]
-      responses:
-        '200':
-          description: Service has started
           content:
             application/json:
               schema:
@@ -1057,6 +1103,23 @@ components:
           nullable: true
         version:
           type: integer
+    ExecutionPutFillDTO:
+      type: object
+      properties:
+        executionStatus:
+          type: string
+          description: Execution status abbreviation (e.g., "PART", "FILL", "NEW", "SENT", "CANC")
+          example: "PART"
+        quantityFilled:
+          type: number
+          format: double
+          description: Quantity filled
+          example: 50.00
+        version:
+          type: integer
+          description: Version for optimistic locking
+          example: 1
+      required: [executionStatus, quantityFilled, version]
   /api/v1/tradeOrders/{id}/submit:
     post:
       summary: Submit a trade order for execution

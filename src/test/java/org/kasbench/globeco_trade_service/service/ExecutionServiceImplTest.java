@@ -4,6 +4,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.kasbench.globeco_trade_service.entity.*;
 import org.kasbench.globeco_trade_service.repository.*;
+import org.kasbench.globeco_trade_service.dto.ExecutionPutFillDTO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
@@ -50,7 +51,7 @@ public class ExecutionServiceImplTest extends org.kasbench.globeco_trade_service
     @BeforeEach
     void setup() {
         status = new ExecutionStatus();
-        status.setAbbreviation("NEW");
+        status.setAbbreviation("NEW" + System.nanoTime());
         status.setDescription("New");
         status = executionStatusRepository.save(status);
 
@@ -258,5 +259,100 @@ public class ExecutionServiceImplTest extends org.kasbench.globeco_trade_service
         ExecutionService.SubmitResult result = executionService.submitExecution(execution.getId());
         assertNull(result.getStatus());
         assertTrue(result.getError().contains("Unexpected response"));
+    }
+
+    @Test
+    void testFillExecutionSuccess() {
+        // Create execution with PART status
+        ExecutionStatus partStatus = new ExecutionStatus();
+        partStatus.setAbbreviation("PART" + System.nanoTime());
+        partStatus.setDescription("Partially Filled");
+        partStatus = executionStatusRepository.save(partStatus);
+        
+        Execution execution = buildExecution();
+        execution = executionService.createExecution(execution);
+        
+        ExecutionPutFillDTO fillDTO = new ExecutionPutFillDTO();
+        fillDTO.setExecutionStatus(partStatus.getAbbreviation());
+        fillDTO.setQuantityFilled(new BigDecimal("50.00"));
+        fillDTO.setVersion(execution.getVersion());
+        
+        Execution updated = executionService.fillExecution(execution.getId(), fillDTO);
+        
+        assertEquals(new BigDecimal("50.00"), updated.getQuantityFilled());
+        assertEquals(partStatus.getAbbreviation(), updated.getExecutionStatus().getAbbreviation());
+        assertEquals(execution.getVersion() + 1, updated.getVersion()); // Version should increment
+    }
+
+    @Test
+    void testFillExecutionNotFound() {
+        ExecutionPutFillDTO fillDTO = new ExecutionPutFillDTO();
+        fillDTO.setExecutionStatus("PART");
+        fillDTO.setQuantityFilled(new BigDecimal("50.00"));
+        fillDTO.setVersion(1);
+        
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, 
+            () -> executionService.fillExecution(-1, fillDTO));
+        assertTrue(exception.getMessage().contains("Execution not found with id: -1"));
+    }
+
+    @Test
+    void testFillExecutionVersionMismatch() {
+        Execution execution = buildExecution();
+        final Execution createdExecution = executionService.createExecution(execution);
+        
+        ExecutionPutFillDTO fillDTO = new ExecutionPutFillDTO();
+        fillDTO.setExecutionStatus("PART");
+        fillDTO.setQuantityFilled(new BigDecimal("50.00"));
+        fillDTO.setVersion(createdExecution.getVersion() + 1); // Wrong version
+        
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, 
+            () -> executionService.fillExecution(createdExecution.getId(), fillDTO));
+        assertTrue(exception.getMessage().contains("Version mismatch"));
+    }
+
+    @Test
+    void testFillExecutionInvalidStatus() {
+        Execution execution = buildExecution();
+        final Execution createdExecution = executionService.createExecution(execution);
+        
+        ExecutionPutFillDTO fillDTO = new ExecutionPutFillDTO();
+        fillDTO.setExecutionStatus("INVALID");
+        fillDTO.setQuantityFilled(new BigDecimal("50.00"));
+        fillDTO.setVersion(createdExecution.getVersion());
+        
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, 
+            () -> executionService.fillExecution(createdExecution.getId(), fillDTO));
+        assertTrue(exception.getMessage().contains("Invalid execution status: INVALID"));
+    }
+
+    @Test
+    void testFillExecutionNegativeQuantity() {
+        Execution execution = buildExecution();
+        final Execution createdExecution = executionService.createExecution(execution);
+        
+        ExecutionPutFillDTO fillDTO = new ExecutionPutFillDTO();
+        fillDTO.setExecutionStatus(status.getAbbreviation());
+        fillDTO.setQuantityFilled(new BigDecimal("-10.00"));
+        fillDTO.setVersion(createdExecution.getVersion());
+        
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, 
+            () -> executionService.fillExecution(createdExecution.getId(), fillDTO));
+        assertTrue(exception.getMessage().contains("Quantity filled cannot be negative"));
+    }
+
+    @Test
+    void testFillExecutionQuantityExceedsPlaced() {
+        Execution execution = buildExecution();
+        final Execution createdExecution = executionService.createExecution(execution);
+        
+        ExecutionPutFillDTO fillDTO = new ExecutionPutFillDTO();
+        fillDTO.setExecutionStatus(status.getAbbreviation());
+        fillDTO.setQuantityFilled(new BigDecimal("200.00")); // Exceeds quantityPlaced (100.00)
+        fillDTO.setVersion(createdExecution.getVersion());
+        
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, 
+            () -> executionService.fillExecution(createdExecution.getId(), fillDTO));
+        assertTrue(exception.getMessage().contains("cannot exceed quantity placed"));
     }
 } 

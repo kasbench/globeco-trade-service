@@ -704,7 +704,7 @@ Rationale:
 
 ---
 
-Reviewed and revised documentation/supplemental-requirement-1.md for clarity, specificity, and consistency. Incorporated explicit instructions for database migration (including the new execution_service_id_ndx index), DTO/service updates, error handling, naming conventions, and added example request/response payloads for the new API. Improved structure and removed redundant wording as per user request.
+Reviewed and revised documentation/supplemental-requirement-1.md for clarity, specificity, and consistency. Incorporated explicit instructions for database migration (including the new execution_service_id index), DTO/service updates, error handling, naming conventions, and added example request/response payloads for the new API. Improved structure and removed redundant wording as per user request.
 
 Request: Review and update V1__init_schema.sql to add the execution_service_id column and execution_service_id_ndx index to the execution table, as required by the supplemental requirements.
 
@@ -813,3 +813,81 @@ Implemented supplemental-requirement-4.md:
 - Updated submitTradeOrder logic to enforce available quantity, increment quantitySent, and set submitted only when fully sent.
 - Updated controller to include quantitySent in responses.
 - Updated README.md and openapi.yaml to document the new field, business rules, and error message.
+
+# Cursor Log
+
+This file tracks all requests and actions taken in this project.
+
+## Entry 1 - 2024-12-19
+**Request**: Review documentation/supplemental-requirement-1.md for clarity and consistency
+**Action**: Reviewed the document and identified several issues including redundant wording, vague references, unclear error handling, and missing example payloads. Provided detailed feedback with specific suggestions for improvement.
+**Files Modified**: None (review only)
+**Status**: Completed
+
+
+## Entry 2 - 2024-12-19  
+**Request**: Update documentation/supplemental-requirement-1.md with revised wording and recommendations, with index named execution_service_id_ndx
+**Action**: Updated the supplemental requirement document with clearer wording, better structure, specific validation rules, detailed error handling, and comprehensive example payloads. Made the document more actionable for implementation.
+**Files Modified**: documentation/supplemental-requirement-1.md
+**Status**: Completed
+
+
+## Entry 3 - 2024-12-19
+**Request**: Implement Step 1 of supplemental-requirement-1.md - Update database schema to add execution_service_id column and index
+**Action**: 
+- Updated V1__init_schema.sql to add nullable execution_service_id column and execution_service_id_ndx index to execution table
+- Updated Execution entity to include executionServiceId field with proper JPA mapping
+- Updated all execution DTOs (ExecutionResponseDTO, ExecutionPostDTO, ExecutionPutDTO) to include executionServiceId field
+- Updated ExecutionServiceImpl to handle executionServiceId in create and update operations
+- Updated ExecutionServiceImplTest and ExecutionControllerTest to test the new field
+**Files Modified**: 
+- src/main/resources/db/migration/V1__init_schema.sql
+- src/main/java/org/kasbench/globeco_trade_service/entity/Execution.java
+- src/main/java/org/kasbench/globeco_trade_service/dto/ExecutionResponseDTO.java
+- src/main/java/org/kasbench/globeco_trade_service/dto/ExecutionPostDTO.java
+- src/main/java/org/kasbench/globeco_trade_service/dto/ExecutionPutDTO.java
+- src/main/java/org/kasbench/globeco_trade_service/service/ExecutionServiceImpl.java
+- src/test/java/org/kasbench/globeco_trade_service/service/ExecutionServiceImplTest.java
+- src/test/java/org/kasbench/globeco_trade_service/ExecutionControllerTest.java
+**Status**: Completed
+
+
+## Entry 4 - 2024-12-19
+**Request**: Review and update documentation/supplemental-requirement-5.md for clarity and actionability
+**Action**: Reviewed the supplemental requirement document and identified several issues including naming inconsistencies (ExecutionPutFillResponseDTO vs ExecutionPutFillDTO), incorrect endpoint path, missing validation rules, vague error handling, and lack of example payloads. Updated the document with:
+- Corrected DTO naming and endpoint path
+- Added comprehensive validation rules and business logic
+- Specified detailed error handling with HTTP status codes and error messages
+- Included complete example request/response payloads
+- Added implementation requirements and testing guidelines
+- Structured the document with clear sections for better readability
+**Files Modified**: documentation/supplemental-requirement-5.md
+**Status**: Completed
+
+
+## Entry 5 - 2024-12-19
+**Request**: Implement supplemental-requirement-5.md - Add PUT /api/v1/executions/{id}/fill endpoint
+**Action**: Implemented the complete fillExecution API endpoint with:
+- Created ExecutionPutFillDTO class with executionStatus, quantityFilled, and version fields
+- Added findByAbbreviation method to ExecutionStatusRepository
+- Implemented fillExecution method in ExecutionService interface and ExecutionServiceImpl with:
+  - Optimistic concurrency control using version field
+  - Validation for execution existence, version matching, valid status abbreviations, and quantity bounds
+  - Updates only quantityFilled and executionStatus fields, leaving others unchanged
+  - Proper cache eviction
+- Added fillExecution endpoint to ExecutionController with proper error handling (200, 400, 404, 409)
+- Created comprehensive unit tests in ExecutionServiceImplTest covering success and all error scenarios
+- Created integration tests in ExecutionControllerTest covering all HTTP status codes and error conditions
+- Updated README.md with complete API documentation including business rules, examples, and error responses
+- Updated openapi.yaml with endpoint specification and ExecutionPutFillDTO schema
+**Files Modified**:
+- src/main/java/org/kasbench/globeco_trade_service/dto/ExecutionPutFillDTO.java (new)
+- src/main/java/org/kasbench/globeco_trade_service/service/ExecutionService.java
+- src/main/java/org/kasbench/globeco_trade_service/repository/ExecutionStatusRepository.java
+- src/main/java/org/kasbench/globeco_trade_service/service/ExecutionServiceImpl.java
+- src/main/java/org/kasbench/globeco_trade_service/ExecutionController.java
+- src/test/java/org/kasbench/globeco_trade_service/service/ExecutionServiceImplTest.java
+- src/test/java/org/kasbench/globeco_trade_service/ExecutionControllerTest.java
+- README.md
+- openapi.yaml
+**Status**: Completed

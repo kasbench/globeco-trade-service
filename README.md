@@ -631,6 +631,13 @@ The **execution** table represents an execution of a trade order, including stat
 | limitPrice         | BigDecimal     | Limit price                                 |
 | executionServiceId | Integer        | ID from the external execution service (nullable) |
 
+#### ExecutionPutFillDTO (Fill Request)
+| Field              | Type           | Description                                 |
+|--------------------|----------------|---------------------------------------------|
+| executionStatus    | String         | Execution status abbreviation (e.g., "PART", "FILL") |
+| quantityFilled     | BigDecimal     | Quantity filled                             |
+| version            | Integer        | Version for optimistic locking              |
+
 ### Execution APIs
 
 | Verb   | URI                              | Request DTO            | Response DTO                | Description                                 |
@@ -639,41 +646,76 @@ The **execution** table represents an execution of a trade order, including stat
 | GET    | /api/v1/executions/{id}          |                        | ExecutionResponseDTO        | Get a single execution by ID                |
 | POST   | /api/v1/executions               | ExecutionPostDTO       | ExecutionResponseDTO        | Create a new execution                      |
 | PUT    | /api/v1/executions/{id}          | ExecutionPutDTO        | ExecutionResponseDTO        | Update an existing execution by ID          |
+| PUT    | /api/v1/executions/{id}/fill     | ExecutionPutFillDTO    | ExecutionResponseDTO        | Update execution fill information           |
 | DELETE | /api/v1/executions/{id}?version={version} |                |                             | Delete an execution by ID and version        |
 
-#### Example: Create Execution (POST)
-```json
+## Fill Execution API
+
+### Endpoint
+`PUT /api/v1/executions/{id}/fill`
+
+Updates execution fill information, allowing external systems to report partial or complete fills on executions.
+
+### Business Rules
+- **Quantity Validation**: `quantityFilled` must be >= 0 and <= `quantityPlaced`
+- **Status Validation**: `executionStatus` must be a valid execution status abbreviation
+- **Optimistic Concurrency**: Uses the `version` field for optimistic locking
+- **Field Updates**: Only updates `quantityFilled` and `executionStatus`; all other fields remain unchanged
+
+### HTTP Status Codes
+- **200 OK**: Successful update
+- **400 Bad Request**: Invalid input (invalid status, quantity out of range, etc.)
+- **404 Not Found**: Execution not found
+- **409 Conflict**: Version mismatch (optimistic locking failure)
+
+### Example Request
+```
+PUT /api/v1/executions/123/fill
+Content-Type: application/json
+
 {
-  "executionTimestamp": "2024-06-10T12:00:00Z",
-  "executionStatusId": 1,
-  "blotterId": 1,
-  "tradeTypeId": 1,
-  "tradeOrderId": 1,
-  "destinationId": 1,
-  "quantityOrdered": 10,
-  "quantityPlaced": 100.00,
-  "quantityFilled": 0.00,
-  "limitPrice": 10.00,
-  "executionServiceId": 55555
+  "executionStatus": "PART",
+  "quantityFilled": 50.00,
+  "version": 1
 }
 ```
 
-#### Example: Execution Response (GET)
-```json
+### Example Response
+```
+HTTP/1.1 200 OK
+Content-Type: application/json
+
 {
-  "id": 1,
+  "id": 123,
   "executionTimestamp": "2024-06-10T12:00:00Z",
-  "executionStatus": { "id": 1, "abbreviation": "NEW", "description": "New", "version": 1 },
-  "blotter": { "id": 1, "abbreviation": "EQ", "name": "Equity", "version": 1 },
-  "tradeType": { "id": 1, "abbreviation": "BUY", "description": "Buy", "version": 1 },
-  "tradeOrder": { "id": 1, "orderId": 123456, "portfolioId": "PORT1", "orderType": "BUY", "securityId": "SEC1", "quantity": 100.00, "limitPrice": 10.00, "tradeTimestamp": "2024-06-10T12:00:00Z", "version": 1, "blotter": { "id": 1, "abbreviation": "EQ", "name": "Equity", "version": 1 } },
-  "destination": { "id": 1, "abbreviation": "ML", "description": "Merrill Lynch", "version": 1 },
-  "quantityOrdered": 10,
-  "quantityPlaced": 100.00,
-  "quantityFilled": 0.00,
-  "limitPrice": 10.00,
+  "executionStatus": {
+    "id": 3,
+    "abbreviation": "PART",
+    "description": "Partially Filled",
+    "version": 1
+  },
+  "quantityOrdered": "100.00",
+  "quantityPlaced": "100.00",
+  "quantityFilled": "50.00",
+  "limitPrice": "10.00",
   "executionServiceId": 55555,
-  "version": 1
+  "version": 2,
+  // ... other fields
+}
+```
+
+### Error Examples
+```
+HTTP/1.1 400 Bad Request
+{
+  "error": "Quantity filled (150.00) cannot exceed quantity placed (100.00)"
+}
+```
+
+```
+HTTP/1.1 409 Conflict
+{
+  "error": "Version mismatch. Expected version: 2, provided: 1"
 }
 ```
 

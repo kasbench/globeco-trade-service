@@ -2,6 +2,7 @@ package org.kasbench.globeco_trade_service.service;
 
 import org.kasbench.globeco_trade_service.entity.*;
 import org.kasbench.globeco_trade_service.repository.*;
+import org.kasbench.globeco_trade_service.dto.ExecutionPutFillDTO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.cache.annotation.CacheEvict;
@@ -15,6 +16,7 @@ import org.springframework.beans.factory.annotation.Value;
 
 import java.util.List;
 import java.util.Optional;
+import java.math.BigDecimal;
 
 @Service
 public class ExecutionServiceImpl implements ExecutionService {
@@ -98,6 +100,40 @@ public class ExecutionServiceImpl implements ExecutionService {
             throw new IllegalArgumentException("Version mismatch for execution: " + id);
         }
         executionRepository.deleteById(id);
+    }
+
+    @Override
+    @Transactional
+    @CacheEvict(value = "executions", allEntries = true, cacheManager = "cacheManager")
+    public Execution fillExecution(Integer id, ExecutionPutFillDTO fillDTO) {
+        // Find the execution
+        Execution existing = executionRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Execution not found with id: " + id));
+        
+        // Check version for optimistic locking
+        if (!existing.getVersion().equals(fillDTO.getVersion())) {
+            throw new IllegalArgumentException("Version mismatch. Expected version: " + existing.getVersion() + ", provided: " + fillDTO.getVersion());
+        }
+        
+        // Validate execution status
+        ExecutionStatus newStatus = executionStatusRepository.findByAbbreviation(fillDTO.getExecutionStatus())
+                .orElseThrow(() -> new IllegalArgumentException("Invalid execution status: " + fillDTO.getExecutionStatus() + ". Valid values are: NEW, SENT, PART, FILL, CANC"));
+        
+        // Validate quantity filled
+        if (fillDTO.getQuantityFilled().compareTo(BigDecimal.ZERO) < 0) {
+            throw new IllegalArgumentException("Quantity filled cannot be negative");
+        }
+        
+        if (fillDTO.getQuantityFilled().compareTo(existing.getQuantityPlaced()) > 0) {
+            throw new IllegalArgumentException("Quantity filled (" + fillDTO.getQuantityFilled() + ") cannot exceed quantity placed (" + existing.getQuantityPlaced() + ")");
+        }
+        
+        // Update only the specified fields
+        existing.setQuantityFilled(fillDTO.getQuantityFilled());
+        existing.setExecutionStatus(newStatus);
+        
+        // Save and return
+        return executionRepository.save(existing);
     }
 
     @Override
