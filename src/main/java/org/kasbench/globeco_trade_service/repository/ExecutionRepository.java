@@ -2,8 +2,9 @@ package org.kasbench.globeco_trade_service.repository;
 
 import org.kasbench.globeco_trade_service.entity.Execution;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.stereotype.Repository;
 
 @Repository
-public interface ExecutionRepository extends JpaRepository<Execution, Integer> {
+public interface ExecutionRepository extends JpaRepository<Execution, Integer>, JpaSpecificationExecutor<Execution> {
 } 
