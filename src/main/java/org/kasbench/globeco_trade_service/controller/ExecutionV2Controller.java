@@ -40,7 +40,7 @@ public class ExecutionV2Controller {
     @Operation(
         summary = "Get paginated and filtered executions with enhanced data",
         description = "Retrieve executions with pagination, filtering, sorting, and enriched trade order data from external services. " +
-                     "Supports advanced filtering by execution status, blotter, trade type, destination, and quantity ranges."
+                     "Supports advanced filtering by execution status, blotter, trade type, destination, portfolio, security, and quantity ranges."
     )
     @ApiResponses(value = {
         @ApiResponse(
@@ -72,7 +72,7 @@ public class ExecutionV2Controller {
             Integer offset,
             
             @Parameter(description = "Comma-separated sort fields with optional '-' prefix for descending order", 
-                      example = "executionStatus.abbreviation,-quantityFilled,executionTimestamp")
+                      example = "executionStatus.abbreviation,-quantityFilled,security.ticker,portfolio.name")
             @RequestParam(required = false) 
             String sort,
             
@@ -103,6 +103,16 @@ public class ExecutionV2Controller {
                       example = "NYSE,NASDAQ")
             @RequestParam(name = "destination.abbreviation", required = false) 
             String destinationAbbreviation,
+            
+            @Parameter(description = "Filter by portfolio name (comma-separated for OR condition)", 
+                      example = "Tech Portfolio,Energy Fund")
+            @RequestParam(name = "portfolio.name", required = false) 
+            String portfolioName,
+            
+            @Parameter(description = "Filter by security ticker (comma-separated for OR condition)", 
+                      example = "AAPL,GOOGL,MSFT")
+            @RequestParam(name = "security.ticker", required = false) 
+            String securityTicker,
             
             @Parameter(description = "Minimum quantity ordered filter", example = "100.00")
             @RequestParam(name = "quantityOrdered.min", required = false) 
@@ -146,6 +156,7 @@ public class ExecutionV2Controller {
             ExecutionPageResponseDTO response = executionEnhancedService.getExecutionsV2(
                 limit, offset, sort, id, executionStatusAbbreviation, blotterAbbreviation,
                 tradeTypeAbbreviation, tradeOrderId, destinationAbbreviation,
+                portfolioName, securityTicker,
                 quantityOrderedMin, quantityOrderedMax, quantityPlacedMin, quantityPlacedMax,
                 quantityFilledMin, quantityFilledMax
             );

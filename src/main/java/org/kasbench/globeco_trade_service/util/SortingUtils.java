@@ -12,14 +12,16 @@ public class SortingUtils {
     // Valid sortable fields for TradeOrder
     private static final Set<String> VALID_TRADE_ORDER_SORT_FIELDS = Set.of(
         "id", "orderId", "orderType", "quantity", "quantitySent", 
-        "tradeTimestamp", "submitted", "blotter.abbreviation"
+        "tradeTimestamp", "submitted", "blotter.abbreviation",
+        "security.ticker", "portfolio.name"
     );
     
     // Valid sortable fields for Execution
     private static final Set<String> VALID_EXECUTION_SORT_FIELDS = Set.of(
         "id", "executionTimestamp", "quantityOrdered", "quantityPlaced", 
         "quantityFilled", "tradeOrderId", "executionStatus.abbreviation",
-        "blotter.abbreviation", "tradeType.abbreviation", "destination.abbreviation"
+        "blotter.abbreviation", "tradeType.abbreviation", "destination.abbreviation",
+        "security.ticker", "portfolio.name"
     );
     
     /**
@@ -73,6 +75,13 @@ public class SortingUtils {
                         fieldName, entityName, validFields));
             }
             
+            // Map virtual fields to actual database fields
+            if ("TradeOrder".equals(entityName)) {
+                fieldName = mapTradeOrderVirtualField(fieldName);
+            } else if ("Execution".equals(entityName)) {
+                fieldName = mapExecutionVirtualField(fieldName);
+            }
+            
             // Handle nested field sorting
             if (fieldName.contains(".")) {
                 String[] parts = fieldName.split("\\.");
@@ -83,6 +92,34 @@ public class SortingUtils {
         }
         
         return sort;
+    }
+    
+    /**
+     * Map virtual fields to actual database fields for TradeOrder
+     */
+    private static String mapTradeOrderVirtualField(String fieldName) {
+        switch (fieldName) {
+            case "security.ticker":
+                return "securityId"; // Sort by securityId instead of ticker
+            case "portfolio.name":
+                return "portfolioId"; // Sort by portfolioId instead of name
+            default:
+                return fieldName;
+        }
+    }
+    
+    /**
+     * Map virtual fields to actual database fields for Execution
+     */
+    private static String mapExecutionVirtualField(String fieldName) {
+        switch (fieldName) {
+            case "security.ticker":
+                return "tradeOrder.securityId"; // Sort by tradeOrder.securityId instead of ticker
+            case "portfolio.name":
+                return "tradeOrder.portfolioId"; // Sort by tradeOrder.portfolioId instead of name
+            default:
+                return fieldName;
+        }
     }
     
     /**

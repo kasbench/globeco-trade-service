@@ -922,3 +922,47 @@ This file tracks all requests and actions taken by the AI assistant.
 - **Root Cause**: CacheConfig.java contained a simple RestTemplate bean that conflicted with the more sophisticated RestTemplate bean in RestTemplateConfig.java
 - **Resolution**: Removed the simple restTemplate bean from CacheConfig.java, keeping only the properly configured RestTemplate bean in RestTemplateConfig.java with timeout settings
 - **Result**: Eliminated bean definition conflict and preserved the enhanced RestTemplate configuration with connect/read timeouts
+
+
+## 2024-12-19 - Sort Field Enhancement for v2 API
+
+**Request**: Add security.ticker as a valid sort field for GET /api/v2/tradeOrders endpoint.
+
+**Actions Taken**:
+- **Issue Identified**: GET /api/v2/tradeOrders was rejecting sort parameter 'security.ticker' as invalid
+- **Root Cause**: SortingUtils.VALID_TRADE_ORDER_SORT_FIELDS did not include 'security.ticker' or 'portfolio.name' fields
+- **Resolution**: 
+  - Added 'security.ticker' and 'portfolio.name' to VALID_TRADE_ORDER_SORT_FIELDS set
+  - Created mapTradeOrderVirtualField() method to map virtual fields to actual database fields
+  - 'security.ticker' maps to 'securityId' for database sorting
+  - 'portfolio.name' maps to 'portfolioId' for database sorting
+  - Updated parseSort() method to apply field mapping for TradeOrder entity
+- **Result**: v2 API now accepts security.ticker and portfolio.name as valid sort parameters while maintaining database performance by sorting on indexed ID fields
+
+
+## 2024-12-19 - Execution v2 API Enhancement: Security and Portfolio Support
+
+**Request**: Add security.ticker and portfolio.name as sort and filter fields for GET /api/v2/executions.
+
+**Actions Taken**:
+- **SortingUtils Enhancement**:
+  - Added 'security.ticker' and 'portfolio.name' to VALID_EXECUTION_SORT_FIELDS set
+  - Created mapExecutionVirtualField() method to map virtual fields to actual database relationship fields
+  - 'security.ticker' maps to 'tradeOrder.securityId' for database sorting
+  - 'portfolio.name' maps to 'tradeOrder.portfolioId' for database sorting
+- **ExecutionSpecification Enhancement**:
+  - Added hasPortfolioId() specification method to filter by portfolio ID through tradeOrder relationship
+  - Added hasSecurityId() specification method to filter by security ID through tradeOrder relationship
+  - Updated buildSpecification() method to include new portfolio and security filters
+  - Both methods support comma-separated values for OR conditions
+- **ExecutionEnhancedService Enhancement**:
+  - Added portfolioName and securityTicker parameters to getExecutionsV2() method
+  - Added resolvePortfolioNamesToIds() helper method to convert portfolio names to IDs via external service
+  - Added resolveSecurityTickersToIds() helper method to convert security tickers to IDs via external service
+  - Integrated portfolio and security ID resolution with caching and fallback logic
+- **ExecutionV2Controller Enhancement**:
+  - Added portfolio.name and security.ticker as new @RequestParam fields
+  - Updated OpenAPI documentation with examples and descriptions
+  - Updated sort parameter example to include new virtual fields
+  - Updated service call to pass new filtering parameters
+- **Result**: v2 Executions API now supports filtering and sorting by security.ticker and portfolio.name, providing consistent behavior with TradeOrders v2 API while maintaining database performance through relationship-based queries

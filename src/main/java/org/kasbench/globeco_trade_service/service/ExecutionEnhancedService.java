@@ -57,6 +57,8 @@ public class ExecutionEnhancedService {
             String tradeTypeAbbreviation,
             Integer tradeOrderId,
             String destinationAbbreviation,
+            String portfolioName,
+            String securityTicker,
             BigDecimal quantityOrderedMin,
             BigDecimal quantityOrderedMax,
             BigDecimal quantityPlacedMin,
@@ -76,11 +78,24 @@ public class ExecutionEnhancedService {
             sortObj
         );
         
+        // Resolve portfolio names and security tickers to IDs for filtering
+        String portfolioId = null;
+        String securityId = null;
+        
+        if (portfolioName != null && !portfolioName.trim().isEmpty()) {
+            portfolioId = resolvePortfolioNamesToIds(portfolioName);
+        }
+        
+        if (securityTicker != null && !securityTicker.trim().isEmpty()) {
+            securityId = resolveSecurityTickersToIds(securityTicker);
+        }
+        
         // Build specification for filtering
         Specification<Execution> spec = ExecutionSpecification.buildSpecification(
             id, executionStatusAbbreviation, blotterAbbreviation, tradeTypeAbbreviation,
-            tradeOrderId, destinationAbbreviation, quantityOrderedMin, quantityOrderedMax,
-            quantityPlacedMin, quantityPlacedMax, quantityFilledMin, quantityFilledMax
+            tradeOrderId, destinationAbbreviation, portfolioId, securityId,
+            quantityOrderedMin, quantityOrderedMax, quantityPlacedMin, quantityPlacedMax,
+            quantityFilledMin, quantityFilledMax
         );
         
         // Execute query
@@ -243,5 +258,47 @@ public class ExecutionEnhancedService {
         dto.setDescription(destination.getDescription());
         dto.setVersion(destination.getVersion());
         return dto;
+    }
+    
+    /**
+     * Resolve portfolio names to portfolio IDs for filtering
+     */
+    private String resolvePortfolioNamesToIds(String portfolioNames) {
+        try {
+            String[] names = portfolioNames.split(",");
+            StringBuilder ids = new StringBuilder();
+            
+            for (String name : names) {
+                PortfolioDTO portfolio = portfolioCacheService.getPortfolioByName(name.trim());
+                if (ids.length() > 0) ids.append(",");
+                ids.append(portfolio.getPortfolioId());
+            }
+            
+            return ids.toString();
+        } catch (Exception e) {
+            logger.warn("Error resolving portfolio names to IDs: {}", e.getMessage());
+            return portfolioNames; // Fallback to original names
+        }
+    }
+    
+    /**
+     * Resolve security tickers to security IDs for filtering
+     */
+    private String resolveSecurityTickersToIds(String securityTickers) {
+        try {
+            String[] tickers = securityTickers.split(",");
+            StringBuilder ids = new StringBuilder();
+            
+            for (String ticker : tickers) {
+                SecurityDTO security = securityCacheService.getSecurityByTicker(ticker.trim());
+                if (ids.length() > 0) ids.append(",");
+                ids.append(security.getSecurityId());
+            }
+            
+            return ids.toString();
+        } catch (Exception e) {
+            logger.warn("Error resolving security tickers to IDs: {}", e.getMessage());
+            return securityTickers; // Fallback to original tickers
+        }
     }
 } 

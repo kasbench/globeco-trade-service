@@ -6,6 +6,7 @@ import org.kasbench.globeco_trade_service.entity.Blotter;
 import org.kasbench.globeco_trade_service.entity.Destination;
 import org.kasbench.globeco_trade_service.entity.Execution;
 import org.kasbench.globeco_trade_service.entity.ExecutionStatus;
+import org.kasbench.globeco_trade_service.entity.TradeOrder;
 import org.kasbench.globeco_trade_service.entity.TradeType;
 import org.springframework.data.jpa.domain.Specification;
 
@@ -120,6 +121,48 @@ public class ExecutionSpecification {
     }
     
     /**
+     * Filter by portfolio ID through trade order (supports comma-separated values for OR condition)
+     */
+    public static Specification<Execution> hasPortfolioId(String portfolioIds) {
+        return (root, query, criteriaBuilder) -> {
+            if (portfolioIds == null || portfolioIds.trim().isEmpty()) return null;
+            
+            Join<Execution, TradeOrder> tradeOrderJoin = root.join("tradeOrder", JoinType.INNER);
+            
+            String[] ids = portfolioIds.split(",");
+            if (ids.length == 1) {
+                return criteriaBuilder.equal(tradeOrderJoin.get("portfolioId"), ids[0].trim());
+            } else {
+                List<String> idList = Arrays.stream(ids)
+                    .map(String::trim)
+                    .toList();
+                return tradeOrderJoin.get("portfolioId").in(idList);
+            }
+        };
+    }
+    
+    /**
+     * Filter by security ID through trade order (supports comma-separated values for OR condition)
+     */
+    public static Specification<Execution> hasSecurityId(String securityIds) {
+        return (root, query, criteriaBuilder) -> {
+            if (securityIds == null || securityIds.trim().isEmpty()) return null;
+            
+            Join<Execution, TradeOrder> tradeOrderJoin = root.join("tradeOrder", JoinType.INNER);
+            
+            String[] ids = securityIds.split(",");
+            if (ids.length == 1) {
+                return criteriaBuilder.equal(tradeOrderJoin.get("securityId"), ids[0].trim());
+            } else {
+                List<String> idList = Arrays.stream(ids)
+                    .map(String::trim)
+                    .toList();
+                return tradeOrderJoin.get("securityId").in(idList);
+            }
+        };
+    }
+    
+    /**
      * Filter by minimum quantity ordered
      */
     public static Specification<Execution> hasQuantityOrderedGreaterThanOrEqual(BigDecimal minQuantityOrdered) {
@@ -189,6 +232,8 @@ public class ExecutionSpecification {
             String tradeTypeAbbreviation,
             Integer tradeOrderId,
             String destinationAbbreviation,
+            String portfolioId,
+            String securityId,
             BigDecimal quantityOrderedMin,
             BigDecimal quantityOrderedMax,
             BigDecimal quantityPlacedMin,
@@ -202,6 +247,8 @@ public class ExecutionSpecification {
                 .and(hasTradeTypeAbbreviation(tradeTypeAbbreviation))
                 .and(hasTradeOrderId(tradeOrderId))
                 .and(hasDestinationAbbreviation(destinationAbbreviation))
+                .and(hasPortfolioId(portfolioId))
+                .and(hasSecurityId(securityId))
                 .and(hasQuantityOrderedGreaterThanOrEqual(quantityOrderedMin))
                 .and(hasQuantityOrderedLessThanOrEqual(quantityOrderedMax))
                 .and(hasQuantityPlacedGreaterThanOrEqual(quantityPlacedMin))
