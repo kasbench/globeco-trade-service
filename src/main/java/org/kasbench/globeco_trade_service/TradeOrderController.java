@@ -35,10 +35,38 @@ public class TradeOrderController {
     }
 
     @GetMapping
-    public List<TradeOrderResponseDTO> getAllTradeOrders() {
-        return tradeOrderService.getAllTradeOrders().stream()
-                .map(this::toResponseDTO)
-                .collect(Collectors.toList());
+    public ResponseEntity<List<TradeOrderResponseDTO>> getAllTradeOrders(
+            @RequestParam(required = false) Integer limit,
+            @RequestParam(required = false) Integer offset) {
+        
+        // Validate pagination parameters
+        if (limit != null && (limit < 1 || limit > 1000)) {
+            throw new IllegalArgumentException("Limit must be between 1 and 1000");
+        }
+        if (offset != null && offset < 0) {
+            throw new IllegalArgumentException("Offset must be non-negative");
+        }
+        
+        if (limit == null && offset == null) {
+            // Backward compatible: no pagination
+            List<TradeOrderResponseDTO> result = tradeOrderService.getAllTradeOrders().stream()
+                    .map(this::toResponseDTO)
+                    .collect(Collectors.toList());
+            return ResponseEntity.ok(result);
+        } else {
+            // Use paginated method
+            TradeOrderService.PaginatedResult<TradeOrder> paginatedResult = 
+                tradeOrderService.getAllTradeOrders(limit, offset);
+            
+            List<TradeOrderResponseDTO> result = paginatedResult.getData().stream()
+                    .map(this::toResponseDTO)
+                    .collect(Collectors.toList());
+            
+            // Add X-Total-Count header for pagination metadata
+            return ResponseEntity.ok()
+                    .header("X-Total-Count", String.valueOf(paginatedResult.getTotalCount()))
+                    .body(result);
+        }
     }
 
     @GetMapping("/{id}")

@@ -23,10 +23,38 @@ public class ExecutionController {
     }
 
     @GetMapping
-    public List<ExecutionResponseDTO> getAllExecutions() {
-        return executionService.getAllExecutions().stream()
-                .map(this::toResponseDTO)
-                .collect(Collectors.toList());
+    public ResponseEntity<List<ExecutionResponseDTO>> getAllExecutions(
+            @RequestParam(required = false) Integer limit,
+            @RequestParam(required = false) Integer offset) {
+        
+        // Validate pagination parameters
+        if (limit != null && (limit < 1 || limit > 1000)) {
+            throw new IllegalArgumentException("Limit must be between 1 and 1000");
+        }
+        if (offset != null && offset < 0) {
+            throw new IllegalArgumentException("Offset must be non-negative");
+        }
+        
+        if (limit == null && offset == null) {
+            // Backward compatible: no pagination
+            List<ExecutionResponseDTO> result = executionService.getAllExecutions().stream()
+                    .map(this::toResponseDTO)
+                    .collect(Collectors.toList());
+            return ResponseEntity.ok(result);
+        } else {
+            // Use paginated method
+            ExecutionService.PaginatedResult<Execution> paginatedResult = 
+                executionService.getAllExecutions(limit, offset);
+            
+            List<ExecutionResponseDTO> result = paginatedResult.getData().stream()
+                    .map(this::toResponseDTO)
+                    .collect(Collectors.toList());
+            
+            // Add X-Total-Count header for pagination metadata
+            return ResponseEntity.ok()
+                    .header("X-Total-Count", String.valueOf(paginatedResult.getTotalCount()))
+                    .body(result);
+        }
     }
 
     @GetMapping("/{id}")

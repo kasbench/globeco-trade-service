@@ -18,6 +18,9 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -50,6 +53,31 @@ public class TradeOrderServiceImpl implements TradeOrderService {
     @Cacheable(value = "tradeOrders", cacheManager = "cacheManager")
     public List<TradeOrder> getAllTradeOrders() {
         return tradeOrderRepository.findAll();
+    }
+
+    @Override
+    @Cacheable(value = "tradeOrders", cacheManager = "cacheManager")
+    public PaginatedResult<TradeOrder> getAllTradeOrders(Integer limit, Integer offset) {
+        if (limit == null && offset == null) {
+            // No pagination requested, return all data
+            List<TradeOrder> all = tradeOrderRepository.findAll();
+            return new PaginatedResult<>(all, all.size());
+        }
+        
+        // Create pageable for pagination
+        Pageable pageable;
+        if (limit != null && offset != null) {
+            pageable = PageRequest.of(offset / limit, limit);
+        } else if (limit != null) {
+            // Only limit provided, start from beginning
+            pageable = PageRequest.of(0, limit);
+        } else {
+            // Only offset provided, use default page size of 50
+            pageable = PageRequest.of(offset / 50, 50);
+        }
+        
+        Page<TradeOrder> page = tradeOrderRepository.findAll(pageable);
+        return new PaginatedResult<>(page.getContent(), page.getTotalElements());
     }
 
     @Override

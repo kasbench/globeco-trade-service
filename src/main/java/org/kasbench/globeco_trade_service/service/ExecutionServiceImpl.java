@@ -13,6 +13,9 @@ import org.springframework.web.client.HttpStatusCodeException;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.HttpStatus;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 
 import java.util.List;
 import java.util.Optional;
@@ -52,6 +55,31 @@ public class ExecutionServiceImpl implements ExecutionService {
     @Cacheable(value = "executions", cacheManager = "cacheManager")
     public List<Execution> getAllExecutions() {
         return executionRepository.findAll();
+    }
+
+    @Override
+    @Cacheable(value = "executions", cacheManager = "cacheManager")
+    public PaginatedResult<Execution> getAllExecutions(Integer limit, Integer offset) {
+        if (limit == null && offset == null) {
+            // No pagination requested, return all data
+            List<Execution> all = executionRepository.findAll();
+            return new PaginatedResult<>(all, all.size());
+        }
+        
+        // Create pageable for pagination
+        Pageable pageable;
+        if (limit != null && offset != null) {
+            pageable = PageRequest.of(offset / limit, limit);
+        } else if (limit != null) {
+            // Only limit provided, start from beginning
+            pageable = PageRequest.of(0, limit);
+        } else {
+            // Only offset provided, use default page size of 50
+            pageable = PageRequest.of(offset / 50, 50);
+        }
+        
+        Page<Execution> page = executionRepository.findAll(pageable);
+        return new PaginatedResult<>(page.getContent(), page.getTotalElements());
     }
 
     @Override

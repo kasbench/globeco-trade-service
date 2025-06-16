@@ -966,3 +966,40 @@ This file tracks all requests and actions taken by the AI assistant.
   - Updated sort parameter example to include new virtual fields
   - Updated service call to pass new filtering parameters
 - **Result**: v2 Executions API now supports filtering and sorting by security.ticker and portfolio.name, providing consistent behavior with TradeOrders v2 API while maintaining database performance through relationship-based queries
+
+
+## 2024-12-19 - Execution v2 API Enhancement: Security and Portfolio Support
+
+**Request**: Add security.ticker and portfolio.name as sort and filter fields for GET /api/v2/executions.
+
+**Actions Taken**:
+- **SortingUtils Enhancement**:
+  - Added 'security.ticker' and 'portfolio.name' to VALID_EXECUTION_SORT_FIELDS set
+  - Created mapExecutionVirtualField() method to map virtual fields to actual database relationship fields
+  - 'security.ticker' maps to 'tradeOrder.securityId' for database sorting
+  - 'portfolio.name' maps to 'tradeOrder.portfolioId' for database sorting
+- **ExecutionSpecification Enhancement**:
+  - Added hasPortfolioId() specification method to filter by portfolio ID through tradeOrder relationship
+  - Added hasSecurityId() specification method to filter by security ID through tradeOrder relationship
+  - Updated buildSpecification() method to include new portfolio and security filters
+  - Both methods support comma-separated values for OR conditions
+- **ExecutionEnhancedService Enhancement**:
+  - Added portfolioName and securityTicker parameters to getExecutionsV2() method
+  - Added resolvePortfolioNamesToIds() helper method to convert portfolio names to IDs via external service
+  - Added resolveSecurityTickersToIds() helper method to convert security tickers to IDs via external service
+  - Integrated portfolio and security ID resolution with caching and fallback logic
+- **ExecutionV2Controller Enhancement**:
+  - Added portfolio.name and security.ticker as new @RequestParam fields
+  - Updated OpenAPI documentation with examples and descriptions
+  - Updated sort parameter example to include new virtual fields
+  - Updated service call to pass new filtering parameters
+- **Result**: v2 Executions API now supports filtering and sorting by security.ticker and portfolio.name, providing consistent behavior with TradeOrders v2 API while maintaining database performance through relationship-based queries
+
+Request: Please proceed to Phase 4 of the execution plan in @supplemental-requirement-6.md .  Please mark phase 4 complete in the execution plan when finished.
+
+Actions:
+1. Add optional `limit` and `offset` parameters to v1 TradeOrder controller
+2. Add optional `limit` and `offset` parameters to v1 Execution controller  
+3. Maintain existing response format for backward compatibility
+4. Add `X-Total-Count` header for pagination metadata when pagination is used
+5. Mark Phase 4 complete in execution plan
