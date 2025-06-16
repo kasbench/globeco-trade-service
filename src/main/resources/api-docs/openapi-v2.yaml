@@ -1,0 +1,586 @@
+openapi: 3.0.3
+info:
+  title: Globeco Trade Service API v2
+  description: |
+    Enhanced Trade Service API with advanced filtering, pagination, and sorting capabilities.
+    
+    This v2 API provides:
+    - Advanced pagination with configurable page sizes
+    - Dynamic filtering on multiple fields with comma-separated values
+    - Multi-field sorting with customizable directions
+    - Integration with external Security and Portfolio services for enriched data
+    - Batch operations for trade order submissions
+    
+    ## Backward Compatibility
+    All v1 endpoints remain available and unchanged. v2 endpoints provide additional functionality without breaking existing integrations.
+    
+    ## External Service Integration
+    - **Security Service**: Provides security details including ticker symbols
+    - **Portfolio Service**: Provides portfolio information including names
+    - **Caching**: All external service calls are cached for 5 minutes to improve performance
+    
+    ## Performance Considerations
+    - Use pagination for large datasets (default: 20 items per page, max: 1000)
+    - Apply filters to reduce dataset size before sorting
+    - Leverage caching by using consistent parameter values
+  version: 2.0.0
+  contact:
+    name: Globeco Trade Service Team
+    email: trade-service@globeco.com
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: http://localhost:8080
+    description: Local development server
+  - url: https://api-staging.globeco.com
+    description: Staging environment
+  - url: https://api.globeco.com
+    description: Production environment
+
+paths:
+  /api/v2/tradeOrders:
+    get:
+      summary: Get trade orders with enhanced filtering and pagination
+      description: |
+        Retrieve trade orders with advanced filtering, sorting, and pagination capabilities.
+        
+        **Key Features:**
+        - Filter by multiple fields with comma-separated values for OR conditions
+        - Sort by multiple fields with individual direction control
+        - Paginated results with configurable page sizes
+        - Enriched responses with security ticker and portfolio name data
+        
+        **Performance Tips:**
+        - Use specific filters to reduce dataset size
+        - Limit page size to reasonable values (≤100 for best performance)
+        - Use consistent parameter values to leverage caching
+      tags:
+        - Trade Orders v2
+      parameters:
+        - name: page
+          in: query
+          description: Page number (0-based)
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+            example: 0
+        - name: size
+          in: query
+          description: Number of items per page
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 1000
+            default: 20
+            example: 20
+        - name: id
+          in: query
+          description: Filter by trade order ID
+          required: false
+          schema:
+            type: integer
+            example: 12345
+        - name: orderId
+          in: query
+          description: Filter by order ID
+          required: false
+          schema:
+            type: integer
+            example: 67890
+        - name: orderType
+          in: query
+          description: Filter by order type(s). Use comma-separated values for multiple types.
+          required: false
+          schema:
+            type: string
+            example: "BUY,SELL"
+        - name: portfolioId
+          in: query
+          description: Filter by portfolio ID(s). Use comma-separated values for multiple portfolios.
+          required: false
+          schema:
+            type: string
+            example: "PORTFOLIO1,PORTFOLIO2"
+        - name: portfolioNames
+          in: query
+          description: Filter by portfolio name(s). Use comma-separated values for multiple names.
+          required: false
+          schema:
+            type: string
+            example: "Growth Fund,Income Fund"
+        - name: securityId
+          in: query
+          description: Filter by security ID(s). Use comma-separated values for multiple securities.
+          required: false
+          schema:
+            type: string
+            example: "SEC123,SEC456"
+        - name: securityTickers
+          in: query
+          description: Filter by security ticker(s). Use comma-separated values for multiple tickers.
+          required: false
+          schema:
+            type: string
+            example: "AAPL,MSFT,GOOGL"
+        - name: minQuantity
+          in: query
+          description: Filter by minimum quantity
+          required: false
+          schema:
+            type: number
+            format: decimal
+            example: 100.00
+        - name: maxQuantity
+          in: query
+          description: Filter by maximum quantity
+          required: false
+          schema:
+            type: number
+            format: decimal
+            example: 10000.00
+        - name: minQuantitySent
+          in: query
+          description: Filter by minimum quantity sent
+          required: false
+          schema:
+            type: number
+            format: decimal
+            example: 50.00
+        - name: maxQuantitySent
+          in: query
+          description: Filter by maximum quantity sent
+          required: false
+          schema:
+            type: number
+            format: decimal
+            example: 5000.00
+        - name: blotterAbbreviation
+          in: query
+          description: Filter by blotter abbreviation(s). Use comma-separated values for multiple blotters.
+          required: false
+          schema:
+            type: string
+            example: "EQ,FI"
+        - name: submitted
+          in: query
+          description: Filter by submission status
+          required: false
+          schema:
+            type: boolean
+            example: true
+        - name: sortBy
+          in: query
+          description: |
+            Fields to sort by. Use comma-separated values for multiple fields.
+            
+            **Available fields:**
+            - `id` - Trade order ID
+            - `orderId` - Order ID
+            - `orderType` - Order type
+            - `quantity` - Quantity
+            - `quantitySent` - Quantity sent
+            - `portfolioId` - Portfolio ID
+            - `securityId` - Security ID
+            - `submitted` - Submission status
+            - `security.ticker` - Security ticker (from external service)
+            - `portfolio.name` - Portfolio name (from external service)
+            - `blotter.abbreviation` - Blotter abbreviation
+          required: false
+          schema:
+            type: string
+            example: "quantity,orderType"
+        - name: sortDir
+          in: query
+          description: |
+            Sort directions for each field. Use comma-separated values.
+            Values: `asc` (ascending) or `desc` (descending).
+            If fewer directions than fields are provided, remaining fields default to `asc`.
+          required: false
+          schema:
+            type: string
+            example: "desc,asc"
+      responses:
+        '200':
+          description: Successfully retrieved trade orders
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TradeOrderPageResponse'
+              examples:
+                basic_pagination:
+                  summary: Basic pagination example
+                  value:
+                    content:
+                      - id: 1
+                        orderId: 12345
+                        orderType: "BUY"
+                        quantity: 100.00
+                        quantitySent: 100.00
+                        portfolioId: "PORTFOLIO1"
+                        portfolioName: "Growth Fund"
+                        securityId: "SEC123"
+                        securityTicker: "AAPL"
+                        blotterId: "BLOTTER1"
+                        blotterAbbreviation: "EQ"
+                        submitted: true
+                      - id: 2
+                        orderId: 12346
+                        orderType: "SELL"
+                        quantity: 200.00
+                        quantitySent: 150.00
+                        portfolioId: "PORTFOLIO2"
+                        portfolioName: "Income Fund"
+                        securityId: "SEC456"
+                        securityTicker: "MSFT"
+                        blotterId: "BLOTTER1"
+                        blotterAbbreviation: "EQ"
+                        submitted: false
+                    pageable:
+                      sort:
+                        sorted: true
+                        orders:
+                          - property: "quantity"
+                            direction: "DESC"
+                      pageNumber: 0
+                      pageSize: 20
+                    totalElements: 150
+                    totalPages: 8
+                    size: 20
+                    number: 0
+                    numberOfElements: 20
+                    first: true
+                    last: false
+                    empty: false
+        '400':
+          description: Invalid request parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                invalid_parameters:
+                  summary: Invalid pagination parameters
+                  value:
+                    error: "Bad Request"
+                    message: "Invalid query parameters"
+                    details:
+                      page: "Page number must be non-negative"
+                      size: "Page size must be between 1 and 1000"
+                      sortBy: "Invalid sort field: invalidField"
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v2/executions:
+    get:
+      summary: Get executions with enhanced filtering and pagination
+      description: |
+        Retrieve executions with advanced filtering, sorting, and pagination capabilities.
+        Similar to trade orders endpoint but for execution records.
+      tags:
+        - Executions v2
+      parameters:
+        - name: page
+          in: query
+          description: Page number (0-based)
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+        - name: size
+          in: query
+          description: Number of items per page
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 1000
+            default: 20
+        - name: id
+          in: query
+          description: Filter by execution ID
+          required: false
+          schema:
+            type: integer
+        - name: orderId
+          in: query
+          description: Filter by order ID
+          required: false
+          schema:
+            type: integer
+        - name: quantity
+          in: query
+          description: Filter by execution quantity
+          required: false
+          schema:
+            type: number
+            format: decimal
+        - name: price
+          in: query
+          description: Filter by execution price
+          required: false
+          schema:
+            type: number
+            format: decimal
+        - name: sortBy
+          in: query
+          description: |
+            Fields to sort by. Available fields:
+            - `id`, `orderId`, `quantity`, `price`
+          required: false
+          schema:
+            type: string
+        - name: sortDir
+          in: query
+          description: Sort directions (asc/desc)
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successfully retrieved executions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExecutionPageResponse'
+        '400':
+          description: Invalid request parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  schemas:
+    TradeOrderPageResponse:
+      type: object
+      description: Paginated response for trade orders
+      properties:
+        content:
+          type: array
+          items:
+            $ref: '#/components/schemas/EnhancedTradeOrderResponse'
+        pageable:
+          $ref: '#/components/schemas/Pageable'
+        totalElements:
+          type: integer
+          description: Total number of elements across all pages
+          example: 150
+        totalPages:
+          type: integer
+          description: Total number of pages
+          example: 8
+        size:
+          type: integer
+          description: Number of elements per page
+          example: 20
+        number:
+          type: integer
+          description: Current page number (0-based)
+          example: 0
+        numberOfElements:
+          type: integer
+          description: Number of elements in current page
+          example: 20
+        first:
+          type: boolean
+          description: Whether this is the first page
+          example: true
+        last:
+          type: boolean
+          description: Whether this is the last page
+          example: false
+        empty:
+          type: boolean
+          description: Whether the page is empty
+          example: false
+
+    EnhancedTradeOrderResponse:
+      type: object
+      description: Enhanced trade order response with external service data
+      properties:
+        id:
+          type: integer
+          description: Trade order ID
+          example: 1
+        orderId:
+          type: integer
+          description: Order ID
+          example: 12345
+        orderType:
+          type: string
+          description: Type of order
+          enum: [BUY, SELL, SHORT]
+          example: "BUY"
+        quantity:
+          type: number
+          format: decimal
+          description: Order quantity
+          example: 100.00
+        quantitySent:
+          type: number
+          format: decimal
+          description: Quantity sent
+          example: 100.00
+        portfolioId:
+          type: string
+          description: Portfolio identifier
+          example: "PORTFOLIO1"
+        portfolioName:
+          type: string
+          description: Human-readable portfolio name from external service
+          example: "Growth Fund"
+        securityId:
+          type: string
+          description: Security identifier
+          example: "SEC123"
+        securityTicker:
+          type: string
+          description: Security ticker symbol from external service
+          example: "AAPL"
+        blotterId:
+          type: string
+          description: Blotter identifier
+          example: "BLOTTER1"
+        blotterAbbreviation:
+          type: string
+          description: Blotter abbreviation
+          example: "EQ"
+        submitted:
+          type: boolean
+          description: Whether the order has been submitted
+          example: true
+
+    ExecutionPageResponse:
+      type: object
+      description: Paginated response for executions
+      properties:
+        content:
+          type: array
+          items:
+            $ref: '#/components/schemas/ExecutionResponse'
+        pageable:
+          $ref: '#/components/schemas/Pageable'
+        totalElements:
+          type: integer
+        totalPages:
+          type: integer
+        size:
+          type: integer
+        number:
+          type: integer
+        numberOfElements:
+          type: integer
+        first:
+          type: boolean
+        last:
+          type: boolean
+        empty:
+          type: boolean
+
+    ExecutionResponse:
+      type: object
+      description: Execution response
+      properties:
+        id:
+          type: integer
+          description: Execution ID
+          example: 1
+        orderId:
+          type: integer
+          description: Associated order ID
+          example: 12345
+        quantity:
+          type: number
+          format: decimal
+          description: Executed quantity
+          example: 100.00
+        price:
+          type: number
+          format: decimal
+          description: Execution price
+          example: 150.25
+
+    Pageable:
+      type: object
+      description: Pagination information
+      properties:
+        sort:
+          $ref: '#/components/schemas/Sort'
+        pageNumber:
+          type: integer
+          description: Current page number (0-based)
+          example: 0
+        pageSize:
+          type: integer
+          description: Number of elements per page
+          example: 20
+
+    Sort:
+      type: object
+      description: Sorting information
+      properties:
+        sorted:
+          type: boolean
+          description: Whether sorting is applied
+          example: true
+        orders:
+          type: array
+          items:
+            $ref: '#/components/schemas/SortOrder'
+
+    SortOrder:
+      type: object
+      description: Sort order for a specific field
+      properties:
+        property:
+          type: string
+          description: Field name being sorted
+          example: "quantity"
+        direction:
+          type: string
+          description: Sort direction
+          enum: [ASC, DESC]
+          example: "DESC"
+
+    ErrorResponse:
+      type: object
+      description: Error response format
+      properties:
+        error:
+          type: string
+          description: Error type
+          example: "Bad Request"
+        message:
+          type: string
+          description: Error message
+          example: "Invalid query parameters"
+        details:
+          type: object
+          description: Detailed error information
+          additionalProperties:
+            type: string
+          example:
+            page: "Page number must be non-negative"
+            size: "Page size must be between 1 and 1000"
+
+tags:
+  - name: Trade Orders v2
+    description: Enhanced trade order operations with filtering, sorting, and pagination
+  - name: Executions v2
+    description: Enhanced execution operations with filtering, sorting, and pagination 
