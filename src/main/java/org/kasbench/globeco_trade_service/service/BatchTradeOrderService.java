@@ -7,6 +7,7 @@ import org.kasbench.globeco_trade_service.dto.TradeOrderSubmitDTO;
 import org.kasbench.globeco_trade_service.entity.Execution;
 import org.kasbench.globeco_trade_service.entity.TradeOrder;
 import org.kasbench.globeco_trade_service.repository.TradeOrderRepository;
+import org.kasbench.globeco_trade_service.repository.ExecutionRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -15,9 +16,6 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 
 @Service
@@ -27,18 +25,20 @@ public class BatchTradeOrderService {
     
     private final TradeOrderRepository tradeOrderRepository;
     private final TradeOrderService tradeOrderService;
-    private final ExecutorService executorService;
+    private final ExecutionRepository executionRepository;
     
     public BatchTradeOrderService(
             TradeOrderRepository tradeOrderRepository,
-            TradeOrderService tradeOrderService) {
+            TradeOrderService tradeOrderService,
+            ExecutionRepository executionRepository) {
         this.tradeOrderRepository = tradeOrderRepository;
         this.tradeOrderService = tradeOrderService;
-        this.executorService = Executors.newFixedThreadPool(10);
+        this.executionRepository = executionRepository;
     }
     
     /**
-     * Submit multiple trade orders in batch with parallel processing
+     * Submit multiple trade orders in batch with sequential processing
+     * Note: Changed from async to sequential to avoid Hibernate lazy loading issues
      */
     @Transactional
     public BatchSubmitResponseDTO submitTradeOrdersBatch(BatchSubmitRequestDTO request) {
@@ -54,23 +54,18 @@ public class BatchTradeOrderService {
         // Validate request structure
         validateBatchRequest(request);
         
-        // Process submissions in parallel
-        List<CompletableFuture<BatchSubmitResponseDTO.TradeOrderSubmitResultDTO>> futures = new ArrayList<>();
+        // Process submissions sequentially within the same transaction
+        List<BatchSubmitResponseDTO.TradeOrderSubmitResultDTO> results = new ArrayList<>();
         
         for (int i = 0; i < request.getSubmissions().size(); i++) {
             BatchSubmitRequestDTO.TradeOrderSubmissionDTO submission = request.getSubmissions().get(i);
             int requestIndex = i;
             
-            CompletableFuture<BatchSubmitResponseDTO.TradeOrderSubmitResultDTO> future = CompletableFuture
-                .supplyAsync(() -> processTradeOrderSubmission(submission, requestIndex), executorService);
+            BatchSubmitResponseDTO.TradeOrderSubmitResultDTO result = 
+                processTradeOrderSubmission(submission, requestIndex);
             
-            futures.add(future);
+            results.add(result);
         }
-        
-        // Wait for all submissions to complete
-        List<BatchSubmitResponseDTO.TradeOrderSubmitResultDTO> results = futures.stream()
-            .map(CompletableFuture::join)
-            .collect(Collectors.toList());
         
         // Calculate summary statistics
         long successful = results.stream()
@@ -151,8 +146,12 @@ public class BatchTradeOrderService {
             // Submit to trade order service
             Execution execution = tradeOrderService.submitTradeOrder(submission.getTradeOrderId(), submitDTO);
             
+            // Re-fetch execution with all relationships to avoid lazy loading issues
+            Execution executionWithRelations = executionRepository.findByIdWithAllRelations(execution.getId())
+                .orElseThrow(() -> new RuntimeException("Execution not found after save: " + execution.getId()));
+            
             // Create execution response DTO
-            ExecutionResponseDTO executionResponse = convertToExecutionResponseDTO(execution);
+            ExecutionResponseDTO executionResponse = convertToExecutionResponseDTO(executionWithRelations);
             
             return new BatchSubmitResponseDTO.TradeOrderSubmitResultDTO(
                 submission.getTradeOrderId(),

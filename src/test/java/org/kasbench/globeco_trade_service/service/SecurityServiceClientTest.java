@@ -201,4 +201,52 @@ class SecurityServiceClientTest {
         assertEquals("AAPL", result.get(0).getTicker());
         assertEquals("AAPLC", result.get(1).getTicker());
     }
+
+    @Test
+    void testFindSecurityById_Success() {
+        // Arrange
+        String securityId = "684F122BEEA39200E562918C";
+        SecurityDTO mockSecurity = new SecurityDTO();
+        mockSecurity.setSecurityId("684F122BEEA39200E562918C");
+        mockSecurity.setTicker("AAPL");
+
+        when(restTemplate.getForEntity(anyString(), eq(SecurityDTO.class)))
+                .thenReturn(ResponseEntity.ok(mockSecurity));
+
+        // Act
+        Optional<SecurityDTO> result = securityServiceClient.findSecurityById(securityId);
+
+        // Assert
+        assertTrue(result.isPresent());
+        assertEquals("684F122BEEA39200E562918C", result.get().getSecurityId());
+        assertEquals("AAPL", result.get().getTicker());
+        verify(restTemplate).getForEntity(
+                contains("/api/v1/security/684F122BEEA39200E562918C"),
+                eq(SecurityDTO.class)
+        );
+    }
+
+    @Test
+    void testFindSecurityById_NotFound() {
+        // Arrange
+        String securityId = "UNKNOWN";
+        when(restTemplate.getForEntity(anyString(), eq(SecurityDTO.class)))
+                .thenReturn(ResponseEntity.notFound().build());
+
+        // Act
+        Optional<SecurityDTO> result = securityServiceClient.findSecurityById(securityId);
+
+        // Assert
+        assertFalse(result.isPresent());
+    }
+
+    @Test
+    void testFindSecurityById_NullId() {
+        // Act
+        Optional<SecurityDTO> result = securityServiceClient.findSecurityById(null);
+
+        // Assert
+        assertFalse(result.isPresent());
+        verifyNoInteractions(restTemplate);
+    }
 } 

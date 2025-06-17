@@ -35,6 +35,52 @@ public class SecurityCacheService {
     }
     
     /**
+     * Get security by ID, using cache first, then external service
+     * @param securityId The security ID to look up
+     * @return SecurityDTO with securityId and ticker, or fallback with securityId as both fields
+     */
+    public SecurityDTO getSecurityById(String securityId) {
+        if (securityId == null || securityId.trim().isEmpty()) {
+            logger.warn("getSecurityById called with null or empty securityId");
+            return createFallbackSecurityById(securityId);
+        }
+        
+        String normalizedId = securityId.trim();
+        String cacheKey = "ID:" + normalizedId; // Prefix to distinguish from ticker cache keys
+        
+        try {
+            // Try cache first
+            SecurityDTO cached = securityCache.getIfPresent(cacheKey);
+            if (cached != null) {
+                logger.debug("Cache hit for security ID: {}", normalizedId);
+                return cached;
+            }
+            
+            // Cache miss - call external service
+            logger.debug("Cache miss for security ID: {}, calling external service", normalizedId);
+            Optional<SecurityDTO> securityOpt = securityServiceClient.findSecurityById(normalizedId);
+            
+            if (securityOpt.isPresent()) {
+                SecurityDTO security = securityOpt.get();
+                securityCache.put(cacheKey, security);
+                logger.debug("Cached security: {} -> {}", normalizedId, security.getTicker());
+                return security;
+            } else {
+                // External service didn't find the security - cache a fallback
+                SecurityDTO fallback = createFallbackSecurityById(normalizedId);
+                securityCache.put(cacheKey, fallback);
+                logger.debug("Cached fallback security for ID: {}", normalizedId);
+                return fallback;
+            }
+            
+        } catch (Exception e) {
+            logger.error("Error retrieving security for ID {}: {}", normalizedId, e.getMessage(), e);
+            // Return fallback without caching on error
+            return createFallbackSecurityById(normalizedId);
+        }
+    }
+
+    /**
      * Get security by ticker, using cache first, then external service
      * @param ticker The security ticker to look up
      * @return SecurityDTO with ticker and securityId, or fallback with ticker as both fields
@@ -85,6 +131,14 @@ public class SecurityCacheService {
     private SecurityDTO createFallbackSecurity(String ticker) {
         String safeTicker = ticker != null ? ticker.trim() : "UNKNOWN";
         return new SecurityDTO(safeTicker, safeTicker);
+    }
+    
+    /**
+     * Create a fallback SecurityDTO by ID when external service is unavailable or security not found
+     */
+    private SecurityDTO createFallbackSecurityById(String securityId) {
+        String safeId = securityId != null ? securityId.trim() : "UNKNOWN";
+        return new SecurityDTO(safeId, safeId); // Use ID as both securityId and ticker
     }
     
     /**

@@ -138,13 +138,13 @@ public class TradeOrderEnhancedService {
         try {
             // Get portfolio information
             if (tradeOrder.getPortfolioId() != null) {
-                PortfolioDTO portfolio = portfolioCacheService.getPortfolioByName(tradeOrder.getPortfolioId());
+                PortfolioDTO portfolio = portfolioCacheService.getPortfolioById(tradeOrder.getPortfolioId());
                 dto.setPortfolio(portfolio);
             }
             
             // Get security information
             if (tradeOrder.getSecurityId() != null) {
-                SecurityDTO security = securityCacheService.getSecurityByTicker(tradeOrder.getSecurityId());
+                SecurityDTO security = securityCacheService.getSecurityById(tradeOrder.getSecurityId());
                 dto.setSecurity(security);
             }
         } catch (Exception e) {

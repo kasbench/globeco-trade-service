@@ -154,7 +154,7 @@ public class TradeOrderServiceImpl implements TradeOrderService {
     public Execution submitTradeOrder(Integer tradeOrderId, TradeOrderSubmitDTO dto) {
         logger.info("TradeOrderServiceImpl.submitTradeOrder called with tradeOrderId={} and dto={}", tradeOrderId, dto);
         try {
-            TradeOrder tradeOrder = tradeOrderRepository.findById(tradeOrderId)
+            TradeOrder tradeOrder = tradeOrderRepository.findByIdWithBlotter(tradeOrderId)
                     .orElseThrow(() -> new IllegalArgumentException("TradeOrder not found: " + tradeOrderId));
             if (dto.getQuantity() == null) {
                 throw new IllegalArgumentException("Quantity must not be null");

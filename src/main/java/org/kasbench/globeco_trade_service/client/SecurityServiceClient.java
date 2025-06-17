@@ -6,8 +6,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.retry.annotation.Backoff;
-import org.springframework.retry.annotation.Retryable;
+// import org.springframework.retry.annotation.Backoff;
+// import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.HttpServerErrorException;
@@ -38,11 +38,11 @@ public class SecurityServiceClient {
      * @param ticker The security ticker to search for
      * @return Optional containing SecurityDTO if found, empty if not found or service unavailable
      */
-    @Retryable(
-        value = {ResourceAccessException.class, HttpServerErrorException.class},
-        maxAttempts = 3,
-        backoff = @Backoff(delay = 1000, multiplier = 2)
-    )
+    // @Retryable(
+    //     value = {ResourceAccessException.class, HttpServerErrorException.class},
+    //     maxAttempts = 3,
+    //     backoff = @Backoff(delay = 1000, multiplier = 2)
+    // )
     public Optional<SecurityDTO> findSecurityByTicker(String ticker) {
         if (ticker == null || ticker.trim().isEmpty()) {
             logger.warn("findSecurityByTicker called with null or empty ticker");
@@ -94,15 +94,69 @@ public class SecurityServiceClient {
     }
     
     /**
+     * Find security by ID using the v1 API
+     * @param securityId The security ID to search for
+     * @return Optional containing SecurityDTO if found, empty if not found or service unavailable
+     */
+    // @Retryable(
+    //     value = {ResourceAccessException.class, HttpServerErrorException.class},
+    //     maxAttempts = 3,
+    //     backoff = @Backoff(delay = 1000, multiplier = 2)
+    // )
+    public Optional<SecurityDTO> findSecurityById(String securityId) {
+        if (securityId == null || securityId.trim().isEmpty()) {
+            logger.warn("findSecurityById called with null or empty securityId");
+            return Optional.empty();
+        }
+        
+        try {
+            String url = securityServiceBaseUrl + "/api/v1/security/" + securityId.trim();
+            logger.debug("Calling Security Service: {}", url);
+            
+            ResponseEntity<SecurityDTO> response = restTemplate.getForEntity(
+                url, SecurityDTO.class);
+            
+            if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
+                SecurityDTO security = response.getBody();
+                logger.debug("Found security: {} -> {}", securityId, security.getTicker());
+                return Optional.of(security);
+            } else {
+                logger.warn("Unexpected response from Security Service: {}", response.getStatusCode());
+                return Optional.empty();
+            }
+            
+        } catch (HttpClientErrorException e) {
+            if (e.getStatusCode() == HttpStatus.NOT_FOUND) {
+                logger.debug("Security not found for ID: {}", securityId);
+                return Optional.empty();
+            } else {
+                logger.error("Client error calling Security Service for ID {}: {} - {}", 
+                    securityId, e.getStatusCode(), e.getResponseBodyAsString());
+                return Optional.empty();
+            }
+        } catch (HttpServerErrorException e) {
+            logger.error("Server error calling Security Service for ID {}: {} - {}", 
+                securityId, e.getStatusCode(), e.getResponseBodyAsString());
+            throw e; // Will trigger retry
+        } catch (ResourceAccessException e) {
+            logger.error("Network error calling Security Service for ID {}: {}", securityId, e.getMessage());
+            throw e; // Will trigger retry
+        } catch (Exception e) {
+            logger.error("Unexpected error calling Security Service for ID {}: {}", securityId, e.getMessage(), e);
+            return Optional.empty();
+        }
+    }
+
+    /**
      * Search for securities by partial ticker match using the v2 API
      * @param tickerPattern The partial ticker pattern to search for
      * @return List of matching SecurityDTOs, empty list if none found or service unavailable
      */
-    @Retryable(
-        value = {ResourceAccessException.class, HttpServerErrorException.class},
-        maxAttempts = 3,
-        backoff = @Backoff(delay = 1000, multiplier = 2)
-    )
+    // @Retryable(
+    //     value = {ResourceAccessException.class, HttpServerErrorException.class},
+    //     maxAttempts = 3,
+    //     backoff = @Backoff(delay = 1000, multiplier = 2)
+    // )
     public List<SecurityDTO> findSecuritiesByTickerLike(String tickerPattern) {
         if (tickerPattern == null || tickerPattern.trim().isEmpty()) {
             logger.warn("findSecuritiesByTickerLike called with null or empty pattern");

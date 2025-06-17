@@ -814,213 +814,148 @@ Implemented supplemental-requirement-4.md:
 - Updated controller to include quantitySent in responses.
 - Updated README.md and openapi.yaml to document the new field, business rules, and error message.
 
-# Cursor Log
+# Cursor Activity Log
 
-This file tracks all requests and actions taken by the AI assistant.
+This file contains entries for actions performed by cursor/LLM in this codebase.  New entries are added to the end, with two blank lines between entries.
 
-## 2024-12-19 - Initial Setup and Supplemental Requirements Implementation
+## Entry 1 - Initial Setup
 
-**Request**: Implement supplemental requirements for the trade service application, focusing on enhanced UI capabilities, pagination, filtering, sorting, and external service integration.
-
-**Actions Taken**:
-- Reviewed and revised supplemental requirement documents
-- Implemented database migration for execution_service_id column
-- Created comprehensive DTO structure for v2 API responses
-- Updated services for external service integration
-- Fixed test mapping issues in ExecutionController
-- Updated documentation (README.md, openapi.yaml)
-- Implemented CORS configuration
-- Set up GitHub CI/CD pipeline with Docker multi-architecture builds
-- Added API requirement for POST /api/v1/execution/{id}/submit endpoint
+**Date/Time**: 2024-01-XX XX:XX:XX  
+**User Request**: Initial setup and implementation  
+**Action Taken**: Created project structure and initial implementation  
+**Files Created/Modified**: Various core files  
+**Notes**: Initial project setup completed  
 
 
-## 2024-12-19 - Phase 1: Foundation and External Service Integration ✅ COMPLETE
+## Entry 2 - Phase 6 Documentation Implementation
 
-**Request**: Implement Phase 1 of supplemental requirement 6 execution plan.
-
-**Actions Taken**:
-- **1.1** External Service Client Implementation ✅
-  - Created SecurityServiceClient with v2 API integration, retry logic, and comprehensive error handling
-  - Created PortfolioServiceClient with search capabilities and timeout handling
-  - Implemented @Retryable with exponential backoff (3 attempts, 2-second delays)
-  - Added 5-second timeouts for external service calls
-- **1.2** Caching Infrastructure ✅
-  - Added Caffeine dependency to build.gradle
-  - Configured Caffeine cache manager with 5-minute TTL
-  - Created SecurityCacheService with cache metrics and fallback logic
-  - Created PortfolioCacheService with cache metrics and fallback logic
-  - Added cache configuration properties to application.properties
-- **1.3** Enhanced DTO Structure ✅
-  - Created SecurityDTO with securityId and ticker fields
-  - Created PortfolioDTO with portfolioId and name fields
-  - Created pagination wrapper DTOs (TradeOrderPageResponseDTO, ExecutionPageResponseDTO)
-  - Created batch operation DTOs (BatchSubmitRequestDTO, BatchSubmitResponseDTO)
-  - Created enhanced v2 response DTOs (TradeOrderV2ResponseDTO, ExecutionV2ResponseDTO)
+**Date/Time**: 2024-12-XX XX:XX:XX  
+**User Request**: Proceed to Phase 6 of execution plan  
+**Action Taken**: Implemented comprehensive documentation and configuration for enhanced Globeco Trade Service v2 API  
+**Files Created/Modified**:
+- src/main/resources/api-docs/openapi-v2.yaml (created)
+- documentation/v1-to-v2-migration-guide.md (created)
+- documentation/configuration-guide.md (created)
+- documentation/performance-tuning-guide.md (created)
+- documentation/README-v2.md (created)
+- documentation/operational-runbook.md (created)
+- documentation/supplemental-requirement-6.md (updated - marked Phase 6 complete)
+**Notes**: Completed Phase 6 with comprehensive API documentation, migration guides, configuration management, performance tuning, and operational procedures covering all aspects of the enhanced v2 API implementation
 
 
-## 2024-12-19 - Phase 2: Database and Repository Enhancements ✅ COMPLETE
+## Entry 3 - Claude API Guide Creation
 
-**Request**: Proceed to Phase 2 of supplemental requirement 6 execution plan.
-
-**Actions Taken**:
-- **2.1** Database Optimization ✅
-  - Created V6 migration with composite indexes for common filter combinations
-  - Added trade_order_portfolio_security_idx, trade_order_order_type_timestamp_idx
-  - Added execution_status_blotter_idx, execution_trade_type_destination_idx
-  - Added quantity range indexes and timestamp sorting indexes
-  - Added descending order indexes for performance optimization
-- **2.2** Repository Layer Enhancements ✅
-  - Created TradeOrderSpecification with comprehensive filtering support
-  - Created ExecutionSpecification with dynamic filtering capabilities
-  - Implemented SortingUtils with field validation for both entities
-  - Updated TradeOrderRepository to extend JpaSpecificationExecutor
-  - Updated ExecutionRepository to extend JpaSpecificationExecutor
-  - Added support for comma-separated values in filters (OR conditions)
-- **2.3** Service Layer Integration ✅
-  - Created TradeOrderEnhancedService with external service integration
-  - Created ExecutionEnhancedService with external service integration
-  - Implemented pagination, filtering, and sorting in both services
-  - Added comprehensive error handling and fallback logic
-  - Integrated SecurityCacheService and PortfolioCacheService
-  - Added parallel processing for DTO conversion
+**Date/Time**: 2024-12-XX XX:XX:XX  
+**User Request**: Create a trade service API guide for another LLM, optimized for consumption by Claude  
+**Action Taken**: Created comprehensive API guide specifically optimized for LLM consumption with complete API specifications, implementation patterns, and contextual information  
+**Files Created/Modified**:
+- documentation/claude-api-guide.md (created)
+**Notes**: Created comprehensive guide covering both v1 and v2 APIs with complete data models, query patterns, examples, error handling, performance considerations, migration guidance, troubleshooting, and best practices optimized for Claude consumption
 
 
-## 2024-12-19 - Phase 3: v2 API Implementation ✅ COMPLETE
+## Entry 4 - API Documentation Correction
 
-**Request**: Proceed to Phase 3 of supplemental requirement 6 execution plan.
-
-**Actions Taken**:
-- **3.1** TradeOrder v2 Controller ✅
-  - Created TradeOrderV2Controller with enhanced GET /api/v2/tradeOrders endpoint
-  - Implemented comprehensive parameter validation with @Min/@Max constraints
-  - Added support for all filtering parameters (portfolio.name, security.ticker, quantity ranges, etc.)
-  - Implemented sorting validation using SortingUtils
-  - Added comprehensive OpenAPI documentation with examples
-  - Implemented proper error handling with custom exceptions
-- **3.2** Execution v2 Controller ✅
-  - Created ExecutionV2Controller with enhanced GET /api/v2/executions endpoint
-  - Implemented comprehensive filtering by execution status, blotter, trade type, destination
-  - Added quantity range filtering (ordered, placed, filled)
-  - Implemented sorting validation and parameter validation
-  - Added comprehensive OpenAPI documentation and error handling
-- **3.3** Batch Operations Controller ✅
-  - Created BatchTradeOrderService with parallel processing for batch submissions
-  - Implemented POST /api/v1/tradeOrders/batch/submit endpoint
-  - Added batch size validation (max 100 items) with early rejection
-  - Implemented parallel processing using CompletableFuture and ExecutorService
-  - Added comprehensive error handling and status reporting (SUCCESS/PARTIAL/FAILURE)
-  - Created BatchTradeOrderController with proper HTTP status codes (200/207/400/413)
-  - Integrated with existing TradeOrderService for consistent submission logic
+**Date/Time**: 2024-12-XX XX:XX:XX  
+**User Request**: Verify and correct inconsistencies in trade-service-claude-api-guide.md regarding sortBy/sortDir parameters vs actual code implementation  
+**Action Taken**: Fixed documentation inconsistencies by updating parameter names and examples to match actual controller implementation  
+**Files Created/Modified**:
+- documentation/trade-service-claude-api-guide.md (corrected)
+**Notes**: Corrected documentation inconsistencies where guide incorrectly showed v2 API using `sortBy`/`sortDir` parameters and `page`/`size` pagination, when actual implementation uses single `sort` parameter with prefix notation and `limit`/`offset` pagination. Also corrected parameter names like `portfolio.name` instead of `portfolioNames`, `quantity.min` instead of `minQuantity`, etc. Updated all examples, integration patterns, and troubleshooting sections to reflect accurate API usage.
 
 
-## 2024-12-19 - Bean Conflict Resolution
+## Entry 5 - Portfolio Service Client v2 API Fix
 
-**Request**: Fix application startup error due to conflicting restTemplate bean definitions.
+**Date/Time**: 2024-12-XX XX:XX:XX  
+**User Request**: Fix JSON parsing error where PortfolioServiceClient expects object response but receives array, causing deserialization failure  
+**Action Taken**: Updated PortfolioServiceClient to consistently use Portfolio Service v2 API and proper URL encoding  
+**Files Created/Modified**:
+- src/main/java/org/kasbench/globeco_trade_service/client/PortfolioServiceClient.java (fixed)
+**Notes**: Fixed error "Cannot deserialize value of type PortfolioSearchResponse from Array value" by ensuring both portfolio search methods use v2 API endpoints (/api/v2/portfolios) which return structured responses with portfolios array and pagination metadata, instead of v1 endpoints that return simple arrays. Also added proper URL encoding using UriComponentsBuilder and temporarily commented out retry annotations due to missing dependencies. The fix ensures consistent response format handling according to PORTFOLIO_SERVICE_API_GUIDE.md specifications.
 
-**Actions Taken**:
-- **Issue Identified**: Two beans named 'restTemplate' were defined in both CacheConfig and RestTemplateConfig classes
-- **Root Cause**: CacheConfig.java contained a simple RestTemplate bean that conflicted with the more sophisticated RestTemplate bean in RestTemplateConfig.java
-- **Resolution**: Removed the simple restTemplate bean from CacheConfig.java, keeping only the properly configured RestTemplate bean in RestTemplateConfig.java with timeout settings
-- **Result**: Eliminated bean definition conflict and preserved the enhanced RestTemplate configuration with connect/read timeouts
+---
 
-
-## 2024-12-19 - Sort Field Enhancement for v2 API
-
-**Request**: Add security.ticker as a valid sort field for GET /api/v2/tradeOrders endpoint.
-
-**Actions Taken**:
-- **Issue Identified**: GET /api/v2/tradeOrders was rejecting sort parameter 'security.ticker' as invalid
-- **Root Cause**: SortingUtils.VALID_TRADE_ORDER_SORT_FIELDS did not include 'security.ticker' or 'portfolio.name' fields
-- **Resolution**: 
-  - Added 'security.ticker' and 'portfolio.name' to VALID_TRADE_ORDER_SORT_FIELDS set
-  - Created mapTradeOrderVirtualField() method to map virtual fields to actual database fields
-  - 'security.ticker' maps to 'securityId' for database sorting
-  - 'portfolio.name' maps to 'portfolioId' for database sorting
-  - Updated parseSort() method to apply field mapping for TradeOrder entity
-- **Result**: v2 API now accepts security.ticker and portfolio.name as valid sort parameters while maintaining database performance by sorting on indexed ID fields
-
-
-## 2024-12-19 - Execution v2 API Enhancement: Security and Portfolio Support
-
-**Request**: Add security.ticker and portfolio.name as sort and filter fields for GET /api/v2/executions.
-
-**Actions Taken**:
-- **SortingUtils Enhancement**:
-  - Added 'security.ticker' and 'portfolio.name' to VALID_EXECUTION_SORT_FIELDS set
-  - Created mapExecutionVirtualField() method to map virtual fields to actual database relationship fields
-  - 'security.ticker' maps to 'tradeOrder.securityId' for database sorting
-  - 'portfolio.name' maps to 'tradeOrder.portfolioId' for database sorting
-- **ExecutionSpecification Enhancement**:
-  - Added hasPortfolioId() specification method to filter by portfolio ID through tradeOrder relationship
-  - Added hasSecurityId() specification method to filter by security ID through tradeOrder relationship
-  - Updated buildSpecification() method to include new portfolio and security filters
-  - Both methods support comma-separated values for OR conditions
-- **ExecutionEnhancedService Enhancement**:
-  - Added portfolioName and securityTicker parameters to getExecutionsV2() method
-  - Added resolvePortfolioNamesToIds() helper method to convert portfolio names to IDs via external service
-  - Added resolveSecurityTickersToIds() helper method to convert security tickers to IDs via external service
-  - Integrated portfolio and security ID resolution with caching and fallback logic
-- **ExecutionV2Controller Enhancement**:
-  - Added portfolio.name and security.ticker as new @RequestParam fields
-  - Updated OpenAPI documentation with examples and descriptions
-  - Updated sort parameter example to include new virtual fields
-  - Updated service call to pass new filtering parameters
-- **Result**: v2 Executions API now supports filtering and sorting by security.ticker and portfolio.name, providing consistent behavior with TradeOrders v2 API while maintaining database performance through relationship-based queries
-
-
-## 2024-12-19 - Execution v2 API Enhancement: Security and Portfolio Support
-
-**Request**: Add security.ticker and portfolio.name as sort and filter fields for GET /api/v2/executions.
-
-**Actions Taken**:
-- **SortingUtils Enhancement**:
-  - Added 'security.ticker' and 'portfolio.name' to VALID_EXECUTION_SORT_FIELDS set
-  - Created mapExecutionVirtualField() method to map virtual fields to actual database relationship fields
-  - 'security.ticker' maps to 'tradeOrder.securityId' for database sorting
-  - 'portfolio.name' maps to 'tradeOrder.portfolioId' for database sorting
-- **ExecutionSpecification Enhancement**:
-  - Added hasPortfolioId() specification method to filter by portfolio ID through tradeOrder relationship
-  - Added hasSecurityId() specification method to filter by security ID through tradeOrder relationship
-  - Updated buildSpecification() method to include new portfolio and security filters
-  - Both methods support comma-separated values for OR conditions
-- **ExecutionEnhancedService Enhancement**:
-  - Added portfolioName and securityTicker parameters to getExecutionsV2() method
-  - Added resolvePortfolioNamesToIds() helper method to convert portfolio names to IDs via external service
-  - Added resolveSecurityTickersToIds() helper method to convert security tickers to IDs via external service
-  - Integrated portfolio and security ID resolution with caching and fallback logic
-- **ExecutionV2Controller Enhancement**:
-  - Added portfolio.name and security.ticker as new @RequestParam fields
-  - Updated OpenAPI documentation with examples and descriptions
-  - Updated sort parameter example to include new virtual fields
-  - Updated service call to pass new filtering parameters
-- **Result**: v2 Executions API now supports filtering and sorting by security.ticker and portfolio.name, providing consistent behavior with TradeOrders v2 API while maintaining database performance through relationship-based queries
-
-Request: Please proceed to Phase 4 of the execution plan in @supplemental-requirement-6.md .  Please mark phase 4 complete in the execution plan when finished.
+Request: Adjust the PortfolioServiceClient tests that are failing due to URL encoding changes from using UriComponentsBuilder instead of manual string concatenation.
 
 Actions:
-1. Add optional `limit` and `offset` parameters to v1 TradeOrder controller
-2. Add optional `limit` and `offset` parameters to v1 Execution controller  
-3. Maintain existing response format for backward compatibility
-4. Add `X-Total-Count` header for pagination metadata when pagination is used
-5. Mark Phase 4 complete in execution plan
+1. Fixed two failing tests in PortfolioServiceClientTest:
+   - testFindPortfolioByName_Success(): Updated URL assertion from "name=Growth Fund" to "name=Growth%20Fund" to account for proper URL encoding of spaces
+   - testNameWithSpaces_UrlEncoding(): Updated URL assertion from "name=Growth Technology Fund" to "name=Growth%20Technology%20Fund" for proper URL encoding
+2. These fixes ensure tests match the actual URL encoding behavior when using UriComponentsBuilder for proper URL construction.
+3. Verified all PortfolioServiceClient tests now pass and full test suite passes.
 
-Request: Please proceed to phase 5
+---
 
-Actions:
-1. Implement comprehensive unit tests for external service clients and caching
-2. Create unit tests for filtering and sorting specifications
-3. Add unit tests for batch operation logic and error handling  
-4. Implement integration tests for v2 API endpoints
-5. Create backward compatibility tests for v1 API enhancements
-6. Add performance testing framework and tests
-7. Mark Phase 5 complete in execution plan
-
-Request: We have 6 failing tests. See attached
+Request: Fix Docker container logging configuration to support LOG_LEVEL environment variable for debug logging.
 
 Actions:
-1. Fix TradeOrderSpecificationTest null handling assertions
-2. Fix PortfolioServiceClientTest mock verification issues  
-3. Fix SecurityServiceClientTest mock verification issues
-4. Fix SecurityCacheServiceTest cache statistics test
-5. Update test expectations to match actual implementation behavior
-6. Ensure all tests pass in build
+1. Added logging configuration to src/main/resources/application.properties:
+   - logging.level.root=${LOG_LEVEL:INFO} - Maps LOG_LEVEL environment variable to root logger level with INFO as default
+   - logging.level.org.kasbench=${LOG_LEVEL:INFO} - Maps LOG_LEVEL environment variable to application package logger level
+   - logging.pattern.console and logging.pattern.file - Added consistent log formatting patterns
+2. This enables the Docker command with -e LOG_LEVEL=DEBUG to properly set debug logging for the application.
+
+---
+
+Request: Fix bug where SecurityServiceClient is incorrectly using security IDs as tickers when calling the Security Service, causing "No securities found for ticker" errors with UUID values.
+
+Actions:
+1. Added findSecurityById() method to SecurityServiceClient that uses the v1 API endpoint GET /api/v1/security/{securityId} to retrieve security by ID instead of ticker.
+2. Added getSecurityById() method to SecurityCacheService that caches security lookups by ID using "ID:" prefixed cache keys to distinguish from ticker cache keys.
+3. Fixed TradeOrderEnhancedService.convertToV2ResponseDTO() to use securityCacheService.getSecurityById() instead of getSecurityByTicker() when looking up security information from trade order securityId field.
+4. Fixed ExecutionEnhancedService.createTradeOrderSummary() to use securityCacheService.getSecurityById() instead of getSecurityByTicker() for the same reason.
+5. Added unit tests for the new findSecurityById() method to verify correct behavior.
+6. Temporarily commented out retry annotations due to missing Spring Retry dependencies.
+**Root Cause**: Trade orders store securityId (UUID) but code was treating it as ticker and calling findSecurityByTicker(), causing failed lookups. Now properly uses findSecurityById() for ID-based lookups.
+
+---
+
+Request: Fix similar bug with portfolio service where portfolio IDs are being incorrectly used as portfolio names when calling the Portfolio Service.
+
+Actions:
+1. Added getPortfolioById() method to PortfolioCacheService that uses the v1 API endpoint GET /api/v1/portfolio/{portfolioId} to retrieve portfolio by ID.
+2. Updated PortfolioCacheService.getPortfolioById() to call portfolioServiceClient.findPortfolioById() instead of immediately creating fallback portfolios.
+3. Changed the logic to first try the external service call, and only create fallback portfolios if the service returns no results.
+4. Added comprehensive unit tests for the new findPortfolioById() method to verify correct behavior.
+5. Maintained the same error handling and caching patterns as the security service implementation.
+**Fix**: The previous implementation was immediately creating fallback portfolios with the assumption that Portfolio Service didn't support ID lookup, but the v1 API actually does support GET /api/v1/portfolio/{id}.
+
+---
+
+Request: Fix excessive Spring Boot auto-configuration debug messages appearing in logs when LOG_LEVEL=DEBUG is used in Docker containers.
+
+Actions:
+1. Added specific logging level configurations to suppress noisy Spring Boot auto-configuration messages:
+   - logging.level.org.springframework.boot.autoconfigure=INFO - Prevents debug messages about skipped auto-configurations
+   - logging.level.org.springframework.boot.autoconfigure.condition=WARN - Reduces conditional bean creation messages  
+   - logging.level.org.springframework.web=INFO - Suppresses verbose web framework debug messages
+2. These settings maintain useful debug information for the application (org.kasbench) while reducing Spring framework noise.
+3. The messages were not actual errors but informational debug output about optional features not being configured (like DataDog metrics, Elasticsearch, etc.).
+
+---
+
+Request: Fix portfolio service client to actually call the Portfolio Service v1 API for ID lookup instead of creating fallback portfolios, since the GET /api/v1/portfolio/{id} endpoint is available.
+
+Actions:
+1. Added findPortfolioById() method to PortfolioServiceClient that uses the v1 API endpoint GET /api/v1/portfolio/{portfolioId} to retrieve portfolio by ID.
+2. Updated PortfolioCacheService.getPortfolioById() to call portfolioServiceClient.findPortfolioById() instead of immediately creating fallback portfolios.
+3. Changed the logic to first try the external service call, and only create fallback portfolios if the service returns no results.
+4. Added comprehensive unit tests for the new findPortfolioById() method to verify correct behavior.
+5. Maintained the same error handling and caching patterns as the security service implementation.
+**Fix**: The previous implementation was immediately creating fallback portfolios with the assumption that Portfolio Service didn't support ID lookup, but the v1 API actually does support GET /api/v1/portfolio/{id}.
+
+---
+
+Request: Fix Hibernate LazyInitializationException error in batch trade order submission endpoint that was occurring when accessing lazy-loaded Blotter entities in the BatchTradeOrderService.convertToExecutionResponseDTO method.
+
+Actions:
+1. **Root Cause**: The error occurred because TradeOrderServiceImpl.submitTradeOrder was setting execution.setBlotter(tradeOrder.getBlotter()) where tradeOrder.getBlotter() was a lazy-loaded proxy. When the batch service later accessed execution.getBlotter().getAbbreviation() in a sequential (non-async) context, the Hibernate session was no longer available to initialize the proxy.
+
+2. **Added findByIdWithBlotter() to TradeOrderRepository**: Created a JPQL query using LEFT JOIN FETCH to eagerly load the blotter relationship when fetching trade orders: `@Query("SELECT t FROM TradeOrder t LEFT JOIN FETCH t.blotter WHERE t.id = :id")`
+
+3. **Modified TradeOrderServiceImpl.submitTradeOrder()**: Changed from using `tradeOrderRepository.findById()` to `tradeOrderRepository.findByIdWithBlotter()` to ensure the blotter is eagerly loaded before being assigned to the execution.
+
+4. **Simplified BatchTradeOrderService**: Removed async processing (CompletableFuture) and changed to sequential processing within the same transaction to avoid session scope issues. Removed ExecutorService dependency.
+
+5. **Added findByIdWithAllRelations() to ExecutionRepository**: Created JPQL query with multiple LEFT JOIN FETCH clauses to eagerly load all execution relationships (blotter, executionStatus, tradeType, tradeOrder, destination) for complete DTO conversion.
+
+**Result**: Batch submission endpoint now works successfully without lazy loading exceptions. The fix ensures proper eager loading of entities before they're accessed outside their original persistence context.

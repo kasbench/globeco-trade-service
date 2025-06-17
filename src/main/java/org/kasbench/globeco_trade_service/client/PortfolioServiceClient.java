@@ -6,13 +6,14 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.retry.annotation.Backoff;
-import org.springframework.retry.annotation.Retryable;
+// import org.springframework.retry.annotation.Backoff;
+// import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.HttpServerErrorException;
 import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.web.util.UriComponentsBuilder;
 
 import java.util.List;
 import java.util.Optional;
@@ -38,11 +39,11 @@ public class PortfolioServiceClient {
      * @param name The portfolio name to search for
      * @return Optional containing PortfolioDTO if found, empty if not found or service unavailable
      */
-    @Retryable(
-        value = {ResourceAccessException.class, HttpServerErrorException.class},
-        maxAttempts = 3,
-        backoff = @Backoff(delay = 1000, multiplier = 2)
-    )
+    // @Retryable(
+    //     value = {ResourceAccessException.class, HttpServerErrorException.class},
+    //     maxAttempts = 3,
+    //     backoff = @Backoff(delay = 1000, multiplier = 2)
+    // )
     public Optional<PortfolioDTO> findPortfolioByName(String name) {
         if (name == null || name.trim().isEmpty()) {
             logger.warn("findPortfolioByName called with null or empty name");
@@ -50,7 +51,10 @@ public class PortfolioServiceClient {
         }
         
         try {
-            String url = portfolioServiceBaseUrl + "/api/v1/portfolios?name=" + name.trim();
+            String url = UriComponentsBuilder
+                .fromUriString(portfolioServiceBaseUrl + "/api/v2/portfolios")
+                .queryParam("name", name.trim())
+                .toUriString();
             logger.debug("Calling Portfolio Service: {}", url);
             
             ResponseEntity<PortfolioSearchResponse> response = restTemplate.getForEntity(
@@ -94,15 +98,69 @@ public class PortfolioServiceClient {
     }
     
     /**
+     * Find portfolio by ID using the v1 API
+     * @param portfolioId The portfolio ID to search for
+     * @return Optional containing PortfolioDTO if found, empty if not found or service unavailable
+     */
+    // @Retryable(
+    //     value = {ResourceAccessException.class, HttpServerErrorException.class},
+    //     maxAttempts = 3,
+    //     backoff = @Backoff(delay = 1000, multiplier = 2)
+    // )
+    public Optional<PortfolioDTO> findPortfolioById(String portfolioId) {
+        if (portfolioId == null || portfolioId.trim().isEmpty()) {
+            logger.warn("findPortfolioById called with null or empty portfolioId");
+            return Optional.empty();
+        }
+        
+        try {
+            String url = portfolioServiceBaseUrl + "/api/v1/portfolio/" + portfolioId.trim();
+            logger.debug("Calling Portfolio Service: {}", url);
+            
+            ResponseEntity<PortfolioDTO> response = restTemplate.getForEntity(
+                url, PortfolioDTO.class);
+            
+            if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
+                PortfolioDTO portfolio = response.getBody();
+                logger.debug("Found portfolio: {} -> {}", portfolioId, portfolio.getName());
+                return Optional.of(portfolio);
+            } else {
+                logger.warn("Unexpected response from Portfolio Service: {}", response.getStatusCode());
+                return Optional.empty();
+            }
+            
+        } catch (HttpClientErrorException e) {
+            if (e.getStatusCode() == HttpStatus.NOT_FOUND) {
+                logger.debug("Portfolio not found for ID: {}", portfolioId);
+                return Optional.empty();
+            } else {
+                logger.error("Client error calling Portfolio Service for ID {}: {} - {}", 
+                    portfolioId, e.getStatusCode(), e.getResponseBodyAsString());
+                return Optional.empty();
+            }
+        } catch (HttpServerErrorException e) {
+            logger.error("Server error calling Portfolio Service for ID {}: {} - {}", 
+                portfolioId, e.getStatusCode(), e.getResponseBodyAsString());
+            throw e; // Will trigger retry
+        } catch (ResourceAccessException e) {
+            logger.error("Network error calling Portfolio Service for ID {}: {}", portfolioId, e.getMessage());
+            throw e; // Will trigger retry
+        } catch (Exception e) {
+            logger.error("Unexpected error calling Portfolio Service for ID {}: {}", portfolioId, e.getMessage(), e);
+            return Optional.empty();
+        }
+    }
+
+    /**
      * Search for portfolios by partial name match using the Portfolio Service API
      * @param namePattern The partial name pattern to search for
      * @return List of matching PortfolioDTOs, empty list if none found or service unavailable
      */
-    @Retryable(
-        value = {ResourceAccessException.class, HttpServerErrorException.class},
-        maxAttempts = 3,
-        backoff = @Backoff(delay = 1000, multiplier = 2)
-    )
+    // @Retryable(
+    //     value = {ResourceAccessException.class, HttpServerErrorException.class},
+    //     maxAttempts = 3,
+    //     backoff = @Backoff(delay = 1000, multiplier = 2)
+    // )
     public List<PortfolioDTO> findPortfoliosByNameLike(String namePattern) {
         if (namePattern == null || namePattern.trim().isEmpty()) {
             logger.warn("findPortfoliosByNameLike called with null or empty pattern");
@@ -110,7 +168,10 @@ public class PortfolioServiceClient {
         }
         
         try {
-            String url = portfolioServiceBaseUrl + "/api/v1/portfolios?name_like=" + namePattern.trim();
+            String url = UriComponentsBuilder
+                .fromUriString(portfolioServiceBaseUrl + "/api/v2/portfolios")
+                .queryParam("name_like", namePattern.trim())
+                .toUriString();
             logger.debug("Calling Portfolio Service: {}", url);
             
             ResponseEntity<PortfolioSearchResponse> response = restTemplate.getForEntity(

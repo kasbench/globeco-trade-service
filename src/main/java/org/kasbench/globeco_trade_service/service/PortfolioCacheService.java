@@ -35,6 +35,52 @@ public class PortfolioCacheService {
     }
     
     /**
+     * Get portfolio by ID - creates fallback since Portfolio Service doesn't support ID lookup
+     * @param portfolioId The portfolio ID to create fallback for
+     * @return PortfolioDTO with portfolioId as both portfolioId and name fields
+     */
+    public PortfolioDTO getPortfolioById(String portfolioId) {
+        if (portfolioId == null || portfolioId.trim().isEmpty()) {
+            logger.warn("getPortfolioById called with null or empty portfolioId");
+            return createFallbackPortfolioById(portfolioId);
+        }
+        
+        String normalizedId = portfolioId.trim();
+        String cacheKey = "ID:" + normalizedId; // Prefix to distinguish from name cache keys
+        
+        try {
+            // Try cache first
+            PortfolioDTO cached = portfolioCache.getIfPresent(cacheKey);
+            if (cached != null) {
+                logger.debug("Cache hit for portfolio ID: {}", normalizedId);
+                return cached;
+            }
+            
+            // Cache miss - call external service
+            logger.debug("Cache miss for portfolio ID: {}, calling external service", normalizedId);
+            Optional<PortfolioDTO> portfolioOpt = portfolioServiceClient.findPortfolioById(normalizedId);
+            
+            if (portfolioOpt.isPresent()) {
+                PortfolioDTO portfolio = portfolioOpt.get();
+                portfolioCache.put(cacheKey, portfolio);
+                logger.debug("Cached portfolio: {} -> {}", normalizedId, portfolio.getName());
+                return portfolio;
+            } else {
+                // External service didn't find the portfolio - cache a fallback
+                PortfolioDTO fallback = createFallbackPortfolioById(normalizedId);
+                portfolioCache.put(cacheKey, fallback);
+                logger.debug("Cached fallback portfolio for ID: {}", normalizedId);
+                return fallback;
+            }
+            
+        } catch (Exception e) {
+            logger.error("Error retrieving portfolio for ID {}: {}", normalizedId, e.getMessage(), e);
+            // Return fallback without caching on error
+            return createFallbackPortfolioById(normalizedId);
+        }
+    }
+
+    /**
      * Get portfolio by name, using cache first, then external service
      * @param name The portfolio name to look up
      * @return PortfolioDTO with name and portfolioId, or fallback with name as both fields
@@ -85,6 +131,14 @@ public class PortfolioCacheService {
     private PortfolioDTO createFallbackPortfolio(String name) {
         String safeName = name != null ? name.trim() : "UNKNOWN";
         return new PortfolioDTO(safeName, safeName);
+    }
+    
+    /**
+     * Create a fallback PortfolioDTO by ID when Portfolio Service doesn't support ID lookup
+     */
+    private PortfolioDTO createFallbackPortfolioById(String portfolioId) {
+        String safeId = portfolioId != null ? portfolioId.trim() : "UNKNOWN";
+        return new PortfolioDTO(safeId, safeId); // Use ID as both portfolioId and name
     }
     
     /**

@@ -174,11 +174,11 @@ public class ExecutionEnhancedService {
             
             try {
                 if (tradeOrder.getPortfolioId() != null) {
-                    portfolio = portfolioCacheService.getPortfolioByName(tradeOrder.getPortfolioId());
+                    portfolio = portfolioCacheService.getPortfolioById(tradeOrder.getPortfolioId());
                 }
                 
                 if (tradeOrder.getSecurityId() != null) {
-                    security = securityCacheService.getSecurityByTicker(tradeOrder.getSecurityId());
+                    security = securityCacheService.getSecurityById(tradeOrder.getSecurityId());
                 }
             } catch (Exception e) {
                 logger.warn("Error enriching trade order {} summary with external data: {}", tradeOrder.getId(), e.getMessage());

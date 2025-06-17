@@ -54,7 +54,7 @@ class PortfolioServiceClientTest {
         assertEquals("PORT123", result.get().getPortfolioId());
         assertEquals("Growth Fund", result.get().getName());
         verify(restTemplate).getForEntity(
-                contains("name=Growth Fund"),
+                contains("name=Growth%20Fund"),
                 eq(PortfolioServiceClient.PortfolioSearchResponse.class)
         );
     }
@@ -217,8 +217,56 @@ class PortfolioServiceClientTest {
 
         // Assert
         verify(restTemplate).getForEntity(
-                contains("name=Growth Technology Fund"),
+                contains("name=Growth%20Technology%20Fund"),
                 eq(PortfolioServiceClient.PortfolioSearchResponse.class)
         );
+    }
+
+    @Test
+    void testFindPortfolioById_Success() {
+        // Arrange
+        String portfolioId = "684f1250c19ad4fb89bbfed7";
+        PortfolioDTO mockPortfolio = new PortfolioDTO();
+        mockPortfolio.setPortfolioId("684f1250c19ad4fb89bbfed7");
+        mockPortfolio.setName("Growth Fund");
+
+        when(restTemplate.getForEntity(anyString(), eq(PortfolioDTO.class)))
+                .thenReturn(ResponseEntity.ok(mockPortfolio));
+
+        // Act
+        Optional<PortfolioDTO> result = portfolioServiceClient.findPortfolioById(portfolioId);
+
+        // Assert
+        assertTrue(result.isPresent());
+        assertEquals("684f1250c19ad4fb89bbfed7", result.get().getPortfolioId());
+        assertEquals("Growth Fund", result.get().getName());
+        verify(restTemplate).getForEntity(
+                contains("/api/v1/portfolio/684f1250c19ad4fb89bbfed7"),
+                eq(PortfolioDTO.class)
+        );
+    }
+
+    @Test
+    void testFindPortfolioById_NotFound() {
+        // Arrange
+        String portfolioId = "unknown";
+        when(restTemplate.getForEntity(anyString(), eq(PortfolioDTO.class)))
+                .thenReturn(ResponseEntity.notFound().build());
+
+        // Act
+        Optional<PortfolioDTO> result = portfolioServiceClient.findPortfolioById(portfolioId);
+
+        // Assert
+        assertFalse(result.isPresent());
+    }
+
+    @Test
+    void testFindPortfolioById_NullId() {
+        // Act
+        Optional<PortfolioDTO> result = portfolioServiceClient.findPortfolioById(null);
+
+        // Assert
+        assertFalse(result.isPresent());
+        verifyNoInteractions(restTemplate);
     }
 } 
