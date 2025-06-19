@@ -21,7 +21,25 @@ public interface TradeOrderService {
     TradeOrder createTradeOrder(TradeOrder tradeOrder);
     TradeOrder updateTradeOrder(Integer id, TradeOrder tradeOrder);
     void deleteTradeOrder(Integer id, Integer version);
-    Execution submitTradeOrder(Integer tradeOrderId, TradeOrderSubmitDTO dto);
+    
+    /**
+     * Submit a trade order for execution
+     * @param tradeOrderId The ID of the trade order to submit
+     * @param dto The submission details
+     * @param noExecuteSubmit When false (default), automatically submits to execution service; when true, only creates local execution
+     * @return The created execution record
+     */
+    Execution submitTradeOrder(Integer tradeOrderId, TradeOrderSubmitDTO dto, boolean noExecuteSubmit);
+    
+    /**
+     * Submit a trade order for execution with default behavior (automatically submits to execution service)
+     * @param tradeOrderId The ID of the trade order to submit
+     * @param dto The submission details
+     * @return The created execution record
+     */
+    default Execution submitTradeOrder(Integer tradeOrderId, TradeOrderSubmitDTO dto) {
+        return submitTradeOrder(tradeOrderId, dto, false);
+    }
     
     /**
      * Result wrapper for paginated data

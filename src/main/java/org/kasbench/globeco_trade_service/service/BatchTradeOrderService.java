@@ -37,11 +37,21 @@ public class BatchTradeOrderService {
     }
     
     /**
-     * Submit multiple trade orders in batch with sequential processing
-     * Note: Changed from async to sequential to avoid Hibernate lazy loading issues
+     * Submit multiple trade orders in batch with default behavior (automatically submits to execution service)
      */
     @Transactional
     public BatchSubmitResponseDTO submitTradeOrdersBatch(BatchSubmitRequestDTO request) {
+        return submitTradeOrdersBatch(request, false);
+    }
+    
+    /**
+     * Submit multiple trade orders in batch with sequential processing
+     * Note: Changed from async to sequential to avoid Hibernate lazy loading issues
+     * @param request The batch submission request
+     * @param noExecuteSubmit When false (default), automatically submits to execution service; when true, only creates local executions
+     */
+    @Transactional
+    public BatchSubmitResponseDTO submitTradeOrdersBatch(BatchSubmitRequestDTO request, boolean noExecuteSubmit) {
         logger.info("Processing batch submission for {} trade orders", request.getSubmissions().size());
         
         // Validate batch size
@@ -62,7 +72,7 @@ public class BatchTradeOrderService {
             int requestIndex = i;
             
             BatchSubmitResponseDTO.TradeOrderSubmitResultDTO result = 
-                processTradeOrderSubmission(submission, requestIndex);
+                processTradeOrderSubmission(submission, requestIndex, noExecuteSubmit);
             
             results.add(result);
         }
@@ -107,7 +117,8 @@ public class BatchTradeOrderService {
      */
     private BatchSubmitResponseDTO.TradeOrderSubmitResultDTO processTradeOrderSubmission(
             BatchSubmitRequestDTO.TradeOrderSubmissionDTO submission, 
-            int requestIndex) {
+            int requestIndex, 
+            boolean noExecuteSubmit) {
         
         try {
             logger.debug("Processing trade order {} submission (index {})", 
@@ -144,7 +155,7 @@ public class BatchTradeOrderService {
             submitDTO.setDestinationId(submission.getDestinationId());
             
             // Submit to trade order service
-            Execution execution = tradeOrderService.submitTradeOrder(submission.getTradeOrderId(), submitDTO);
+            Execution execution = tradeOrderService.submitTradeOrder(submission.getTradeOrderId(), submitDTO, noExecuteSubmit);
             
             // Re-fetch execution with all relationships to avoid lazy loading issues
             Execution executionWithRelations = executionRepository.findByIdWithAllRelations(execution.getId())
