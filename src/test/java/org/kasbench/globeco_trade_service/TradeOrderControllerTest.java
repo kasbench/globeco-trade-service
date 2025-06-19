@@ -84,6 +84,9 @@ public class TradeOrderControllerTest extends org.kasbench.globeco_trade_service
 
     @BeforeEach
     void setUp() {
+        // Reset mock before each test
+        reset(executionService);
+        
         // Ensure required ExecutionStatus and TradeType exist
         if (executionStatusRepository.findById(1).isEmpty()) {
             ExecutionStatus status = new ExecutionStatus();
@@ -255,6 +258,10 @@ public class TradeOrderControllerTest extends org.kasbench.globeco_trade_service
 
     @Test
     void testSubmitTradeOrder_Success() throws Exception {
+        // Mock execution service to return success (needed for new default behavior)
+        ExecutionService.SubmitResult successResult = new ExecutionService.SubmitResult("submitted", null);
+        when(executionService.submitExecution(any(Integer.class))).thenReturn(successResult);
+        
         TradeOrderSubmitDTO submitDTO = new TradeOrderSubmitDTO();
         submitDTO.setQuantity(new BigDecimal("10.00"));
         submitDTO.setDestinationId(1);

@@ -63,6 +63,9 @@ public class TradeOrderServiceImplTest extends org.kasbench.globeco_trade_servic
 
     @BeforeEach
     void setUp() {
+        // Reset mock before each test
+        reset(executionService);
+        
         // Create test data
         executionStatus = new ExecutionStatus();
         executionStatus.setAbbreviation("NEW");
@@ -281,7 +284,6 @@ public class TradeOrderServiceImplTest extends org.kasbench.globeco_trade_servic
     }
 
     @Test
-    @Transactional
     void testSubmitTradeOrder_CompensatingTransactionOnExecutionServiceFailure() {
         // Arrange
         TradeOrder tradeOrder = createTradeOrder();
@@ -301,7 +303,7 @@ public class TradeOrderServiceImplTest extends org.kasbench.globeco_trade_servic
         
         // Verify compensating transaction occurred
         TradeOrder compensatedTradeOrder = tradeOrderRepository.findById(tradeOrder.getId()).orElseThrow();
-        assertEquals(originalQuantitySent, compensatedTradeOrder.getQuantitySent());
+        assertEquals(0, originalQuantitySent.compareTo(compensatedTradeOrder.getQuantitySent()));
         assertEquals(originalSubmitted, compensatedTradeOrder.getSubmitted());
         
         // Verify execution record was deleted (compensating transaction)
@@ -309,7 +311,6 @@ public class TradeOrderServiceImplTest extends org.kasbench.globeco_trade_servic
     }
 
     @Test
-    @Transactional 
     void testSubmitTradeOrder_CompensatingTransactionOnExecutionServiceException() {
         // Arrange
         TradeOrder tradeOrder = createTradeOrder();
@@ -329,7 +330,7 @@ public class TradeOrderServiceImplTest extends org.kasbench.globeco_trade_servic
         
         // Verify compensating transaction occurred
         TradeOrder compensatedTradeOrder = tradeOrderRepository.findById(tradeOrder.getId()).orElseThrow();
-        assertEquals(originalQuantitySent, compensatedTradeOrder.getQuantitySent());
+        assertEquals(0, originalQuantitySent.compareTo(compensatedTradeOrder.getQuantitySent()));
         assertEquals(originalSubmitted, compensatedTradeOrder.getSubmitted());
         
         // Verify execution record was deleted (compensating transaction)
@@ -405,7 +406,6 @@ public class TradeOrderServiceImplTest extends org.kasbench.globeco_trade_servic
     }
 
     @Test
-    @Transactional
     void testSubmitTradeOrder_ExceedsAvailableQuantity() {
         // Arrange
         TradeOrder tradeOrder = createTradeOrder();
