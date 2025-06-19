@@ -198,6 +198,154 @@ paths:
           description: Trade order deleted
         '404':
           description: Trade order not found
+  /tradeOrders/{id}/submit:
+    post:
+      summary: Submit a trade order for execution
+      operationId: submitTradeOrder
+      tags: [TradeOrder]
+      description: |
+        Submit a trade order for execution. By default, this creates an execution record locally AND automatically submits it to the external execution service. 
+        
+        **New Behavior (Default)**: When `noExecuteSubmit=false` or omitted, the operation performs both local execution creation and external service submission with retry logic and compensating transactions for failures.
+        
+        **Legacy Behavior**: When `noExecuteSubmit=true`, only creates the local execution record without external submission.
+        
+        **Error Handling**:
+        - Client errors (4xx) from execution service return 400 without retry
+        - Server errors (5xx) and network failures trigger retry with exponential backoff (3 attempts max)
+        - If external submission fails after retries, compensating transaction deletes the execution record and restores trade order state
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: Trade order ID to submit
+        - name: noExecuteSubmit
+          in: query
+          required: false
+          schema:
+            type: boolean
+            default: false
+          description: |
+            When false (default), automatically submits execution to external service after creating local record. 
+            When true, only creates local execution record (legacy behavior).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TradeOrderSubmitDTO'
+      responses:
+        '201':
+          description: Trade order submitted and execution created (and optionally submitted to external service)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExecutionResponseDTO'
+        '400':
+          description: Bad request (e.g., requested quantity exceeds available quantity, or execution service client error)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: Requested quantity exceeds available quantity
+        '404':
+          description: Trade order not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: TradeOrder not found
+        '500':
+          description: Internal server error (e.g., execution service failure after retries, compensating transaction applied)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: Failed to submit execution to external service after retries
+  /tradeOrders/batch/submit:
+    post:
+      summary: Submit multiple trade orders in batch
+      operationId: submitTradeOrdersBatch
+      tags: [TradeOrder]
+      description: |
+        Submit up to 100 trade orders in a single batch operation with parallel processing. 
+        Returns detailed results for each submission including success/failure status and execution details.
+        
+        **Batch Behavior**: Each trade order is processed independently. If some executions succeed and others fail, 
+        only the failed ones are rolled back using compensating transactions. Successful submissions remain committed.
+        
+        **Default Behavior**: When `noExecuteSubmit=false` or omitted, automatically submits all executions to external service.
+        **Legacy Behavior**: When `noExecuteSubmit=true`, only creates local execution records.
+      parameters:
+        - name: noExecuteSubmit
+          in: query
+          required: false
+          schema:
+            type: boolean
+            default: false
+          description: |
+            When false (default), automatically submits executions to external service after creating local records. 
+            When true, only creates local execution records (legacy behavior).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BatchSubmitRequestDTO'
+      responses:
+        '200':
+          description: All trade orders submitted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BatchSubmitResponseDTO'
+        '207':
+          description: Partial success - some trade orders submitted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BatchSubmitResponseDTO'
+        '400':
+          description: Invalid request format or validation error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: Invalid batch request
+        '413':
+          description: Payload too large - batch size exceeds 100 items
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: Batch size exceeds maximum allowed (100)
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: Error processing batch submission
   /destinations:
     get:
       summary: Get all destinations
@@ -898,6 +1046,20 @@ components:
         blotterId:
           type: integer
       required: [orderId, portfolioId, orderType, securityId, quantity, tradeTimestamp, blotterId]
+    TradeOrderSubmitDTO:
+      type: object
+      description: Request payload for submitting a trade order for execution
+      properties:
+        quantity:
+          type: string
+          format: decimal
+          description: Quantity to submit for execution (BigDecimal as string)
+          example: "50.00"
+        destinationId:
+          type: integer
+          description: ID of the destination for execution
+          example: 1
+      required: [quantity, destinationId]
     DestinationResponseDTO:
       type: object
       properties:
@@ -1120,47 +1282,87 @@ components:
           description: Version for optimistic locking
           example: 1
       required: [executionStatus, quantityFilled, version]
-  /api/v1/tradeOrders/{id}/submit:
-    post:
-      summary: Submit a trade order for execution
-      operationId: submitTradeOrder
-      tags: [TradeOrder]
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: integer
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/TradeOrderSubmitDTO'
-      responses:
-        '201':
-          description: Trade order submitted and execution created
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ExecutionResponseDTO'
-        '400':
-          description: Bad request (e.g., requested quantity exceeds available quantity)
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  error:
-                    type: string
-                    example: Requested quantity exceeds available quantity
-        '404':
-          description: Trade order not found
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  error:
-                    type: string
-                    example: TradeOrder not found 
+    BatchSubmitRequestDTO:
+      type: object
+      description: Request payload for batch trade order submission
+      properties:
+        submissions:
+          type: array
+          minItems: 1
+          maxItems: 100
+          description: List of trade order submissions (1-100 items)
+          items:
+            $ref: '#/components/schemas/TradeOrderSubmissionDTO'
+      required: [submissions]
+    TradeOrderSubmissionDTO:
+      type: object
+      description: Individual trade order submission within a batch
+      properties:
+        tradeOrderId:
+          type: integer
+          description: ID of the trade order to submit
+          example: 123
+        quantity:
+          type: string
+          format: decimal
+          description: Quantity to submit for execution (BigDecimal as string)
+          example: "50.00"
+        destinationId:
+          type: integer
+          description: ID of the destination for execution
+          example: 1
+      required: [tradeOrderId, quantity, destinationId]
+    BatchSubmitResponseDTO:
+      type: object
+      description: Response payload for batch trade order submission
+      properties:
+        status:
+          type: string
+          enum: [SUCCESS, PARTIAL, FAILURE]
+          description: Overall batch status
+        message:
+          type: string
+          description: Summary message for the batch operation
+          example: "Batch processed successfully: 5 successful, 0 failed"
+        totalRequested:
+          type: integer
+          description: Total number of submissions requested
+          example: 5
+        successful:
+          type: integer
+          description: Number of successful submissions
+          example: 5
+        failed:
+          type: integer
+          description: Number of failed submissions
+          example: 0
+        results:
+          type: array
+          description: Detailed results for each submission
+          items:
+            $ref: '#/components/schemas/TradeOrderSubmitResultDTO'
+      required: [status, message, totalRequested, successful, failed, results]
+    TradeOrderSubmitResultDTO:
+      type: object
+      description: Individual trade order submission result within a batch response
+      properties:
+        tradeOrderId:
+          type: integer
+          description: ID of the trade order that was submitted
+          example: 123
+        status:
+          type: string
+          enum: [SUCCESS, FAILURE]
+          description: Status of this individual submission
+        message:
+          type: string
+          description: Success or error message for this submission
+          example: "Trade order submitted successfully"
+        execution:
+          $ref: '#/components/schemas/ExecutionResponseDTO'
+          description: Execution details (present for successful submissions)
+        requestIndex:
+          type: integer
+          description: Index of this submission in the original request array
+          example: 0
+      required: [tradeOrderId, status, message, requestIndex] 

@@ -101,54 +101,94 @@ GET /api/v2/tradeOrders?portfolioNames=Growth Fund,Income Fund&orderType=BUY,SEL
 - **Sorting**: `id`, `orderId`, `quantity`, `price`
 - **Pagination**: Same as trade orders
 
-#### Batch Operations
+#### Batch Operations (Enhanced) 🆕
 - `POST /api/v1/tradeOrders/batch/submit` - Submit multiple trade orders (max 100)
 
-**Request Body:**
-```json
+**Key Features:**
+- **Parallel Processing**: Process up to 100 trade orders simultaneously
+- **Independent Results**: Each submission succeeds or fails independently
+- **Automatic Execution**: By default, submits all executions to external service
+- **Compensating Transactions**: Failed submissions are automatically rolled back
+- **Detailed Results**: Per-submission success/failure status with error details
+
+**Example Request (New Default Behavior):**
+```http
+POST /api/v1/tradeOrders/batch/submit
+Content-Type: application/json
+
 {
-  "tradeOrders": [
+  "submissions": [
     {
-      "orderId": 12345,
-      "orderType": "BUY",
-      "quantity": 100.00,
-      "portfolioId": "PORTFOLIO1",
-      "securityId": "SEC123",
-      "blotterId": "BLOTTER1"
+      "tradeOrderId": 123,
+      "quantity": "50.00",
+      "destinationId": 1
     },
     {
-      "orderId": 12346,
-      "orderType": "SELL",
-      "quantity": 200.00,
-      "portfolioId": "PORTFOLIO2",
-      "securityId": "SEC456",
-      "blotterId": "BLOTTER1"
+      "tradeOrderId": 124,
+      "quantity": "75.00",
+      "destinationId": 2
     }
   ]
 }
 ```
 
-**Response:**
-```json
+**Example Request (Legacy Behavior):**
+```http
+POST /api/v1/tradeOrders/batch/submit?noExecuteSubmit=true
+Content-Type: application/json
+
 {
-  "successCount": 2,
-  "failureCount": 0,
-  "results": [
+  "submissions": [
     {
-      "orderId": 12345,
-      "success": true,
-      "id": 101,
-      "message": "Trade order created successfully"
+      "tradeOrderId": 123,
+      "quantity": "50.00",
+      "destinationId": 1
     },
     {
-      "orderId": 12346,
-      "success": true,
-      "id": 102,
-      "message": "Trade order created successfully"
+      "tradeOrderId": 124,
+      "quantity": "75.00", 
+      "destinationId": 2
     }
   ]
 }
 ```
+
+**Response (Mixed Success/Failure):**
+```json
+{
+  "status": "PARTIAL",
+  "message": "Batch processed: 1 successful, 1 failed",
+  "totalRequested": 2,
+  "successful": 1,
+  "failed": 1,
+  "results": [
+    {
+      "tradeOrderId": 123,
+      "status": "SUCCESS",
+      "message": "Trade order submitted successfully",
+      "execution": {
+        "id": 456,
+        "executionServiceId": 789,
+        "quantityOrdered": "50.00"
+      },
+      "requestIndex": 0
+    },
+    {
+      "tradeOrderId": 124,
+      "status": "FAILURE", 
+      "message": "Execution service submission failed: Service unavailable",
+      "execution": null,
+      "requestIndex": 1
+    }
+  ]
+}
+```
+
+**HTTP Status Codes:**
+- `200`: All successful or mixed results
+- `207`: Partial success (some failed)
+- `400`: Invalid request format
+- `413`: Batch size exceeds 100 items
 
 ### v1 API (Backward Compatible) ✅
 
@@ -190,6 +230,80 @@ X-Total-Count: 1500
 - `GET /api/v1/tradeOrders/{id}` - Get trade order by ID
 - `PUT /api/v1/tradeOrders/{id}` - Update trade order
 - `DELETE /api/v1/tradeOrders/{id}` - Delete trade order
+- `POST /api/v1/tradeOrders/{id}/submit` - Submit trade order for execution 🆕
+
+#### Trade Order Submission (Enhanced) 🆕
+
+**Single Submission:**
+- `POST /api/v1/tradeOrders/{id}/submit` - Submit a trade order for execution
+
+**Key Features:**
+- **Automated Execution**: By default, automatically submits to external execution service
+- **Legacy Support**: Use `noExecuteSubmit=true` for legacy behavior (local execution only)
+- **Retry Logic**: 3 attempts with exponential backoff for server errors/timeouts
+- **Compensating Transactions**: Automatic rollback on external service failures
+- **Error Handling**: Differentiated responses for client vs server errors
+
+**Example Request (New Default Behavior):**
+```http
+POST /api/v1/tradeOrders/123/submit
+Content-Type: application/json
+
+{
+  "quantity": "50.00",
+  "destinationId": 1
+}
+```
+
+**Example Request (Legacy Behavior):**
+```http
+POST /api/v1/tradeOrders/123/submit?noExecuteSubmit=true
+Content-Type: application/json
+
+{
+  "quantity": "50.00", 
+  "destinationId": 1
+}
+```
+
+**Response (Success):**
+```json
+{
+  "id": 456,
+  "executionTimestamp": "2025-01-15T10:30:00Z",
+  "executionStatus": {
+    "id": 2,
+    "abbreviation": "SENT",
+    "description": "Sent to external service"
+  },
+  "tradeOrder": {
+    "id": 123,
+    "orderId": 12345,
+    "quantity": 100.00,
+    "quantitySent": 50.00,
+    "submitted": false
+  },
+  "destination": {
+    "id": 1,
+    "abbreviation": "DEST1",
+    "description": "Primary Destination"
+  },
+  "quantityOrdered": "50.00",
+  "quantityPlaced": "50.00",
+  "quantityFilled": "0.00",
+  "limitPrice": "150.25",
+  "executionServiceId": 789,
+  "version": 1
+}
+```
+
+**Behavior Changes:**
+- **Default (noExecuteSubmit=false)**: Creates execution record AND submits to external service
+- **Legacy (noExecuteSubmit=true)**: Only creates execution record locally
+- **Error Responses**: 
+  - `400`: Client errors (bad request, quantity exceeded, execution service 4xx)
+  - `500`: Server errors (external service failures after retries)
+- **Rollback**: Failed external submissions trigger compensating transactions
 
 #### Executions v1 (Enhanced with Optional Pagination)
 - `GET /api/v1/executions` - Get executions with optional pagination
@@ -284,6 +398,12 @@ GET /api/v2/tradeOrders?portfolioNames=Growth Fund&orderType=BUY&sortBy=quantity
 - **Composite Indexes**: For common filter combinations
 - **Connection Pooling**: HikariCP with optimized settings
 - **Query Optimization**: JPA Specifications for dynamic filtering
+
+#### Execution Service Integration 🆕
+- **Retry Logic**: Exponential backoff with 3 max attempts
+- **Timeout Configuration**: 10s per request, 30s total operation timeout
+- **Compensating Transactions**: Automatic rollback on failures
+- **Error Classification**: Smart retry for server errors, no retry for client errors
 
 ## 🚀 Quick Start
 

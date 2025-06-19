@@ -170,11 +170,11 @@ Update README.md sections:
 - [x] Write integration tests for batch processing with mixed success/failure scenarios
 - [x] Update existing tests that may be affected by the changes
 
-### Phase 4: Documentation Updates
-- [ ] Update `openapi.yaml` with new query parameter and behavior documentation
-- [ ] Update README.md with new API behavior and examples
-- [ ] Document retry logic and timeout configuration
-- [ ] Update any API documentation or guides that reference these endpoints
+### Phase 4: Documentation Updates ✅ COMPLETED
+- [x] Update `openapi.yaml` with new query parameter and behavior documentation
+- [x] Update README.md with new API behavior and examples
+- [x] Document retry logic and timeout configuration
+- [x] Update any API documentation or guides that reference these endpoints
 
 ### Phase 5: Backward Compatibility Validation
 - [ ] Verify that existing clients continue to work with new default behavior
