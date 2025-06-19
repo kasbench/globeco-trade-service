@@ -69,10 +69,12 @@ public class BatchTradeOrderController {
     })
     public ResponseEntity<BatchSubmitResponseDTO> submitTradeOrdersBatch(
             @Parameter(description = "Batch submission request containing trade order submissions", required = true)
-            @Valid @RequestBody BatchSubmitRequestDTO request) {
+            @Valid @RequestBody BatchSubmitRequestDTO request,
+            @Parameter(description = "When false (default), automatically submits to execution service; when true, only creates local executions")
+            @org.springframework.web.bind.annotation.RequestParam(value = "noExecuteSubmit", required = false, defaultValue = "false") boolean noExecuteSubmit) {
         
-        logger.info("POST /api/v1/tradeOrders/batch/submit - Processing batch of {} trade orders", 
-                   request.getSubmissions() != null ? request.getSubmissions().size() : 0);
+        logger.info("POST /api/v1/tradeOrders/batch/submit - Processing batch of {} trade orders, noExecuteSubmit={}", 
+                   request.getSubmissions() != null ? request.getSubmissions().size() : 0, noExecuteSubmit);
         
         try {
             // Validate batch size at controller level for early rejection
@@ -84,7 +86,7 @@ public class BatchTradeOrderController {
             }
             
             // Process batch submission
-            BatchSubmitResponseDTO response = batchTradeOrderService.submitTradeOrdersBatch(request);
+            BatchSubmitResponseDTO response = batchTradeOrderService.submitTradeOrdersBatch(request, noExecuteSubmit);
             
             // Determine HTTP status based on batch results
             HttpStatus status = determineHttpStatus(response);

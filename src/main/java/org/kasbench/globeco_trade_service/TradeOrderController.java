@@ -105,10 +105,15 @@ public class TradeOrderController {
     }
 
     @PostMapping("/{id}/submit")
-    public ResponseEntity<ExecutionResponseDTO> submitTradeOrder(@PathVariable Integer id, @RequestBody TradeOrderSubmitDTO dto) {
-        logger.info("submitTradeOrder called with id={} and dto={}", id, dto);
+    public ResponseEntity<ExecutionResponseDTO> submitTradeOrder(
+            @PathVariable Integer id, 
+            @RequestBody TradeOrderSubmitDTO dto,
+            @RequestParam(value = "noExecuteSubmit", required = false, defaultValue = "false") boolean noExecuteSubmit) {
+        
+        logger.info("submitTradeOrder called with id={}, dto={}, noExecuteSubmit={}", id, dto, noExecuteSubmit);
+        
         try {
-            Execution execution = tradeOrderService.submitTradeOrder(id, dto);
+            Execution execution = tradeOrderService.submitTradeOrder(id, dto, noExecuteSubmit);
             ExecutionResponseDTO response;
             try {
                 response = toExecutionResponseDTO(execution);
@@ -119,7 +124,11 @@ public class TradeOrderController {
             logger.info("Returning ExecutionResponseDTO: {}", response);
             return new ResponseEntity<>(response, HttpStatus.CREATED);
         } catch (IllegalArgumentException e) {
-            if (e.getMessage().contains("not found") && e.getMessage().contains("Destination")) {
+            if (e.getMessage().contains("Execution service rejected the request")) {
+                // External service validation error - return 400 with details
+                logger.warn("Execution service rejected request for trade order {}: {}", id, e.getMessage());
+                return ResponseEntity.badRequest().build();
+            } else if (e.getMessage().contains("not found") && e.getMessage().contains("Destination")) {
                 return ResponseEntity.badRequest().build();
             } else if (e.getMessage().contains("not found")) {
                 return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
@@ -127,6 +136,15 @@ public class TradeOrderController {
                 return ResponseEntity.badRequest().build();
             } else {
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
+            }
+        } catch (RuntimeException e) {
+            if (e.getMessage().contains("Failed to submit execution to external service")) {
+                // External service failure - return 500
+                logger.error("External execution service failure for trade order {}: {}", id, e.getMessage());
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+            } else {
+                logger.error("Runtime exception in submitTradeOrder: {}: {}", e.getClass().getName(), e.getMessage(), e);
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
             }
         } catch (Exception e) {
             logger.error("Exception in submitTradeOrder: {}: {}", e.getClass().getName(), e.getMessage(), e);
