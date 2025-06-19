@@ -87,6 +87,9 @@ public class TradeOrderControllerTest extends org.kasbench.globeco_trade_service
         // Reset mock before each test
         reset(executionService);
         
+        // Clean up executions from previous tests to avoid accumulation
+        executionRepository.deleteAll();
+        
         // Ensure required ExecutionStatus and TradeType exist
         if (executionStatusRepository.findById(1).isEmpty()) {
             ExecutionStatus status = new ExecutionStatus();
@@ -453,7 +456,7 @@ public class TradeOrderControllerTest extends org.kasbench.globeco_trade_service
 
         // Assert - Verify compensating transaction
         TradeOrder compensatedTradeOrder = tradeOrderRepository.findById(tradeOrder.getId()).orElseThrow();
-        assertEquals(originalQuantitySent, compensatedTradeOrder.getQuantitySent());
+        assertEquals(0, originalQuantitySent.compareTo(compensatedTradeOrder.getQuantitySent()));
         assertEquals(originalSubmitted, compensatedTradeOrder.getSubmitted());
         
         // Verify no execution records remain

@@ -66,6 +66,9 @@ public class TradeOrderServiceImplTest extends org.kasbench.globeco_trade_servic
         // Reset mock before each test
         reset(executionService);
         
+        // Clean up executions from previous tests to avoid accumulation
+        executionRepository.deleteAll();
+        
         // Create test data
         executionStatus = new ExecutionStatus();
         executionStatus.setAbbreviation("NEW");
