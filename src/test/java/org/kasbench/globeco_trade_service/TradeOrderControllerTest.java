@@ -13,19 +13,26 @@ import org.kasbench.globeco_trade_service.entity.ExecutionStatus;
 import org.kasbench.globeco_trade_service.entity.TradeType;
 import org.kasbench.globeco_trade_service.entity.Destination;
 import org.kasbench.globeco_trade_service.service.TradeOrderService;
+import org.kasbench.globeco_trade_service.service.ExecutionService;
 import org.kasbench.globeco_trade_service.repository.BlotterRepository;
 import org.kasbench.globeco_trade_service.repository.ExecutionStatusRepository;
 import org.kasbench.globeco_trade_service.repository.TradeTypeRepository;
 import org.kasbench.globeco_trade_service.repository.DestinationRepository;
 import org.kasbench.globeco_trade_service.repository.TradeOrderRepository;
+import org.kasbench.globeco_trade_service.repository.ExecutionRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.web.client.HttpClientErrorException;
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.Random;
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -55,8 +62,15 @@ public class TradeOrderControllerTest extends org.kasbench.globeco_trade_service
     @Autowired
     private TradeOrderRepository tradeOrderRepository;
 
+    @Autowired
+    private ExecutionRepository executionRepository;
+
+    @MockBean
+    private ExecutionService executionService;
+
     private TradeOrder tradeOrder;
     private Blotter blotter;
+    private Destination destination;
 
     private static String randomAlphaNum(int len) {
         String chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
@@ -93,7 +107,9 @@ public class TradeOrderControllerTest extends org.kasbench.globeco_trade_service
             dest.setAbbreviation("DEST1");
             dest.setDescription("Test Destination");
             dest.setVersion(1);
-            destinationRepository.saveAndFlush(dest);
+            destination = destinationRepository.saveAndFlush(dest);
+        } else {
+            destination = destinationRepository.findById(1).orElseThrow();
         }
         blotter = new Blotter();
         blotter.setAbbreviation("EQ" + ThreadLocalRandom.current().nextInt(1_000_000));
@@ -291,12 +307,149 @@ public class TradeOrderControllerTest extends org.kasbench.globeco_trade_service
 
     @Test
     void testSubmitTradeOrder_MissingDestination() throws Exception {
-        TradeOrderSubmitDTO submitDTO = new TradeOrderSubmitDTO();
-        submitDTO.setQuantity(new BigDecimal("10"));
-        submitDTO.setDestinationId(999999);
-        mockMvc.perform(post("/api/v1/tradeOrders/" + tradeOrder.getId() + "/submit")
+        TradeOrderSubmitDTO dto = new TradeOrderSubmitDTO();
+        dto.setQuantity(new BigDecimal("50.00"));
+        dto.setDestinationId(99999);
+
+        mockMvc.perform(post("/api/v1/tradeOrders/{id}/submit", tradeOrder.getId())
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(submitDTO)))
+                .content(objectMapper.writeValueAsString(dto)))
                 .andExpect(status().isBadRequest());
+    }
+
+    // ========== Phase 3 Integration Tests: New Functionality ==========
+
+    @Test
+    void testSubmitTradeOrder_WithNoExecuteSubmitTrue() throws Exception {
+        // Arrange
+        TradeOrderSubmitDTO dto = new TradeOrderSubmitDTO();
+        dto.setQuantity(new BigDecimal("50.00"));
+        dto.setDestinationId(destination.getId());
+
+        // Act & Assert
+        mockMvc.perform(post("/api/v1/tradeOrders/{id}/submit", tradeOrder.getId())
+                .param("noExecuteSubmit", "true")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(dto)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.id").exists())
+                .andExpect(jsonPath("$.quantityOrdered").value(50.00))
+                .andExpect(jsonPath("$.executionServiceId").isEmpty()); // Should be null for legacy behavior
+    }
+
+    @Test
+    void testSubmitTradeOrder_WithNoExecuteSubmitFalse() throws Exception {
+        // Arrange
+        TradeOrderSubmitDTO dto = new TradeOrderSubmitDTO();
+        dto.setQuantity(new BigDecimal("50.00"));
+        dto.setDestinationId(destination.getId());
+
+        // Mock execution service to return success
+        ExecutionService.SubmitResult successResult = new ExecutionService.SubmitResult("submitted", null);
+        when(executionService.submitExecution(any(Integer.class))).thenReturn(successResult);
+
+        // Act & Assert
+        mockMvc.perform(post("/api/v1/tradeOrders/{id}/submit", tradeOrder.getId())
+                .param("noExecuteSubmit", "false")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(dto)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.id").exists())
+                .andExpect(jsonPath("$.quantityOrdered").value(50.00));
+
+        // Verify execution service was called
+        verify(executionService, times(1)).submitExecution(any(Integer.class));
+    }
+
+    @Test
+    void testSubmitTradeOrder_DefaultBehavior_AutoSubmitsToExecutionService() throws Exception {
+        // Arrange
+        TradeOrderSubmitDTO dto = new TradeOrderSubmitDTO();
+        dto.setQuantity(new BigDecimal("50.00"));
+        dto.setDestinationId(destination.getId());
+
+        // Mock execution service to return success
+        ExecutionService.SubmitResult successResult = new ExecutionService.SubmitResult("submitted", null);
+        when(executionService.submitExecution(any(Integer.class))).thenReturn(successResult);
+
+        // Act & Assert - No noExecuteSubmit parameter (should default to false)
+        mockMvc.perform(post("/api/v1/tradeOrders/{id}/submit", tradeOrder.getId())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(dto)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.id").exists())
+                .andExpect(jsonPath("$.quantityOrdered").value(50.00));
+
+        // Verify execution service was called (default behavior)
+        verify(executionService, times(1)).submitExecution(any(Integer.class));
+    }
+
+    @Test
+    void testSubmitTradeOrder_ExecutionServiceClientError() throws Exception {
+        // Arrange
+        TradeOrderSubmitDTO dto = new TradeOrderSubmitDTO();
+        dto.setQuantity(new BigDecimal("50.00"));
+        dto.setDestinationId(destination.getId());
+
+        // Mock execution service to return client error
+        HttpClientErrorException clientError = mock(HttpClientErrorException.class);
+        RuntimeException wrappedException = new RuntimeException("Execution service submission failed: Bad request", clientError);
+        when(executionService.submitExecution(any(Integer.class))).thenThrow(wrappedException);
+
+        // Act & Assert
+        mockMvc.perform(post("/api/v1/tradeOrders/{id}/submit", tradeOrder.getId())
+                .param("noExecuteSubmit", "false")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(dto)))
+                .andExpect(status().isBadRequest()); // Should return 400 for client errors
+    }
+
+    @Test
+    void testSubmitTradeOrder_ExecutionServiceServerError() throws Exception {
+        // Arrange
+        TradeOrderSubmitDTO dto = new TradeOrderSubmitDTO();
+        dto.setQuantity(new BigDecimal("50.00"));
+        dto.setDestinationId(destination.getId());
+
+        // Mock execution service to return server error
+        RuntimeException serverError = new RuntimeException("Failed to submit execution to external service: Service unavailable");
+        when(executionService.submitExecution(any(Integer.class))).thenThrow(serverError);
+
+        // Act & Assert
+        mockMvc.perform(post("/api/v1/tradeOrders/{id}/submit", tradeOrder.getId())
+                .param("noExecuteSubmit", "false")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(dto)))
+                .andExpect(status().isInternalServerError()); // Should return 500 for server errors
+    }
+
+    @Test
+    void testSubmitTradeOrder_CompensatingTransactionVerification() throws Exception {
+        // Arrange
+        BigDecimal originalQuantitySent = tradeOrder.getQuantitySent();
+        Boolean originalSubmitted = tradeOrder.getSubmitted();
+        
+        TradeOrderSubmitDTO dto = new TradeOrderSubmitDTO();
+        dto.setQuantity(new BigDecimal("50.00"));
+        dto.setDestinationId(destination.getId());
+
+        // Mock execution service to fail
+        ExecutionService.SubmitResult failureResult = new ExecutionService.SubmitResult(null, "Service unavailable");
+        when(executionService.submitExecution(any(Integer.class))).thenReturn(failureResult);
+
+        // Act
+        mockMvc.perform(post("/api/v1/tradeOrders/{id}/submit", tradeOrder.getId())
+                .param("noExecuteSubmit", "false")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(dto)))
+                .andExpect(status().isInternalServerError());
+
+        // Assert - Verify compensating transaction
+        TradeOrder compensatedTradeOrder = tradeOrderRepository.findById(tradeOrder.getId()).orElseThrow();
+        assertEquals(originalQuantitySent, compensatedTradeOrder.getQuantitySent());
+        assertEquals(originalSubmitted, compensatedTradeOrder.getSubmitted());
+        
+        // Verify no execution records remain
+        assertEquals(0, executionRepository.findAll().size());
     }
 } 

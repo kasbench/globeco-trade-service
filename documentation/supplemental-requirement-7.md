@@ -160,15 +160,15 @@ Update README.md sections:
 - [x] Ensure proper parameter validation and error handling
 - [x] Update response handling for new error scenarios
 
-### Phase 3: Testing
-- [ ] Write unit tests for `TradeOrderServiceImpl` with `noExecuteSubmit=false` scenario
-- [ ] Write unit tests for compensating transaction rollback scenarios
-- [ ] Write unit tests for retry logic with various failure scenarios
-- [ ] Write unit tests for `noExecuteSubmit=true` scenario (legacy behavior)
-- [ ] Write integration tests for both single and batch endpoints
-- [ ] Write integration tests for error scenarios and rollback behavior
-- [ ] Write integration tests for batch processing with mixed success/failure scenarios
-- [ ] Update existing tests that may be affected by the changes
+### Phase 3: Testing ✅ COMPLETED
+- [x] Write unit tests for `TradeOrderServiceImpl` with `noExecuteSubmit=false` scenario
+- [x] Write unit tests for compensating transaction rollback scenarios
+- [x] Write unit tests for retry logic with various failure scenarios
+- [x] Write unit tests for `noExecuteSubmit=true` scenario (legacy behavior)
+- [x] Write integration tests for both single and batch endpoints
+- [x] Write integration tests for error scenarios and rollback behavior
+- [x] Write integration tests for batch processing with mixed success/failure scenarios
+- [x] Update existing tests that may be affected by the changes
 
 ### Phase 4: Documentation Updates
 - [ ] Update `openapi.yaml` with new query parameter and behavior documentation
