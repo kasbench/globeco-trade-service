@@ -136,7 +136,11 @@ public class ExecutionV2Controller {
             
             @Parameter(description = "Maximum quantity filled filter", example = "250.00")
             @RequestParam(name = "quantityFilled.max", required = false) 
-            BigDecimal quantityFilledMax) {
+            BigDecimal quantityFilledMax,
+            
+            @Parameter(description = "Filter by execution service ID (exact match)", example = "789")
+            @RequestParam(name = "executionServiceId", required = false)
+            Integer executionServiceId) {
         
         logger.info("GET /api/v2/executions - limit: {}, offset: {}, sort: {}, filters applied", 
                    limit, offset, sort);
@@ -158,7 +162,8 @@ public class ExecutionV2Controller {
                 tradeTypeAbbreviation, tradeOrderId, destinationAbbreviation,
                 portfolioName, securityTicker,
                 quantityOrderedMin, quantityOrderedMax, quantityPlacedMin, quantityPlacedMax,
-                quantityFilledMin, quantityFilledMax
+                quantityFilledMin, quantityFilledMax,
+                executionServiceId
             );
             
             logger.info("Successfully retrieved {} executions out of {} total", 

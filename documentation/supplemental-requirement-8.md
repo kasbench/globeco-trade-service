@@ -38,3 +38,12 @@ Enhance the executions API to support filtering by `executionServiceId`, improve
 - The controller and service layer for `/api/v2/executions` will need to be updated to accept and process the new query parameter.
 - Tests should be added or updated in the relevant test classes (likely under `ExecutionV2ControllerTest` or similar).
 
+---
+
+**Implementation Status:**
+- [x] Code changes complete (controller, service, repository/specification)
+- [x] Tests added for filtering by executionServiceId
+- [x] Documentation updated (OpenAPI, README, API guides, migration guide)
+
+**Ready for review.**
+

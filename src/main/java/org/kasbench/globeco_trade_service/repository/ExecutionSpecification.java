@@ -223,6 +223,16 @@ public class ExecutionSpecification {
     }
     
     /**
+     * Filter by executionServiceId (exact match)
+     */
+    public static Specification<Execution> hasExecutionServiceId(Integer executionServiceId) {
+        return (root, query, criteriaBuilder) -> {
+            if (executionServiceId == null) return null;
+            return criteriaBuilder.equal(root.get("executionServiceId"), executionServiceId);
+        };
+    }
+    
+    /**
      * Combine multiple specifications with AND logic
      */
     public static Specification<Execution> buildSpecification(
@@ -239,8 +249,9 @@ public class ExecutionSpecification {
             BigDecimal quantityPlacedMin,
             BigDecimal quantityPlacedMax,
             BigDecimal quantityFilledMin,
-            BigDecimal quantityFilledMax) {
-        
+            BigDecimal quantityFilledMax,
+            Integer executionServiceId
+    ) {
         return Specification.where(hasId(id))
                 .and(hasExecutionStatusAbbreviation(executionStatusAbbreviation))
                 .and(hasBlotterAbbreviation(blotterAbbreviation))
@@ -254,6 +265,7 @@ public class ExecutionSpecification {
                 .and(hasQuantityPlacedGreaterThanOrEqual(quantityPlacedMin))
                 .and(hasQuantityPlacedLessThanOrEqual(quantityPlacedMax))
                 .and(hasQuantityFilledGreaterThanOrEqual(quantityFilledMin))
-                .and(hasQuantityFilledLessThanOrEqual(quantityFilledMax));
+                .and(hasQuantityFilledLessThanOrEqual(quantityFilledMax))
+                .and(hasExecutionServiceId(executionServiceId));
     }
 } 

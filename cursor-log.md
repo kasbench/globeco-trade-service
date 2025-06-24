@@ -138,9 +138,8 @@
 
 ## 2024-06-10
 
-- Reviewed and updated `documentation/supplemental-requirement-8.md` for clarity and completeness.
-- Incorporated user clarifications:
-  - Only a single integer value for `executionServiceId` is supported (no multi-value or range).
-  - No special performance or load requirements.
-  - No changes to error handling or response DTOs.
-- Document now clearly outlines the requirements, implementation notes, and removes open questions.
+- Completed implementation of Supplemental Requirement 8:
+  - Added executionServiceId filter to GET /api/v2/executions (controller, service, repository/specification).
+  - Added repository-level tests for filtering by executionServiceId, including edge cases.
+  - Updated OpenAPI spec, README, API guides, and migration guide to document the new filter and provide examples.
+- Marked implementation as ready for review in the requirement doc.

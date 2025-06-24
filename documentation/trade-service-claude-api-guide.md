@@ -294,17 +294,16 @@ GET /api/v2/tradeOrders?portfolio.name=Growth Fund,Income Fund&orderType=BUY&sor
 ### Executions v2
 
 #### GET /api/v2/executions
-**Purpose**: Advanced execution retrieval with filtering, sorting, and pagination
+**Purpose**: Retrieve executions with enhanced filtering, sorting, and pagination
 **Method**: GET
+**Parameters**: Supports all v2 filters, including:
+- `executionServiceId` (integer, optional): Filter by execution service ID (exact match)
+- `orderId`, `quantity`, `price`, etc.
 
-**Filtering Parameters**:
-- `id` (Integer): Filter by execution ID
-- `orderId` (Integer): Filter by order ID
-- `quantity` (BigDecimal): Filter by execution quantity
-- `price` (BigDecimal): Filter by execution price
-
-**Sorting Fields**:
-- `id`, `orderId`, `quantity`, `price`
+**Example Request (Filter by executionServiceId):**
+```http
+GET /api/v2/executions?executionServiceId=789
+```
 
 ### Batch Operations
 

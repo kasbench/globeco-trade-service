@@ -46,7 +46,7 @@ This guide helps you migrate from v1 to v2 endpoints of the Globeco Trade Servic
 | v1 Endpoint | v2 Endpoint | Migration Notes |
 |-------------|-------------|-----------------|
 | `GET /api/v1/tradeOrders` | `GET /api/v2/tradeOrders` | Enhanced with filtering, sorting, pagination |
-| `GET /api/v1/executions` | `GET /api/v2/executions` | Enhanced with filtering, sorting, pagination |
+| `GET /api/v1/executions` | `GET /api/v2/executions` | Enhanced with filtering, sorting, pagination, and new `executionServiceId` filter |
 | N/A | `POST /api/v1/tradeOrders/batch/submit` | New batch operation endpoint |
 
 ## Parameter Changes

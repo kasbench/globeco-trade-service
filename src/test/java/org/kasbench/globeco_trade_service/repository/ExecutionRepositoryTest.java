@@ -5,13 +5,16 @@ import org.kasbench.globeco_trade_service.entity.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.junit.jupiter.api.Assertions;
+import org.springframework.data.jpa.domain.Specification;
 
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.Random;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThat;
 
 @SpringBootTest
 public class ExecutionRepositoryTest extends org.kasbench.globeco_trade_service.AbstractPostgresContainerTest {
@@ -28,37 +31,37 @@ public class ExecutionRepositoryTest extends org.kasbench.globeco_trade_service.
     @Autowired
     private DestinationRepository destinationRepository;
 
-    private Execution buildExecution() {
+    private Execution buildExecution(Integer executionServiceId) {
         ExecutionStatus status = new ExecutionStatus();
-        status.setAbbreviation("NEW" + ThreadLocalRandom.current().nextInt(1_000_000));
-        status.setDescription("New" + ThreadLocalRandom.current().nextInt(1_000_000));
-        status = executionStatusRepository.save(status);
+        status.setAbbreviation("NEW" + System.nanoTime());
+        status.setDescription("New");
+        status = executionStatusRepository.saveAndFlush(status);
 
         Blotter blotter = new Blotter();
-        blotter.setAbbreviation("EQ" + ThreadLocalRandom.current().nextInt(1_000_000));
-        blotter.setName("Equity" + ThreadLocalRandom.current().nextInt(1_000_000));
-        blotter = blotterRepository.save(blotter);
+        blotter.setAbbreviation("EQ");
+        blotter.setName("Equity");
+        blotter = blotterRepository.saveAndFlush(blotter);
 
         TradeType tradeType = new TradeType();
-        tradeType.setAbbreviation("BUY" + ThreadLocalRandom.current().nextInt(1_000_000));
-        tradeType.setDescription("Buy" + ThreadLocalRandom.current().nextInt(1_000_000));
-        tradeType = tradeTypeRepository.save(tradeType);
+        tradeType.setAbbreviation("BUY");
+        tradeType.setDescription("Buy");
+        tradeType = tradeTypeRepository.saveAndFlush(tradeType);
 
         TradeOrder tradeOrder = new TradeOrder();
-        tradeOrder.setOrderId(ThreadLocalRandom.current().nextInt(1_000_000, 2_000_000));
-        tradeOrder.setPortfolioId(randomAlphaNum(12));
+        tradeOrder.setOrderId((int) (Math.random() * 1000000));
+        tradeOrder.setPortfolioId("PORT1");
         tradeOrder.setOrderType("BUY");
-        tradeOrder.setSecurityId(randomAlphaNum(12));
+        tradeOrder.setSecurityId("SEC1");
         tradeOrder.setQuantity(new BigDecimal("100.00"));
         tradeOrder.setLimitPrice(new BigDecimal("10.00"));
         tradeOrder.setTradeTimestamp(OffsetDateTime.now());
         tradeOrder.setBlotter(blotter);
-        tradeOrder = tradeOrderRepository.save(tradeOrder);
+        tradeOrder = tradeOrderRepository.saveAndFlush(tradeOrder);
 
         Destination destination = new Destination();
-        destination.setAbbreviation("ML" + ThreadLocalRandom.current().nextInt(1_000_000));
-        destination.setDescription("Merrill Lynch" + ThreadLocalRandom.current().nextInt(1_000_000));
-        destination = destinationRepository.save(destination);
+        destination.setAbbreviation("ML");
+        destination.setDescription("Merrill Lynch");
+        destination = destinationRepository.saveAndFlush(destination);
 
         Execution execution = new Execution();
         execution.setExecutionTimestamp(OffsetDateTime.now());
@@ -71,7 +74,9 @@ public class ExecutionRepositoryTest extends org.kasbench.globeco_trade_service.
         execution.setQuantityPlaced(new BigDecimal("100.00"));
         execution.setQuantityFilled(new BigDecimal("0.00"));
         execution.setLimitPrice(new BigDecimal("10.00"));
-        return execution;
+        execution.setExecutionServiceId(executionServiceId);
+        execution.setVersion(1);
+        return executionRepository.saveAndFlush(execution);
     }
 
     private static String randomAlphaNum(int len) {
@@ -86,7 +91,7 @@ public class ExecutionRepositoryTest extends org.kasbench.globeco_trade_service.
 
     @Test
     void testCrud() {
-        Execution execution = buildExecution();
+        Execution execution = buildExecution(null);
         Execution saved = executionRepository.save(execution);
         assertNotNull(saved.getId());
         Execution found = executionRepository.findById(saved.getId()).orElse(null);
@@ -102,7 +107,7 @@ public class ExecutionRepositoryTest extends org.kasbench.globeco_trade_service.
 
     @Test
     void testOptimisticConcurrency() {
-        Execution execution = buildExecution();
+        Execution execution = buildExecution(null);
         Execution saved = executionRepository.save(execution);
         Execution e1 = executionRepository.findById(saved.getId()).get();
         Execution e2 = executionRepository.findById(saved.getId()).get();
@@ -112,5 +117,27 @@ public class ExecutionRepositoryTest extends org.kasbench.globeco_trade_service.
         org.junit.jupiter.api.Assertions.assertThrows(org.springframework.dao.OptimisticLockingFailureException.class, () -> executionRepository.saveAndFlush(e2));
         // Clean up
         executionRepository.deleteById(saved.getId());
+    }
+
+    @Test
+    void testFilterByExecutionServiceId() {
+        Execution e1 = buildExecution(12345);
+        Execution e2 = buildExecution(67890);
+        Execution e3 = buildExecution(null);
+
+        // Exact match
+        Specification<Execution> spec = ExecutionSpecification.hasExecutionServiceId(12345);
+        List<Execution> results = executionRepository.findAll(spec);
+        assertThat(results).extracting(Execution::getExecutionServiceId).containsExactly(12345);
+
+        // No match
+        spec = ExecutionSpecification.hasExecutionServiceId(99999);
+        results = executionRepository.findAll(spec);
+        assertThat(results).isEmpty();
+
+        // Null parameter returns all
+        spec = ExecutionSpecification.hasExecutionServiceId(null);
+        results = executionRepository.findAll(spec);
+        assertThat(results.size()).isGreaterThanOrEqualTo(3);
     }
 } 

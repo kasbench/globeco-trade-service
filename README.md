@@ -97,9 +97,41 @@ GET /api/v2/tradeOrders?portfolioNames=Growth Fund,Income Fund&orderType=BUY,SEL
 - `GET /api/v2/executions` - Enhanced executions with filtering, sorting, and pagination
 
 **Key Features:**
-- **Filtering**: `orderId`, `quantity`, `price`
+- **Filtering**: `executionServiceId`, `orderId`, `quantity`, `price`
 - **Sorting**: `id`, `orderId`, `quantity`, `price`
 - **Pagination**: Same as trade orders
+
+**Example Request (Filter by executionServiceId):**
+```http
+GET /api/v2/executions?executionServiceId=789
+```
+
+**Example Response:**
+```json
+{
+  "content": [
+    {
+      "id": 456,
+      "executionServiceId": 789,
+      "quantityOrdered": "50.00",
+      // ... other fields ...
+    }
+  ],
+  "pageable": {
+    "sort": {
+      "sorted": true,
+      "orders": [{"property": "id", "direction": "ASC"}]
+    },
+    "pageNumber": 0,
+    "pageSize": 25
+  },
+  "totalElements": 1,
+  "totalPages": 1,
+  "first": true,
+  "last": true,
+  "empty": false
+}
+```
 
 #### Batch Operations (Enhanced) 🆕
 - `POST /api/v1/tradeOrders/batch/submit` - Submit multiple trade orders (max 100)

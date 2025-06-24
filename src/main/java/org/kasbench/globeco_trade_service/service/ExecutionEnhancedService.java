@@ -64,7 +64,9 @@ public class ExecutionEnhancedService {
             BigDecimal quantityPlacedMin,
             BigDecimal quantityPlacedMax,
             BigDecimal quantityFilledMin,
-            BigDecimal quantityFilledMax) {
+            BigDecimal quantityFilledMax,
+            Integer executionServiceId
+    ) {
         
         logger.debug("Getting executions v2 with filters - limit: {}, offset: {}, sort: {}", limit, offset, sort);
         
@@ -95,7 +97,8 @@ public class ExecutionEnhancedService {
             id, executionStatusAbbreviation, blotterAbbreviation, tradeTypeAbbreviation,
             tradeOrderId, destinationAbbreviation, portfolioId, securityId,
             quantityOrderedMin, quantityOrderedMax, quantityPlacedMin, quantityPlacedMax,
-            quantityFilledMin, quantityFilledMax
+            quantityFilledMin, quantityFilledMax,
+            executionServiceId
         );
         
         // Execute query

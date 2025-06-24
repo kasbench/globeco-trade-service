@@ -311,6 +311,12 @@ paths:
           required: false
           schema:
             type: integer
+        - name: executionServiceId
+          in: query
+          description: Filter by execution service ID (exact match)
+          required: false
+          schema:
+            type: integer
         - name: orderId
           in: query
           description: Filter by order ID
