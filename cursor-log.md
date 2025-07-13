@@ -143,3 +143,16 @@
   - Added repository-level tests for filtering by executionServiceId, including edge cases.
   - Updated OpenAPI spec, README, API guides, and migration guide to document the new filter and provide examples.
 - Marked implementation as ready for review in the requirement doc.
+
+---
+
+**2024-06-10**
+
+Request: Instrument the microservice to send metrics and traces to the OpenTelemetry Collector as documented in OTEL_CONFIGURATION_GUIDE.md and JAVA_OTEL_INSTRUMENTATION_GUIDE.md. Service name: globeco-trade-service.
+
+Actions taken:
+- Added dependencies to build.gradle: micrometer-registry-otlp, micrometer-tracing-bridge-otel, opentelemetry-exporter-otlp (v1.38.0).
+- Updated src/main/resources/application.properties with OTLP metrics and tracing export configuration, using service name 'globeco-trade-service', and enabled debug logging for exporters.
+- Followed the configuration and naming conventions from the documentation/OTEL_CONFIGURATION_GUIDE.md and documentation/JAVA_OTEL_INSTRUMENTATION_GUIDE.md.
+
+---
