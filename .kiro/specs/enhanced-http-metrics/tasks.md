@@ -1,12 +1,12 @@
 # Implementation Plan
 
-- [ ] 1. Create basic metrics endpoint for early validation
+- [x] 1. Create basic metrics endpoint for early validation
   - Implement `/metrics` endpoint that returns Prometheus format
   - Add basic health check to verify endpoint accessibility
   - Test endpoint returns valid response format
   - _Requirements: 4.1, 4.2, 4.3_
 
-- [ ] 2. Set up core metrics infrastructure
+- [x] 2. Set up core metrics infrastructure
   - Create HttpMetricsConfiguration with MeterRegistry integration
   - Initialize the three required metrics (counter, timer, gauge)
   - Configure histogram buckets for duration metric
