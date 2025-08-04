@@ -31,7 +31,7 @@ public class MetricsController {
 
     /**
      * Exposes metrics in Prometheus text format.
-     * This endpoint provides basic validation that metrics can be scraped.
+     * This endpoint provides validation that HTTP metrics are being recorded.
      * 
      * @return ResponseEntity containing metrics in Prometheus format
      */
@@ -51,6 +51,55 @@ public class MetricsController {
             prometheusMetrics.append("# HELP metrics_registry_meters_total Total number of meters in registry\n");
             prometheusMetrics.append("# TYPE metrics_registry_meters_total gauge\n");
             prometheusMetrics.append("metrics_registry_meters_total ").append(meterCount).append("\n");
+            
+            // Add HTTP metrics if they exist
+            meterRegistry.getMeters().stream()
+                    .filter(meter -> meter.getId().getName().startsWith("http_"))
+                    .forEach(meter -> {
+                        String name = meter.getId().getName();
+                        prometheusMetrics.append("# HTTP metric found: ").append(name);
+                        
+                        // Add tags if present
+                        if (!meter.getId().getTags().isEmpty()) {
+                            prometheusMetrics.append(" with tags: ");
+                            meter.getId().getTags().forEach(tag -> 
+                                prometheusMetrics.append(tag.getKey()).append("=").append(tag.getValue()).append(" "));
+                        }
+                        prometheusMetrics.append("\n");
+                        
+                        // Add the actual metric value
+                        if (meter instanceof io.micrometer.core.instrument.Counter) {
+                            io.micrometer.core.instrument.Counter counter = (io.micrometer.core.instrument.Counter) meter;
+                            prometheusMetrics.append(name.replace(".", "_")).append(" ").append(counter.count()).append("\n");
+                        } else if (meter instanceof io.micrometer.core.instrument.Timer) {
+                            io.micrometer.core.instrument.Timer timer = (io.micrometer.core.instrument.Timer) meter;
+                            
+                            // Add histogram buckets if available
+                            try {
+                                io.micrometer.core.instrument.distribution.HistogramSnapshot snapshot = timer.takeSnapshot();
+                                io.micrometer.core.instrument.distribution.CountAtBucket[] buckets = snapshot.histogramCounts();
+                                
+                                if (buckets.length > 0) {
+                                    prometheusMetrics.append("# Histogram buckets:\n");
+                                    for (io.micrometer.core.instrument.distribution.CountAtBucket bucket : buckets) {
+                                        prometheusMetrics.append(name.replace(".", "_")).append("_bucket{le=\"")
+                                                .append(bucket.bucket()).append("\"} ").append(bucket.count()).append("\n");
+                                    }
+                                    // Add +Inf bucket
+                                    prometheusMetrics.append(name.replace(".", "_")).append("_bucket{le=\"+Inf\"} ")
+                                            .append(timer.count()).append("\n");
+                                }
+                            } catch (Exception e) {
+                                logger.debug("Could not get histogram buckets for timer: " + name, e);
+                            }
+                            
+                            prometheusMetrics.append(name.replace(".", "_")).append("_count ").append(timer.count()).append("\n");
+                            prometheusMetrics.append(name.replace(".", "_")).append("_sum ").append(timer.totalTime(java.util.concurrent.TimeUnit.SECONDS)).append("\n");
+                        } else if (meter instanceof io.micrometer.core.instrument.Gauge) {
+                            io.micrometer.core.instrument.Gauge gauge = (io.micrometer.core.instrument.Gauge) meter;
+                            prometheusMetrics.append(name.replace(".", "_")).append(" ").append(gauge.value()).append("\n");
+                        }
+                    });
             
             // Add basic JVM metrics if available
             List<Meter> jvmMeters = meterRegistry.getMeters().stream()

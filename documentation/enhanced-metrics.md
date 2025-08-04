@@ -239,3 +239,35 @@ http_requests_in_flight 3
 ```
 
 This standardization ensures consistent observability and monitoring capabilities across all microservices in the system.
+
+## Accessing Metrics
+
+### Spring Boot Applications
+
+For Spring Boot applications with Actuator enabled, metrics are available at multiple endpoints:
+
+1. **`/actuator/prometheus`** - Full Prometheus format metrics (recommended for scraping)
+2. **`/actuator/metrics`** - JSON format metrics with individual metric details
+3. **`/metrics`** - Custom simplified metrics endpoint (if implemented)
+
+### Troubleshooting Metrics Visibility
+
+If HTTP metrics don't appear immediately:
+
+1. **Make HTTP requests**: Metrics are created lazily when first used
+2. **Check pre-registration**: Ensure metrics are pre-registered with sample tags
+3. **Verify filter registration**: Confirm the HTTP filter is properly registered
+4. **Check logs**: Look for any metric registration errors
+
+### Example Commands
+
+```bash
+# Check if metrics are available
+curl http://your-service:8082/actuator/prometheus | grep http_requests
+
+# Make a request to generate metrics
+curl http://your-service:8082/health
+
+# Check metrics again
+curl http://your-service:8082/actuator/prometheus | grep http_requests
+```

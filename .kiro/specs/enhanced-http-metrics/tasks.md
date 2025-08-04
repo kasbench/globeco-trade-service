@@ -12,7 +12,7 @@
   - Configure histogram buckets for duration metric
   - _Requirements: 1.1, 2.4, 3.4_
 
-- [ ] 3. Implement HTTP request filter for metrics collection
+- [x] 3. Implement HTTP request filter for metrics collection
   - Create HttpMetricsFilter as servlet filter
   - Implement request timing and in-flight tracking
   - Add label extraction and normalization logic

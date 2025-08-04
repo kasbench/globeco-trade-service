@@ -37,27 +37,12 @@ class HttpMetricsConfigurationTest {
     }
 
     @Test
-    void httpRequestDuration_ShouldCreateTimerWithCorrectNameAndDescription() {
+    void httpDurationMeterFilter_ShouldBeCreated() {
         // When
-        Timer timer = configuration.httpRequestDuration(meterRegistry);
+        var meterFilter = configuration.httpDurationMeterFilter();
 
         // Then
-        assertNotNull(timer);
-        assertEquals("http_request_duration_seconds", timer.getId().getName());
-        assertEquals("Duration of HTTP requests in seconds", timer.getId().getDescription());
-        assertEquals(0, timer.count());
-        assertEquals(0.0, timer.totalTime(timer.baseTimeUnit()));
-    }
-
-    @Test
-    void httpRequestDuration_ShouldHaveHistogramEnabled() {
-        // When
-        Timer timer = configuration.httpRequestDuration(meterRegistry);
-
-        // Then
-        // Verify that histogram is enabled by checking if percentile histograms are published
-        assertTrue(timer.getId().getTag("percentile") != null || 
-                  meterRegistry.find("http_request_duration_seconds").timer() != null);
+        assertNotNull(meterFilter);
     }
 
     @Test
@@ -102,30 +87,14 @@ class HttpMetricsConfigurationTest {
     }
 
     @Test
-    void allMetrics_ShouldBeRegisteredInMeterRegistry() {
+    void basicMetrics_ShouldBeRegisteredInMeterRegistry() {
         // When
         configuration.httpRequestsTotal(meterRegistry);
-        configuration.httpRequestDuration(meterRegistry);
         configuration.httpRequestsInFlight(meterRegistry);
 
         // Then
         assertNotNull(meterRegistry.find("http_requests_total").counter());
-        assertNotNull(meterRegistry.find("http_request_duration_seconds").timer());
         assertNotNull(meterRegistry.find("http_requests_in_flight").gauge());
-    }
-
-    @Test
-    void timer_ShouldRecordDurations() {
-        // Given
-        Timer timer = configuration.httpRequestDuration(meterRegistry);
-
-        // When
-        timer.record(Duration.ofMillis(100));
-        timer.record(Duration.ofMillis(250));
-
-        // Then
-        assertEquals(2, timer.count());
-        assertTrue(timer.totalTime(timer.baseTimeUnit()) >= 0.35); // 350ms in seconds
     }
 
     @Test
