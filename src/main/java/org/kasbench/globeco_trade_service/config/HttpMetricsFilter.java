@@ -8,7 +8,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-
 import jakarta.servlet.*;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -20,8 +19,10 @@ import java.util.concurrent.atomic.AtomicInteger;
  * Servlet filter that intercepts all HTTP requests to record metrics.
  * Records three types of metrics:
  * - http_requests_total (Counter) - total number of requests with labels
- * - http_request_duration_seconds (Timer) - request duration histogram with labels  
- * - http_requests_in_flight (Gauge) - current number of requests being processed
+ * - http_request_duration_seconds (Timer) - request duration histogram with
+ * labels
+ * - http_requests_in_flight (Gauge) - current number of requests being
+ * processed
  */
 @Component
 public class HttpMetricsFilter implements Filter {
@@ -37,8 +38,8 @@ public class HttpMetricsFilter implements Filter {
     private static final ThreadLocal<RequestMetrics> requestMetricsHolder = new ThreadLocal<>();
 
     @Autowired
-    public HttpMetricsFilter(MeterRegistry meterRegistry, 
-                           AtomicInteger inFlightRequestsCounter) {
+    public HttpMetricsFilter(MeterRegistry meterRegistry,
+            AtomicInteger inFlightRequestsCounter) {
         this.meterRegistry = meterRegistry;
         this.inFlightRequestsCounter = inFlightRequestsCounter;
     }
@@ -46,7 +47,7 @@ public class HttpMetricsFilter implements Filter {
     @Override
     public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)
             throws IOException, ServletException {
-        
+
         if (!(request instanceof HttpServletRequest) || !(response instanceof HttpServletResponse)) {
             chain.doFilter(request, response);
             return;
@@ -102,12 +103,28 @@ public class HttpMetricsFilter implements Filter {
                     "status", status)
                     .increment();
 
-            // Record timer metric - the MeterFilter will apply the correct histogram buckets
-            meterRegistry.timer("http_request_duration_seconds",
-                    "method", method,
-                    "path", path,
-                    "status", status)
-                    .record(durationNanos, java.util.concurrent.TimeUnit.NANOSECONDS);
+            // Record timer metric with explicit histogram configuration
+            Timer timer = Timer.builder("http_request_duration_seconds")
+                    .description("Duration of HTTP requests in seconds")
+                    .serviceLevelObjectives(
+                            Duration.ofNanos(5_000_000), // 0.005 seconds
+                            Duration.ofNanos(10_000_000), // 0.01 seconds
+                            Duration.ofNanos(25_000_000), // 0.025 seconds
+                            Duration.ofNanos(50_000_000), // 0.05 seconds
+                            Duration.ofNanos(100_000_000), // 0.1 seconds
+                            Duration.ofNanos(250_000_000), // 0.25 seconds
+                            Duration.ofNanos(500_000_000), // 0.5 seconds
+                            Duration.ofSeconds(1), // 1 second
+                            Duration.ofNanos(2_500_000_000L), // 2.5 seconds
+                            Duration.ofSeconds(5), // 5 seconds
+                            Duration.ofSeconds(10) // 10 seconds
+                    )
+                    .tag("method", method)
+                    .tag("path", path)
+                    .tag("status", status)
+                    .register(meterRegistry);
+
+            timer.record(durationNanos, java.util.concurrent.TimeUnit.NANOSECONDS);
 
         } catch (Exception e) {
             logger.error("Error recording HTTP metrics", e);
@@ -124,13 +141,15 @@ public class HttpMetricsFilter implements Filter {
     private String extractRoutePath(HttpServletRequest request) {
         try {
             // Try to get the route pattern from Spring MVC handler mapping
-            Object bestMatchingPattern = request.getAttribute("org.springframework.web.servlet.HandlerMapping.bestMatchingPattern");
+            Object bestMatchingPattern = request
+                    .getAttribute("org.springframework.web.servlet.HandlerMapping.bestMatchingPattern");
             if (bestMatchingPattern != null) {
                 return bestMatchingPattern.toString();
             }
 
             // Try to get the path within handler mapping
-            Object pathWithinHandlerMapping = request.getAttribute("org.springframework.web.servlet.HandlerMapping.pathWithinHandlerMapping");
+            Object pathWithinHandlerMapping = request
+                    .getAttribute("org.springframework.web.servlet.HandlerMapping.pathWithinHandlerMapping");
             if (pathWithinHandlerMapping != null) {
                 return pathWithinHandlerMapping.toString();
             }
@@ -149,7 +168,8 @@ public class HttpMetricsFilter implements Filter {
     }
 
     /**
-     * Normalizes path parameters in URLs by replacing numeric IDs and UUIDs with placeholders
+     * Normalizes path parameters in URLs by replacing numeric IDs and UUIDs with
+     * placeholders
      * 
      * @param path the original path
      * @return normalized path with parameter placeholders
@@ -161,10 +181,12 @@ public class HttpMetricsFilter implements Filter {
 
         // Replace numeric IDs (e.g., /api/users/123 -> /api/users/{id})
         path = path.replaceAll("/\\d+", "/{id}");
-        
-        // Replace UUIDs (e.g., /api/users/550e8400-e29b-41d4-a716-446655440000 -> /api/users/{uuid})
-        path = path.replaceAll("/[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}", "/{uuid}");
-        
+
+        // Replace UUIDs (e.g., /api/users/550e8400-e29b-41d4-a716-446655440000 ->
+        // /api/users/{uuid})
+        path = path.replaceAll("/[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}",
+                "/{uuid}");
+
         return path;
     }
 

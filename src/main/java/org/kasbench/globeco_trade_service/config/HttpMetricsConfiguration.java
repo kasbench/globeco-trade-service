@@ -83,32 +83,10 @@ public class HttpMetricsConfiguration {
         return registration;
     }
 
-    /**
-     * Configures a MeterFilter to apply custom histogram buckets to all HTTP duration timers.
-     * This ensures consistent histogram buckets across all timer instances.
-     * 
-     * @return a MeterFilter that configures histogram buckets
-     */
-    @Bean
-    public MeterFilter httpDurationMeterFilter() {
-        return new MeterFilter() {
-            @Override
-            public DistributionStatisticConfig configure(io.micrometer.core.instrument.Meter.Id id, DistributionStatisticConfig config) {
-                if (id.getName().equals("http_request_duration_seconds")) {
-                    System.out.println("MeterFilter: Configuring histogram buckets for " + id.getName() + " with tags: " + id.getTags());
-                    return DistributionStatisticConfig.builder()
-                        .serviceLevelObjectives(0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1.0, 2.5, 5.0, 10.0)
-                        .build()
-                        .merge(config);
-                }
-                return config;
-            }
-        };
-    }
+
 
     /**
-     * Pre-registers HTTP metrics with sample tags to ensure they appear in metrics endpoints
-     * even before any HTTP requests are made. This helps with metrics discovery and monitoring setup.
+     * Pre-registers HTTP metrics with sample tags.
      * 
      * @param registry the MeterRegistry to register the metrics with
      * @return a string indicating successful initialization
@@ -123,7 +101,8 @@ public class HttpMetricsConfiguration {
                 .tag("status", "200")
                 .register(registry);
 
-        // Don't pre-register timer - let the MeterFilter handle the configuration
+        // Don't pre-register timer - let the filter handle the explicit configuration
+        System.out.println("HttpMetricsConfiguration: Initialization complete");
                 
         return "HTTP metrics pre-registered successfully";
     }
