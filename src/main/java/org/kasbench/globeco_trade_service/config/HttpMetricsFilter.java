@@ -95,6 +95,7 @@ public class HttpMetricsFilter implements Filter {
 
             // Calculate duration in seconds
             long durationNanos = System.nanoTime() - startTime;
+            long durationMillis = durationNanos / 1_000_000L;
 
             // Record counter metric using the registry directly
             meterRegistry.counter("http_requests_total",
@@ -104,27 +105,30 @@ public class HttpMetricsFilter implements Filter {
                     .increment();
 
             // Record timer metric with explicit histogram configuration
-            Timer timer = Timer.builder("http_request_duration_seconds")
-                    .description("Duration of HTTP requests in seconds")
+            Timer timer = Timer.builder("http_request_duration")
+                    .description("Duration of HTTP requests")
                     .serviceLevelObjectives(
-                            Duration.ofNanos(5_000_000), // 0.005 seconds
-                            Duration.ofNanos(10_000_000), // 0.01 seconds
-                            Duration.ofNanos(25_000_000), // 0.025 seconds
-                            Duration.ofNanos(50_000_000), // 0.05 seconds
-                            Duration.ofNanos(100_000_000), // 0.1 seconds
-                            Duration.ofNanos(250_000_000), // 0.25 seconds
-                            Duration.ofNanos(500_000_000), // 0.5 seconds
-                            Duration.ofSeconds(1), // 1 second
-                            Duration.ofNanos(2_500_000_000L), // 2.5 seconds
-                            Duration.ofSeconds(5), // 5 seconds
-                            Duration.ofSeconds(10) // 10 seconds
+                        Duration.ofMillis(5),
+                        Duration.ofMillis(10),
+                        Duration.ofMillis(25),
+                        Duration.ofMillis(50),
+                        Duration.ofMillis(100),
+                        Duration.ofMillis(250),
+                        Duration.ofMillis(500),
+                        Duration.ofMillis(1_000),
+                        Duration.ofMillis(2_000),
+                        Duration.ofMillis(5_000),
+                        Duration.ofMillis(10_000)
                     )
+                    .maximumExpectedValue(Duration.ofMillis(20_000))
+                    // .minimumExpectedValue(Duration.ofNanos(1000))
+                    .publishPercentileHistogram(false)
                     .tag("method", method)
                     .tag("path", path)
                     .tag("status", status)
                     .register(meterRegistry);
 
-            timer.record(durationNanos, java.util.concurrent.TimeUnit.NANOSECONDS);
+            timer.record(durationMillis, java.util.concurrent.TimeUnit.MILLISECONDS);
 
         } catch (Exception e) {
             logger.error("Error recording HTTP metrics", e);
