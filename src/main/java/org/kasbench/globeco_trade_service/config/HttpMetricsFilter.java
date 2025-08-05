@@ -1,6 +1,5 @@
 package org.kasbench.globeco_trade_service.config;
 
-import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
 import org.slf4j.Logger;
@@ -19,10 +18,8 @@ import java.util.concurrent.atomic.AtomicInteger;
  * Servlet filter that intercepts all HTTP requests to record metrics.
  * Records three types of metrics:
  * - http_requests_total (Counter) - total number of requests with labels
- * - http_request_duration_seconds (Timer) - request duration histogram with
- * labels
- * - http_requests_in_flight (Gauge) - current number of requests being
- * processed
+ * - http_request_duration (Timer) - request duration histogram with labels
+ * - http_requests_in_flight (Gauge) - current number of requests being processed
  */
 @Component
 public class HttpMetricsFilter implements Filter {
@@ -31,11 +28,6 @@ public class HttpMetricsFilter implements Filter {
 
     private final MeterRegistry meterRegistry;
     private final AtomicInteger inFlightRequestsCounter;
-
-    /**
-     * Thread-local storage for tracking request-specific metrics data
-     */
-    private static final ThreadLocal<RequestMetrics> requestMetricsHolder = new ThreadLocal<>();
 
     @Autowired
     public HttpMetricsFilter(MeterRegistry meterRegistry,
@@ -58,7 +50,6 @@ public class HttpMetricsFilter implements Filter {
 
         // Start timing and increment in-flight counter
         long startTime = System.nanoTime();
-        requestMetricsHolder.set(new RequestMetrics(startTime, true));
         inFlightRequestsCounter.incrementAndGet();
 
         try {
@@ -76,9 +67,8 @@ public class HttpMetricsFilter implements Filter {
                 // Log error but don't let metrics recording break the request
                 logger.error("Failed to record HTTP metrics", e);
             } finally {
-                // Always decrement in-flight counter and clean up thread-local
+                // Always decrement in-flight counter
                 inFlightRequestsCounter.decrementAndGet();
-                requestMetricsHolder.remove();
             }
         }
     }
@@ -93,7 +83,7 @@ public class HttpMetricsFilter implements Filter {
             String path = extractRoutePath(request);
             String status = normalizeStatusCode(response.getStatus());
 
-            // Calculate duration in seconds
+            // Calculate duration in milliseconds
             long durationNanos = System.nanoTime() - startTime;
             long durationMillis = durationNanos / 1_000_000L;
 
@@ -121,7 +111,6 @@ public class HttpMetricsFilter implements Filter {
                         Duration.ofMillis(10_000)
                     )
                     .maximumExpectedValue(Duration.ofMillis(20_000))
-                    // .minimumExpectedValue(Duration.ofNanos(1000))
                     .publishPercentileHistogram(false)
                     .tag("method", method)
                     .tag("path", path)
@@ -217,24 +206,5 @@ public class HttpMetricsFilter implements Filter {
         return String.valueOf(statusCode);
     }
 
-    /**
-     * Inner class to hold request-specific metrics data in thread-local storage
-     */
-    private static class RequestMetrics {
-        private final long startTimeNanos;
-        private final boolean inFlight;
 
-        public RequestMetrics(long startTimeNanos, boolean inFlight) {
-            this.startTimeNanos = startTimeNanos;
-            this.inFlight = inFlight;
-        }
-
-        public long getStartTimeNanos() {
-            return startTimeNanos;
-        }
-
-        public boolean isInFlight() {
-            return inFlight;
-        }
-    }
 }

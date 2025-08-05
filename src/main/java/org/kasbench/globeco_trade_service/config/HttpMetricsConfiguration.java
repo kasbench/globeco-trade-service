@@ -3,21 +3,17 @@ package org.kasbench.globeco_trade_service.config;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.MeterRegistry;
-import io.micrometer.core.instrument.Timer;
-import io.micrometer.core.instrument.config.MeterFilter;
-import io.micrometer.core.instrument.distribution.DistributionStatisticConfig;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
-import java.time.Duration;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Configuration class for HTTP metrics infrastructure.
  * Initializes and registers the three core HTTP metrics:
  * - http_requests_total (Counter)
- * - http_request_duration_seconds (Timer/Histogram)
+ * - http_request_duration (Timer/Histogram)
  * - http_requests_in_flight (Gauge)
  */
 @Configuration
@@ -86,7 +82,7 @@ public class HttpMetricsConfiguration {
 
 
     /**
-     * Pre-registers HTTP metrics with sample tags.
+     * Pre-registers HTTP metrics with sample tags so they appear in metrics endpoints.
      * 
      * @param registry the MeterRegistry to register the metrics with
      * @return a string indicating successful initialization
@@ -100,9 +96,6 @@ public class HttpMetricsConfiguration {
                 .tag("path", "/health")
                 .tag("status", "200")
                 .register(registry);
-
-        // Don't pre-register timer - let the filter handle the explicit configuration
-        System.out.println("HttpMetricsConfiguration: Initialization complete");
                 
         return "HTTP metrics pre-registered successfully";
     }

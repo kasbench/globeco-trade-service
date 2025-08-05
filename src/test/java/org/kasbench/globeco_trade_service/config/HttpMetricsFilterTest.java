@@ -50,7 +50,7 @@ class HttpMetricsFilterTest {
         
         // Verify metrics were recorded
         assertNotNull(meterRegistry.find("http_requests_total").counter());
-        assertNotNull(meterRegistry.find("http_request_duration_seconds").timer());
+        assertNotNull(meterRegistry.find("http_request_duration").timer());
         
         // Verify counter was incremented
         assertTrue(meterRegistry.find("http_requests_total").counter().count() > 0);
@@ -72,7 +72,7 @@ class HttpMetricsFilterTest {
         
         // Verify metrics were recorded
         assertTrue(meterRegistry.find("http_requests_total").counter().count() > 0);
-        assertTrue(meterRegistry.find("http_request_duration_seconds").timer().count() > 0);
+        assertTrue(meterRegistry.find("http_request_duration").timer().count() > 0);
     }
 
     @Test
@@ -175,7 +175,6 @@ class HttpMetricsFilterTest {
     void testStatusCodeNormalization() throws IOException, ServletException {
         // Test various status codes
         int[] statusCodes = {200, 201, 400, 404, 500};
-        String[] expectedStatuses = {"200", "201", "400", "404", "500"};
 
         for (int i = 0; i < statusCodes.length; i++) {
             // Arrange
@@ -185,8 +184,6 @@ class HttpMetricsFilterTest {
 
             // Act
             httpMetricsFilter.doFilter(request, response, filterChain);
-
-            // No specific assertions needed for this loop test
         }
         
         // Verify all requests were recorded (each creates a separate counter with different tags)

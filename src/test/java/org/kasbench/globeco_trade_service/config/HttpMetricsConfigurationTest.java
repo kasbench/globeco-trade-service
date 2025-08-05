@@ -3,12 +3,10 @@ package org.kasbench.globeco_trade_service.config;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.MeterRegistry;
-import io.micrometer.core.instrument.Timer;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import java.time.Duration;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -36,14 +34,7 @@ class HttpMetricsConfigurationTest {
         assertEquals(0.0, counter.count());
     }
 
-    @Test
-    void httpDurationMeterFilter_ShouldBeCreated() {
-        // When
-        var meterFilter = configuration.httpDurationMeterFilter();
 
-        // Then
-        assertNotNull(meterFilter);
-    }
 
     @Test
     void httpRequestsInFlight_ShouldCreateGaugeWithCorrectNameAndDescription() {

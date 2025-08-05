@@ -38,7 +38,7 @@ public class MetricsController {
     @GetMapping(value = "/metrics", produces = MediaType.TEXT_PLAIN_VALUE)
     public ResponseEntity<String> getMetrics() {
         try {
-            logger.debug("Metrics endpoint accessed");
+
             
             // Generate basic Prometheus format metrics
             StringBuilder prometheusMetrics = new StringBuilder();
@@ -90,7 +90,7 @@ public class MetricsController {
                                             .append(timer.count()).append("\n");
                                 }
                             } catch (Exception e) {
-                                logger.debug("Could not get histogram buckets for timer: " + name, e);
+                                // Could not get histogram buckets for timer
                             }
                             
                             prometheusMetrics.append(name.replace(".", "_")).append("_count ").append(timer.count()).append("\n");
@@ -112,7 +112,7 @@ public class MetricsController {
             }
             
             String result = prometheusMetrics.toString();
-            logger.debug("Successfully returned {} characters of metrics data", result.length());
+
             
             return ResponseEntity.ok()
                     .contentType(MediaType.TEXT_PLAIN)
@@ -150,7 +150,6 @@ public class MetricsController {
                 meterRegistry.getClass().getSimpleName()
             );
             
-            logger.debug("Metrics health check passed with {} meters", meterCount);
             return ResponseEntity.ok()
                     .contentType(MediaType.APPLICATION_JSON)
                     .body(healthResponse);
