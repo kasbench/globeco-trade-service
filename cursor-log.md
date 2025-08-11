@@ -146,6 +146,25 @@
 
 ---
 
+## 2025-08-11 12:55:00 - Investigate Execution v2 error
+
+**Request**: Identify the root cause of error when calling `GET /api/v2/executions?limit=50&offset=0&tradeOrderId=50` resulting in: `Could not resolve attribute 'tradeOrderId' of 'org.kasbench.globeco_trade_service.entity.Execution'`.
+
+**Action Taken**: Reviewed `ExecutionV2Controller`, `ExecutionEnhancedService`, `ExecutionSpecification`, and the `Execution` entity. Found that `ExecutionSpecification.hasTradeOrderId` uses `root.get("tradeOrderId")`, but the `Execution` entity has a `tradeOrder` relation, not a `tradeOrderId` field.
+
+**Outcome**: Root cause identified. Proposed fix: update `hasTradeOrderId` to compare via the relation, e.g. `root.join("tradeOrder", JoinType.INNER).get("id")` (or `root.get("tradeOrder").get("id")`). No code changes applied in this step.
+
+## 2025-08-11 13:00:00 - Fix Execution v2 tradeOrderId filter
+
+**Request**: Apply fix for error resolving `tradeOrderId` in executions v2 endpoint.
+
+**Action Taken**: Updated `ExecutionSpecification.hasTradeOrderId` to join the `tradeOrder` relation and compare on its `id` instead of referencing a non-existent `tradeOrderId` attribute.
+
+**Files Modified**:
+- `src/main/java/org/kasbench/globeco_trade_service/repository/ExecutionSpecification.java`
+
+**Outcome**: Code compiles cleanly with no new linter issues. Ready for redeploy and verification.
+
 **2024-06-10**
 
 Request: Instrument the microservice to send metrics and traces to the OpenTelemetry Collector as documented in OTEL_CONFIGURATION_GUIDE.md and JAVA_OTEL_INSTRUMENTATION_GUIDE.md. Service name: globeco-trade-service.

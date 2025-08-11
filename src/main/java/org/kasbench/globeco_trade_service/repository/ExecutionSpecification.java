@@ -95,7 +95,10 @@ public class ExecutionSpecification {
     public static Specification<Execution> hasTradeOrderId(Integer tradeOrderId) {
         return (root, query, criteriaBuilder) -> {
             if (tradeOrderId == null) return null;
-            return criteriaBuilder.equal(root.get("tradeOrderId"), tradeOrderId);
+            return criteriaBuilder.equal(
+                root.join("tradeOrder", JoinType.INNER).get("id"),
+                tradeOrderId
+            );
         };
     }
     
