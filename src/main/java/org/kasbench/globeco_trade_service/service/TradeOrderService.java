@@ -17,6 +17,15 @@ public interface TradeOrderService {
      */
     PaginatedResult<TradeOrder> getAllTradeOrders(Integer limit, Integer offset);
     
+    /**
+     * Get all trade orders with optional filtering by order_id and pagination
+     * @param limit Maximum number of results to return (null for unlimited)
+     * @param offset Number of results to skip (null for 0)
+     * @param orderId Filter by order_id (null for no filtering)
+     * @return Paginated result with trade orders and total count
+     */
+    PaginatedResult<TradeOrder> getAllTradeOrders(Integer limit, Integer offset, Integer orderId);
+    
     Optional<TradeOrder> getTradeOrderById(Integer id);
     TradeOrder createTradeOrder(TradeOrder tradeOrder);
     TradeOrder updateTradeOrder(Integer id, TradeOrder tradeOrder);

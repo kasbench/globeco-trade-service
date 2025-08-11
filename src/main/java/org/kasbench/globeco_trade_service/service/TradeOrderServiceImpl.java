@@ -67,26 +67,52 @@ public class TradeOrderServiceImpl implements TradeOrderService {
     @Override
     @Cacheable(value = "tradeOrders", cacheManager = "cacheManager")
     public PaginatedResult<TradeOrder> getAllTradeOrders(Integer limit, Integer offset) {
-        if (limit == null && offset == null) {
-            // No pagination requested, return all data
-            List<TradeOrder> all = tradeOrderRepository.findAll();
-            return new PaginatedResult<>(all, all.size());
+        return getAllTradeOrders(limit, offset, null);
+    }
+    
+    @Override
+    @Cacheable(value = "tradeOrders", cacheManager = "cacheManager")
+    public PaginatedResult<TradeOrder> getAllTradeOrders(Integer limit, Integer offset, Integer orderId) {
+        if (orderId != null) {
+            // Filter by order_id
+            if (limit == null && offset == null) {
+                // No pagination requested, return filtered data
+                List<TradeOrder> filtered = tradeOrderRepository.findByOrderId(orderId);
+                return new PaginatedResult<>(filtered, filtered.size());
+            } else {
+                // Create pageable for pagination with filtering
+                Pageable pageable = createPageable(limit, offset);
+                Page<TradeOrder> page = tradeOrderRepository.findByOrderId(orderId, pageable);
+                return new PaginatedResult<>(page.getContent(), page.getTotalElements());
+            }
+        } else {
+            // No filtering, use existing logic
+            if (limit == null && offset == null) {
+                // No pagination requested, return all data
+                List<TradeOrder> all = tradeOrderRepository.findAll();
+                return new PaginatedResult<>(all, all.size());
+            } else {
+                // Create pageable for pagination
+                Pageable pageable = createPageable(limit, offset);
+                Page<TradeOrder> page = tradeOrderRepository.findAll(pageable);
+                return new PaginatedResult<>(page.getContent(), page.getTotalElements());
+            }
         }
-        
-        // Create pageable for pagination
-        Pageable pageable;
+    }
+    
+    /**
+     * Helper method to create Pageable from limit and offset
+     */
+    private Pageable createPageable(Integer limit, Integer offset) {
         if (limit != null && offset != null) {
-            pageable = PageRequest.of(offset / limit, limit);
+            return PageRequest.of(offset / limit, limit);
         } else if (limit != null) {
             // Only limit provided, start from beginning
-            pageable = PageRequest.of(0, limit);
+            return PageRequest.of(0, limit);
         } else {
             // Only offset provided, use default page size of 50
-            pageable = PageRequest.of(offset / 50, 50);
+            return PageRequest.of(offset / 50, 50);
         }
-        
-        Page<TradeOrder> page = tradeOrderRepository.findAll(pageable);
-        return new PaginatedResult<>(page.getContent(), page.getTotalElements());
     }
 
     @Override

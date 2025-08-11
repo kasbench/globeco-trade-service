@@ -489,4 +489,88 @@ public class TradeOrderServiceImplTest extends org.kasbench.globeco_trade_servic
         
         assertTrue(exception.getMessage().contains("Unknown order_type"));
     }
+
+    // ========== Order ID Filtering Tests ==========
+
+    @Test
+    @Transactional
+    void testGetAllTradeOrders_WithOrderIdFilter_Found() {
+        // Arrange
+        TradeOrder tradeOrder1 = createTradeOrder();
+        TradeOrder tradeOrder2 = createTradeOrder();
+        
+        // Act
+        TradeOrderService.PaginatedResult<TradeOrder> result = 
+            tradeOrderService.getAllTradeOrders(null, null, tradeOrder1.getOrderId());
+        
+        // Assert
+        assertEquals(1, result.getData().size());
+        assertEquals(1, result.getTotalCount());
+        assertEquals(tradeOrder1.getOrderId(), result.getData().get(0).getOrderId());
+    }
+
+    @Test
+    @Transactional
+    void testGetAllTradeOrders_WithOrderIdFilter_NotFound() {
+        // Arrange
+        TradeOrder tradeOrder = createTradeOrder();
+        
+        // Act
+        TradeOrderService.PaginatedResult<TradeOrder> result = 
+            tradeOrderService.getAllTradeOrders(null, null, 999999);
+        
+        // Assert
+        assertEquals(0, result.getData().size());
+        assertEquals(0, result.getTotalCount());
+    }
+
+    @Test
+    @Transactional
+    void testGetAllTradeOrders_WithOrderIdFilterAndPagination() {
+        // Arrange
+        TradeOrder tradeOrder = createTradeOrder();
+        
+        // Act
+        TradeOrderService.PaginatedResult<TradeOrder> result = 
+            tradeOrderService.getAllTradeOrders(10, 0, tradeOrder.getOrderId());
+        
+        // Assert
+        assertEquals(1, result.getData().size());
+        assertEquals(1, result.getTotalCount());
+        assertEquals(tradeOrder.getOrderId(), result.getData().get(0).getOrderId());
+    }
+
+    @Test
+    @Transactional
+    void testGetAllTradeOrders_WithoutOrderIdFilter_ReturnsAll() {
+        // Arrange
+        TradeOrder tradeOrder1 = createTradeOrder();
+        TradeOrder tradeOrder2 = createTradeOrder();
+        
+        // Act
+        TradeOrderService.PaginatedResult<TradeOrder> result = 
+            tradeOrderService.getAllTradeOrders(null, null, null);
+        
+        // Assert
+        assertTrue(result.getData().size() >= 2); // At least our two test orders
+        assertTrue(result.getTotalCount() >= 2);
+        assertTrue(result.getData().stream().anyMatch(to -> to.getOrderId().equals(tradeOrder1.getOrderId())));
+        assertTrue(result.getData().stream().anyMatch(to -> to.getOrderId().equals(tradeOrder2.getOrderId())));
+    }
+
+    @Test
+    @Transactional
+    void testGetAllTradeOrders_BackwardCompatibility() {
+        // Arrange
+        TradeOrder tradeOrder = createTradeOrder();
+        
+        // Act - Test the original method signature still works
+        TradeOrderService.PaginatedResult<TradeOrder> result = 
+            tradeOrderService.getAllTradeOrders(10, 0);
+        
+        // Assert
+        assertTrue(result.getData().size() >= 1);
+        assertTrue(result.getTotalCount() >= 1);
+        assertTrue(result.getData().stream().anyMatch(to -> to.getOrderId().equals(tradeOrder.getOrderId())));
+    }
 } 

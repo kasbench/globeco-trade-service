@@ -37,7 +37,8 @@ public class TradeOrderController {
     @GetMapping
     public ResponseEntity<List<TradeOrderResponseDTO>> getAllTradeOrders(
             @RequestParam(required = false) Integer limit,
-            @RequestParam(required = false) Integer offset) {
+            @RequestParam(required = false) Integer offset,
+            @RequestParam(name = "order_id", required = false) Integer orderId) {
         
         // Validate pagination parameters
         if (limit != null && (limit < 1 || limit > 1000)) {
@@ -47,16 +48,16 @@ public class TradeOrderController {
             throw new IllegalArgumentException("Offset must be non-negative");
         }
         
-        if (limit == null && offset == null) {
-            // Backward compatible: no pagination
+        if (limit == null && offset == null && orderId == null) {
+            // Backward compatible: no pagination, no filtering
             List<TradeOrderResponseDTO> result = tradeOrderService.getAllTradeOrders().stream()
                     .map(this::toResponseDTO)
                     .collect(Collectors.toList());
             return ResponseEntity.ok(result);
         } else {
-            // Use paginated method
+            // Use enhanced method with optional filtering and pagination
             TradeOrderService.PaginatedResult<TradeOrder> paginatedResult = 
-                tradeOrderService.getAllTradeOrders(limit, offset);
+                tradeOrderService.getAllTradeOrders(limit, offset, orderId);
             
             List<TradeOrderResponseDTO> result = paginatedResult.getData().stream()
                     .map(this::toResponseDTO)

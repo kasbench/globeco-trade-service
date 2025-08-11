@@ -168,6 +168,54 @@ public class TradeOrderControllerTest extends org.kasbench.globeco_trade_service
     }
 
     @Test
+    void testGetAllTradeOrders_WithOrderIdFilter_Found() throws Exception {
+        mockMvc.perform(get("/api/v1/tradeOrders")
+                        .param("order_id", String.valueOf(tradeOrder.getOrderId())))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$", org.hamcrest.Matchers.hasSize(1)))
+                .andExpect(jsonPath("$[0].orderId").value(tradeOrder.getOrderId()))
+                .andExpect(jsonPath("$[0].blotter.abbreviation").value(blotter.getAbbreviation()))
+                .andExpect(jsonPath("$[0].submitted").value(false));
+    }
+
+    @Test
+    void testGetAllTradeOrders_WithOrderIdFilter_NotFound() throws Exception {
+        mockMvc.perform(get("/api/v1/tradeOrders")
+                        .param("order_id", "999999"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$", org.hamcrest.Matchers.hasSize(0)));
+    }
+
+    @Test
+    void testGetAllTradeOrders_WithOrderIdFilter_InvalidType() throws Exception {
+        mockMvc.perform(get("/api/v1/tradeOrders")
+                        .param("order_id", "invalid"))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void testGetAllTradeOrders_WithOrderIdAndPagination() throws Exception {
+        mockMvc.perform(get("/api/v1/tradeOrders")
+                        .param("order_id", String.valueOf(tradeOrder.getOrderId()))
+                        .param("limit", "10")
+                        .param("offset", "0"))
+                .andExpect(status().isOk())
+                .andExpect(header().string("X-Total-Count", "1"))
+                .andExpect(jsonPath("$", org.hamcrest.Matchers.hasSize(1)))
+                .andExpect(jsonPath("$[0].orderId").value(tradeOrder.getOrderId()));
+    }
+
+    @Test
+    void testGetAllTradeOrders_WithPaginationOnly() throws Exception {
+        mockMvc.perform(get("/api/v1/tradeOrders")
+                        .param("limit", "10")
+                        .param("offset", "0"))
+                .andExpect(status().isOk())
+                .andExpect(header().exists("X-Total-Count"))
+                .andExpect(jsonPath("$[?(@.orderId==%d)]", tradeOrder.getOrderId()).exists());
+    }
+
+    @Test
     void testGetTradeOrderById_Found() throws Exception {
         mockMvc.perform(get("/api/v1/tradeOrders/" + tradeOrder.getId()))
                 .andExpect(status().isOk())
