@@ -4,18 +4,21 @@ import org.kasbench.globeco_trade_service.entity.*;
 import org.kasbench.globeco_trade_service.repository.*;
 import org.kasbench.globeco_trade_service.dto.ExecutionPutFillDTO;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.client.HttpStatusCodeException;
+import org.springframework.web.client.ResourceAccessException;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.HttpStatus;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.retry.support.RetryTemplate;
 
 import java.util.List;
 import java.util.Optional;
@@ -30,6 +33,7 @@ public class ExecutionServiceImpl implements ExecutionService {
     private final TradeOrderRepository tradeOrderRepository;
     private final DestinationRepository destinationRepository;
     private final RestTemplate restTemplate;
+    private final org.springframework.retry.support.RetryTemplate retryTemplate;
     @Value("${execution.service.base-url:http://globeco-execution-service:8084}")
     private String executionServiceBaseUrl;
 
@@ -41,7 +45,8 @@ public class ExecutionServiceImpl implements ExecutionService {
             TradeTypeRepository tradeTypeRepository,
             TradeOrderRepository tradeOrderRepository,
             DestinationRepository destinationRepository,
-            RestTemplate restTemplate) {
+            @org.springframework.beans.factory.annotation.Qualifier("executionServiceRestTemplate") RestTemplate restTemplate,
+            @org.springframework.beans.factory.annotation.Qualifier("executionServiceRetryTemplate") org.springframework.retry.support.RetryTemplate retryTemplate) {
         this.executionRepository = executionRepository;
         this.executionStatusRepository = executionStatusRepository;
         this.blotterRepository = blotterRepository;
@@ -49,6 +54,7 @@ public class ExecutionServiceImpl implements ExecutionService {
         this.tradeOrderRepository = tradeOrderRepository;
         this.destinationRepository = destinationRepository;
         this.restTemplate = restTemplate;
+        this.retryTemplate = retryTemplate;
     }
 
     @Override
@@ -172,6 +178,7 @@ public class ExecutionServiceImpl implements ExecutionService {
             return new SubmitResult(null, "Execution not found");
         }
         Execution execution = opt.get();
+        
         // Build DTO for external service
         java.util.Map<String, Object> payload = new java.util.HashMap<>();
         payload.put("executionStatus", execution.getExecutionStatus().getAbbreviation());
@@ -182,35 +189,60 @@ public class ExecutionServiceImpl implements ExecutionService {
         payload.put("limitPrice", execution.getLimitPrice());
         payload.put("tradeServiceExecutionId", execution.getId());
         payload.put("version", 1);
+        
         String url = executionServiceBaseUrl + "/api/v1/executions";
+        
         try {
-            ResponseEntity<java.util.Map> response = restTemplate.postForEntity(url, payload, java.util.Map.class);
-            if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null && response.getBody().get("id") != null) {
+            // Use retry template with exponential backoff for external service call
+            ResponseEntity<java.util.Map<String, Object>> response = retryTemplate.execute(context -> {
+                org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(ExecutionServiceImpl.class);
+                logger.debug("Attempting execution service submission for execution {} (attempt {})", 
+                           id, context.getRetryCount() + 1);
+                
+                ResponseEntity<java.util.Map<String, Object>> result = restTemplate.postForEntity(
+                    url, payload, (Class<java.util.Map<String, Object>>) (Class<?>) java.util.Map.class);
+                
+                logger.debug("Execution service responded with status: {}", result.getStatusCode());
+                return result;
+            });
+            
+            if (response.getStatusCode().is2xxSuccessful() && 
+                response.getBody() != null && 
+                response.getBody().get("id") != null) {
+                
                 Integer extId = (Integer) response.getBody().get("id");
                 execution.setExecutionServiceId(extId);
+                
                 // Set quantityPlaced to quantityOrdered
                 execution.setQuantityPlaced(execution.getQuantityOrdered());
+                
                 // Set status to SENT (id=2)
                 ExecutionStatus sentStatus = executionStatusRepository.findById(2).orElse(null);
                 if (sentStatus != null) {
                     execution.setExecutionStatus(sentStatus);
                 }
+                
                 executionRepository.save(execution);
                 return new SubmitResult("submitted", null);
             } else {
                 return new SubmitResult(null, "Unexpected response from execution service");
             }
+            
         } catch (HttpStatusCodeException ex) {
-            org.springframework.http.HttpStatus status = org.springframework.http.HttpStatus.valueOf(ex.getRawStatusCode());
-            if (status.is4xxClientError()) {
+            org.springframework.http.HttpStatusCode statusCode = ex.getStatusCode();
+            if (statusCode.is4xxClientError()) {
                 return new SubmitResult(null, "Client error: " + ex.getResponseBodyAsString());
-            } else if (status.is5xxServerError()) {
-                return new SubmitResult(null, "Failed to submit execution: execution service unavailable");
+            } else if (statusCode.is5xxServerError()) {
+                return new SubmitResult(null, "Failed to submit execution: execution service unavailable (HTTP " + statusCode.value() + ")");
             } else {
-                return new SubmitResult(null, "Error: " + ex.getMessage());
+                return new SubmitResult(null, "Error: HTTP " + statusCode.value() + " - " + ex.getMessage());
             }
+        } catch (org.springframework.web.client.ResourceAccessException ex) {
+            // This includes timeout exceptions
+            return new SubmitResult(null, "Failed to submit execution: execution service timeout or connection error - " + ex.getMessage());
         } catch (Exception ex) {
-            ex.printStackTrace();
+            org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(ExecutionServiceImpl.class);
+            logger.error("Unexpected error during execution service submission for execution {}: {}", id, ex.getMessage(), ex);
             return new SubmitResult(null, "Error: " + ex.getMessage());
         }
     }

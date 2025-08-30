@@ -16,6 +16,7 @@ import org.kasbench.globeco_trade_service.dto.TradeOrderSubmitDTO;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.data.domain.Page;
@@ -47,7 +48,8 @@ public class TradeOrderServiceImpl implements TradeOrderService {
     public TradeOrderServiceImpl(TradeOrderRepository tradeOrderRepository, BlotterRepository blotterRepository,
                                  ExecutionRepository executionRepository, TradeTypeRepository tradeTypeRepository,
                                  ExecutionStatusRepository executionStatusRepository, DestinationRepository destinationRepository,
-                                 ExecutionService executionService, RetryTemplate retryTemplate) {
+                                 ExecutionService executionService, 
+                                 @org.springframework.beans.factory.annotation.Qualifier("executionServiceRetryTemplate") RetryTemplate retryTemplate) {
         this.tradeOrderRepository = tradeOrderRepository;
         this.blotterRepository = blotterRepository;
         this.executionRepository = executionRepository;
@@ -268,9 +270,15 @@ public class TradeOrderServiceImpl implements TradeOrderService {
                 final Integer executionId = savedExecution.getId();
                 logger.info("Automatically submitting execution {} to external service", executionId);
                 try {
-                    // Use retry template for external service call
+                    // Use retry template for external service call with enhanced logging
                     ExecutionService.SubmitResult result = retryTemplate.execute(context -> {
-                        logger.debug("Attempting execution service submission (attempt {})", context.getRetryCount() + 1);
+                        if (context.getRetryCount() > 0) {
+                            logger.warn("Retrying execution service submission for execution {} (attempt {})", 
+                                      executionId, context.getRetryCount() + 1);
+                        } else {
+                            logger.debug("Attempting execution service submission for execution {} (attempt {})", 
+                                       executionId, context.getRetryCount() + 1);
+                        }
                         return executionService.submitExecution(executionId);
                     });
                     
@@ -285,7 +293,9 @@ public class TradeOrderServiceImpl implements TradeOrderService {
                             .orElseThrow(() -> new RuntimeException("Execution not found after submission: " + executionId));
                     
                 } catch (Exception executionServiceException) {
-                    logger.error("Failed to submit execution {} to external service, rolling back: {}", 
+                    logger.error("External execution service failure for trade order {}: {}", 
+                               tradeOrderId, executionServiceException.getMessage());
+                    logger.error("Failed to submit execution {} to external service after retries, rolling back: {}", 
                                executionId, executionServiceException.getMessage());
                     
                     // Compensating transaction: rollback the trade order and execution

@@ -36,6 +36,7 @@ import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 @SpringBootTest
+@org.springframework.context.annotation.Import(org.kasbench.globeco_trade_service.config.TestConfig.class)
 public class TradeOrderServiceImplTest extends org.kasbench.globeco_trade_service.AbstractPostgresContainerTest {
     @Autowired
     private TradeOrderService tradeOrderService;
