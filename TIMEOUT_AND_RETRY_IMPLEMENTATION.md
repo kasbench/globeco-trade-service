@@ -37,13 +37,12 @@ execution.service.retry.max-delay=30000
 
 **RetryConfig** (`src/main/java/org/kasbench/globeco_trade_service/config/RetryConfig.java`):
 - Created `executionServiceRetryTemplate` with configurable parameters
-- Retry on multiple exception types:
+- Retry on specific exception types:
   - `ResourceAccessException` (network timeouts, connection refused)
   - `SocketTimeoutException` (socket timeouts)
   - `ConnectException` (connection failures)
   - `HttpServerErrorException` (5xx server errors)
-  - `RestClientException` (general REST client exceptions)
-- Does NOT retry on `HttpClientErrorException` (4xx client errors)
+- Does NOT retry on `HttpClientErrorException` (4xx client errors) - these are excluded by design
 - Exponential backoff: 1s initial delay, 2x multiplier, up to 30s max delay
 - Configurable maximum attempts (default: 5)
 

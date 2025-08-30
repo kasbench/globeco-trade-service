@@ -69,8 +69,6 @@ public class RetryConfig {
             .retryOn(SocketTimeoutException.class)            // Socket timeouts
             .retryOn(ConnectException.class)                  // Connection failures
             .retryOn(HttpServerErrorException.class)          // 5xx server errors
-            .retryOn(RestClientException.class)               // General REST client exceptions
-            .notRetryOn(HttpClientErrorException.class)       // Don't retry 4xx client errors
             .build();
     }
 } 
