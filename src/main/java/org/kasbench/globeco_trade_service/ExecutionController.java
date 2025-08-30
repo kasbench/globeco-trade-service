@@ -26,7 +26,7 @@ public class ExecutionController {
     public ResponseEntity<List<ExecutionResponseDTO>> getAllExecutions(
             @RequestParam(required = false) Integer limit,
             @RequestParam(required = false) Integer offset) {
-        
+
         // Validate pagination parameters
         if (limit != null && (limit < 1 || limit > 1000)) {
             throw new IllegalArgumentException("Limit must be between 1 and 1000");
@@ -34,7 +34,7 @@ public class ExecutionController {
         if (offset != null && offset < 0) {
             throw new IllegalArgumentException("Offset must be non-negative");
         }
-        
+
         if (limit == null && offset == null) {
             // Backward compatible: no pagination
             List<ExecutionResponseDTO> result = executionService.getAllExecutions().stream()
@@ -43,13 +43,13 @@ public class ExecutionController {
             return ResponseEntity.ok(result);
         } else {
             // Use paginated method
-            ExecutionService.PaginatedResult<Execution> paginatedResult = 
-                executionService.getAllExecutions(limit, offset);
-            
+            ExecutionService.PaginatedResult<Execution> paginatedResult = executionService.getAllExecutions(limit,
+                    offset);
+
             List<ExecutionResponseDTO> result = paginatedResult.getData().stream()
                     .map(this::toResponseDTO)
                     .collect(Collectors.toList());
-            
+
             // Add X-Total-Count header for pagination metadata
             return ResponseEntity.ok()
                     .header("X-Total-Count", String.valueOf(paginatedResult.getTotalCount()))
@@ -72,7 +72,8 @@ public class ExecutionController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<ExecutionResponseDTO> updateExecution(@PathVariable Integer id, @RequestBody ExecutionPutDTO dto) {
+    public ResponseEntity<ExecutionResponseDTO> updateExecution(@PathVariable Integer id,
+            @RequestBody ExecutionPutDTO dto) {
         Execution execution = fromPutDTO(dto);
         Execution updated = executionService.updateExecution(id, execution);
         return ResponseEntity.ok(toResponseDTO(updated));
@@ -237,4 +238,4 @@ public class ExecutionController {
         execution.setVersion(dto.getVersion());
         return execution;
     }
-} 
+}
