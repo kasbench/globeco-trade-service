@@ -49,7 +49,7 @@
   - Mock repository layer to test service logic in isolation
   - _Requirements: 2.1, 2.2, 2.3, 4.1_
 
-- [ ] 8. Create unit tests for bulk controller endpoint
+- [x] 8. Create unit tests for bulk controller endpoint
   - Test successful bulk request handling with valid input
   - Test validation error responses for invalid request formats
   - Test HTTP status code mapping for different error scenarios
