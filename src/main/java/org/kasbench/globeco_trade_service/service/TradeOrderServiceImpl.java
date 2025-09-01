@@ -29,8 +29,12 @@ import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.HttpServerErrorException;
 import org.springframework.web.client.ResourceAccessException;
 
+import java.math.BigDecimal;
+import java.time.OffsetDateTime;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 @Service
 public class TradeOrderServiceImpl implements TradeOrderService {
@@ -145,6 +149,217 @@ public class TradeOrderServiceImpl implements TradeOrderService {
         }
         logger.info("Saving trade order: {}", tradeOrder.getOrderId());
         return tradeOrderRepository.save(tradeOrder);
+    }
+
+    @Override
+    @Transactional
+    @CacheEvict(value = "tradeOrders", allEntries = true, cacheManager = "cacheManager")
+    public List<TradeOrder> createTradeOrdersBulk(List<TradeOrder> tradeOrders) {
+        logger.info("Creating bulk trade orders: {} orders", tradeOrders != null ? tradeOrders.size() : 0);
+        
+        // Validate input parameters
+        if (tradeOrders == null) {
+            throw new IllegalArgumentException("Trade orders list cannot be null");
+        }
+        if (tradeOrders.isEmpty()) {
+            throw new IllegalArgumentException("Trade orders list cannot be empty");
+        }
+        
+        // Validate all orders before any database operations
+        validateTradeOrdersBulk(tradeOrders);
+        
+        // Prepare all orders for insertion
+        for (int i = 0; i < tradeOrders.size(); i++) {
+            TradeOrder tradeOrder = tradeOrders.get(i);
+            try {
+                prepareTradeOrderForCreation(tradeOrder);
+            } catch (Exception e) {
+                logger.error("Failed to prepare trade order at index {}: {}", i, e.getMessage());
+                throw new IllegalArgumentException("Failed to prepare trade order at index " + i + ": " + e.getMessage(), e);
+            }
+        }
+        
+        try {
+            // Perform batch insert in single transaction
+            logger.debug("Performing batch insert for {} trade orders", tradeOrders.size());
+            List<TradeOrder> savedOrders = tradeOrderRepository.saveAll(tradeOrders);
+            logger.info("Successfully created {} trade orders in bulk", savedOrders.size());
+            return savedOrders;
+        } catch (Exception e) {
+            logger.error("Bulk trade order creation failed: {}", e.getMessage(), e);
+            throw new RuntimeException("Bulk trade order creation failed: " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Validates all trade orders in the bulk request before any database operations.
+     * This method performs comprehensive validation to ensure data integrity.
+     * 
+     * @param tradeOrders List of trade orders to validate
+     * @throws IllegalArgumentException if any validation fails
+     */
+    private void validateTradeOrdersBulk(List<TradeOrder> tradeOrders) {
+        logger.debug("Validating {} trade orders for bulk creation", tradeOrders.size());
+        
+        for (int i = 0; i < tradeOrders.size(); i++) {
+            TradeOrder tradeOrder = tradeOrders.get(i);
+            try {
+                validateIndividualTradeOrder(tradeOrder, i);
+            } catch (Exception e) {
+                logger.error("Validation failed for trade order at index {}: {}", i, e.getMessage());
+                throw new IllegalArgumentException("Validation failed for trade order at index " + i + ": " + e.getMessage(), e);
+            }
+        }
+        
+        // Check for duplicate order IDs within the batch
+        validateNoDuplicateOrderIds(tradeOrders);
+        
+        logger.debug("Bulk validation completed successfully for {} trade orders", tradeOrders.size());
+    }
+
+    /**
+     * Validates an individual trade order within a bulk request.
+     * 
+     * @param tradeOrder The trade order to validate
+     * @param index The index of the trade order in the bulk request (for error reporting)
+     * @throws IllegalArgumentException if validation fails
+     */
+    private void validateIndividualTradeOrder(TradeOrder tradeOrder, int index) {
+        if (tradeOrder == null) {
+            throw new IllegalArgumentException("Trade order cannot be null");
+        }
+        
+        // Validate required fields
+        if (tradeOrder.getOrderId() == null) {
+            throw new IllegalArgumentException("Order ID is required");
+        }
+        if (tradeOrder.getPortfolioId() == null || tradeOrder.getPortfolioId().trim().isEmpty()) {
+            throw new IllegalArgumentException("Portfolio ID is required");
+        }
+        if (tradeOrder.getOrderType() == null || tradeOrder.getOrderType().trim().isEmpty()) {
+            throw new IllegalArgumentException("Order type is required");
+        }
+        if (tradeOrder.getSecurityId() == null || tradeOrder.getSecurityId().trim().isEmpty()) {
+            throw new IllegalArgumentException("Security ID is required");
+        }
+        if (tradeOrder.getQuantity() == null) {
+            throw new IllegalArgumentException("Quantity is required");
+        }
+        
+        // Validate business rules
+        if (tradeOrder.getQuantity().compareTo(BigDecimal.ZERO) <= 0) {
+            throw new IllegalArgumentException("Quantity must be greater than zero");
+        }
+        
+        // Validate order type
+        String normalizedOrderType = tradeOrder.getOrderType().trim().toUpperCase();
+        if (!isValidOrderType(normalizedOrderType)) {
+            throw new IllegalArgumentException("Invalid order type: " + tradeOrder.getOrderType() + 
+                ". Valid types are: BUY, SELL, SHORT, COVER, EXRC");
+        }
+        
+        // Validate limit price if provided
+        if (tradeOrder.getLimitPrice() != null && tradeOrder.getLimitPrice().compareTo(BigDecimal.ZERO) <= 0) {
+            throw new IllegalArgumentException("Limit price must be greater than zero when provided");
+        }
+        
+        // Validate blotter reference if provided
+        if (tradeOrder.getBlotter() != null && tradeOrder.getBlotter().getId() != null) {
+            if (!blotterRepository.existsById(tradeOrder.getBlotter().getId())) {
+                throw new IllegalArgumentException("Blotter not found: " + tradeOrder.getBlotter().getId());
+            }
+        }
+        
+        // Validate string field lengths
+        if (tradeOrder.getPortfolioId().length() > 24) {
+            throw new IllegalArgumentException("Portfolio ID cannot exceed 24 characters");
+        }
+        if (tradeOrder.getOrderType().length() > 10) {
+            throw new IllegalArgumentException("Order type cannot exceed 10 characters");
+        }
+        if (tradeOrder.getSecurityId().length() > 24) {
+            throw new IllegalArgumentException("Security ID cannot exceed 24 characters");
+        }
+    }
+
+    /**
+     * Validates that there are no duplicate order IDs within the bulk request.
+     * 
+     * @param tradeOrders List of trade orders to check for duplicates
+     * @throws IllegalArgumentException if duplicates are found
+     */
+    private void validateNoDuplicateOrderIds(List<TradeOrder> tradeOrders) {
+        Set<Integer> orderIds = new HashSet<>();
+        for (int i = 0; i < tradeOrders.size(); i++) {
+            Integer orderId = tradeOrders.get(i).getOrderId();
+            if (!orderIds.add(orderId)) {
+                throw new IllegalArgumentException("Duplicate order ID found in bulk request: " + orderId + 
+                    " (first occurrence at index " + findFirstOccurrence(tradeOrders, orderId) + 
+                    ", duplicate at index " + i + ")");
+            }
+        }
+    }
+
+    /**
+     * Finds the first occurrence of an order ID in the list.
+     * 
+     * @param tradeOrders List of trade orders
+     * @param orderId Order ID to find
+     * @return Index of first occurrence
+     */
+    private int findFirstOccurrence(List<TradeOrder> tradeOrders, Integer orderId) {
+        for (int i = 0; i < tradeOrders.size(); i++) {
+            if (orderId.equals(tradeOrders.get(i).getOrderId())) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    /**
+     * Checks if the given order type is valid.
+     * 
+     * @param orderType The order type to validate (should be normalized to uppercase)
+     * @return true if valid, false otherwise
+     */
+    private boolean isValidOrderType(String orderType) {
+        return "BUY".equals(orderType) || "SELL".equals(orderType) || 
+               "SHORT".equals(orderType) || "COVER".equals(orderType) || "EXRC".equals(orderType);
+    }
+
+    /**
+     * Prepares a trade order for creation by setting default values and resolving references.
+     * 
+     * @param tradeOrder The trade order to prepare
+     * @throws IllegalArgumentException if blotter reference is invalid
+     */
+    private void prepareTradeOrderForCreation(TradeOrder tradeOrder) {
+        // Ensure ID is not set for new entity
+        tradeOrder.setId(null);
+        
+        // Set default timestamp if not provided
+        if (tradeOrder.getTradeTimestamp() == null) {
+            tradeOrder.setTradeTimestamp(OffsetDateTime.now());
+        }
+        
+        // Set default submitted status if not provided
+        if (tradeOrder.getSubmitted() == null) {
+            tradeOrder.setSubmitted(false);
+        }
+        
+        // Set default quantity sent if not provided
+        if (tradeOrder.getQuantitySent() == null) {
+            tradeOrder.setQuantitySent(BigDecimal.ZERO);
+        }
+        
+        // Resolve blotter reference if provided
+        if (tradeOrder.getBlotter() != null && tradeOrder.getBlotter().getId() != null) {
+            Blotter blotter = blotterRepository.findById(tradeOrder.getBlotter().getId())
+                    .orElseThrow(() -> new IllegalArgumentException("Blotter not found: " + tradeOrder.getBlotter().getId()));
+            tradeOrder.setBlotter(blotter);
+        } else {
+            tradeOrder.setBlotter(null);
+        }
     }
 
     @Override
