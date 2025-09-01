@@ -28,6 +28,28 @@ public interface TradeOrderService {
     
     Optional<TradeOrder> getTradeOrderById(Integer id);
     TradeOrder createTradeOrder(TradeOrder tradeOrder);
+    
+    /**
+     * Creates multiple trade orders in a single atomic transaction.
+     * 
+     * <p>This method processes all trade orders as a single database transaction,
+     * ensuring atomicity - either all trade orders are successfully created or
+     * none are persisted if any validation or database error occurs.</p>
+     * 
+     * <p>All trade orders in the list are validated before any database operations
+     * are performed. If validation fails for any order, the entire operation is
+     * rejected without persisting any data.</p>
+     * 
+     * @param tradeOrders List of TradeOrder entities to create. Must not be null or empty.
+     * @return List of created TradeOrder entities with generated IDs and timestamps,
+     *         in the same order as the input list
+     * @throws IllegalArgumentException if tradeOrders is null, empty, or contains invalid data
+     * @throws org.springframework.dao.DataIntegrityViolationException if database constraints are violated
+     * @throws org.springframework.transaction.TransactionException if the transaction fails
+     * @since 1.0
+     */
+    List<TradeOrder> createTradeOrdersBulk(List<TradeOrder> tradeOrders);
+    
     TradeOrder updateTradeOrder(Integer id, TradeOrder tradeOrder);
     void deleteTradeOrder(Integer id, Integer version);
     
