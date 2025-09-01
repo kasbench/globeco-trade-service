@@ -510,4 +510,73 @@ public class TradeOrderControllerTest extends org.kasbench.globeco_trade_service
         // Verify no execution records remain
         assertEquals(0, executionRepository.findAll().size());
     }
+
+    @Test
+    public void testCreateTradeOrdersBulk_Success() throws Exception {
+        // Arrange
+        Blotter blotter = blotterRepository.findById(1).orElseThrow();
+        
+        TradeOrderPostDTO dto1 = new TradeOrderPostDTO();
+        dto1.setOrderId(ThreadLocalRandom.current().nextInt(1, 1000000));
+        dto1.setPortfolioId("PORTFOLIO_001");
+        dto1.setOrderType("BUY");
+        dto1.setSecurityId("AAPL");
+        dto1.setQuantity(new BigDecimal("100.00"));
+        dto1.setLimitPrice(new BigDecimal("150.25"));
+        dto1.setTradeTimestamp(OffsetDateTime.now());
+        dto1.setBlotterId(blotter.getId());
+        
+        TradeOrderPostDTO dto2 = new TradeOrderPostDTO();
+        dto2.setOrderId(ThreadLocalRandom.current().nextInt(1, 1000000));
+        dto2.setPortfolioId("PORTFOLIO_002");
+        dto2.setOrderType("SELL");
+        dto2.setSecurityId("GOOGL");
+        dto2.setQuantity(new BigDecimal("50.00"));
+        dto2.setLimitPrice(new BigDecimal("2500.75"));
+        dto2.setTradeTimestamp(OffsetDateTime.now());
+        dto2.setBlotterId(blotter.getId());
+        
+        String requestJson = """
+            {
+                "tradeOrders": [
+                    {
+                        "orderId": %d,
+                        "portfolioId": "PORTFOLIO_001",
+                        "orderType": "BUY",
+                        "securityId": "AAPL",
+                        "quantity": 100.00,
+                        "limitPrice": 150.25,
+                        "tradeTimestamp": "%s",
+                        "blotterId": %d
+                    },
+                    {
+                        "orderId": %d,
+                        "portfolioId": "PORTFOLIO_002",
+                        "orderType": "SELL",
+                        "securityId": "GOOGL",
+                        "quantity": 50.00,
+                        "limitPrice": 2500.75,
+                        "tradeTimestamp": "%s",
+                        "blotterId": %d
+                    }
+                ]
+            }
+            """.formatted(dto1.getOrderId(), dto1.getTradeTimestamp(), dto1.getBlotterId(),
+                         dto2.getOrderId(), dto2.getTradeTimestamp(), dto2.getBlotterId());
+        
+        // Act & Assert
+        mockMvc.perform(post("/api/v1/tradeOrders/bulk")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(requestJson))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.status").value("SUCCESS"))
+                .andExpect(jsonPath("$.message").value("All trade orders created successfully"))
+                .andExpect(jsonPath("$.totalRequested").value(2))
+                .andExpect(jsonPath("$.successful").value(2))
+                .andExpect(jsonPath("$.failed").value(0))
+                .andExpect(jsonPath("$.results").isArray())
+                .andExpect(jsonPath("$.results.length()").value(2))
+                .andExpect(jsonPath("$.results[0].status").value("SUCCESS"))
+                .andExpect(jsonPath("$.results[1].status").value("SUCCESS"));
+    }
 } 

@@ -3,6 +3,9 @@ package org.kasbench.globeco_trade_service;
 import org.kasbench.globeco_trade_service.dto.TradeOrderPostDTO;
 import org.kasbench.globeco_trade_service.dto.TradeOrderPutDTO;
 import org.kasbench.globeco_trade_service.dto.TradeOrderResponseDTO;
+import org.kasbench.globeco_trade_service.dto.BulkTradeOrderRequestDTO;
+import org.kasbench.globeco_trade_service.dto.BulkTradeOrderResponseDTO;
+import org.kasbench.globeco_trade_service.dto.TradeOrderResultDTO;
 import org.kasbench.globeco_trade_service.entity.TradeOrder;
 import org.kasbench.globeco_trade_service.entity.Blotter;
 import org.kasbench.globeco_trade_service.service.TradeOrderService;
@@ -14,15 +17,22 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.validation.annotation.Validated;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.transaction.TransactionException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import jakarta.validation.Valid;
 
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
+import java.util.ArrayList;
+import java.util.stream.IntStream;
 
 @RestController
 @RequestMapping("/api/v1/tradeOrders")
+@Validated
 public class TradeOrderController {
     private final TradeOrderService tradeOrderService;
     private final ExecutionService executionService;
@@ -82,6 +92,104 @@ public class TradeOrderController {
         TradeOrder tradeOrder = fromPostDTO(dto);
         TradeOrder created = tradeOrderService.createTradeOrder(tradeOrder);
         return new ResponseEntity<>(toResponseDTO(created), HttpStatus.CREATED);
+    }
+
+    @PostMapping("/bulk")
+    public ResponseEntity<BulkTradeOrderResponseDTO> createTradeOrdersBulk(@Valid @RequestBody BulkTradeOrderRequestDTO request) {
+        logger.info("Bulk trade order creation requested with {} orders", 
+                   request.getTradeOrders() != null ? request.getTradeOrders().size() : 0);
+        
+        try {
+            // Convert DTOs to entities
+            List<TradeOrder> tradeOrders = request.getTradeOrders().stream()
+                    .map(this::fromPostDTO)
+                    .collect(Collectors.toList());
+            
+            // Call service to create all trade orders in bulk
+            List<TradeOrder> createdOrders = tradeOrderService.createTradeOrdersBulk(tradeOrders);
+            
+            // Build successful response
+            List<TradeOrderResultDTO> results = IntStream.range(0, createdOrders.size())
+                    .mapToObj(i -> new TradeOrderResultDTO(
+                            i,
+                            TradeOrderResultDTO.ResultStatus.SUCCESS,
+                            "Trade order created successfully",
+                            toResponseDTO(createdOrders.get(i))
+                    ))
+                    .collect(Collectors.toList());
+            
+            BulkTradeOrderResponseDTO response = new BulkTradeOrderResponseDTO(
+                    BulkTradeOrderResponseDTO.BulkStatus.SUCCESS,
+                    "All trade orders created successfully",
+                    request.getTradeOrders().size(),
+                    createdOrders.size(),
+                    0,
+                    results
+            );
+            
+            logger.info("Successfully created {} trade orders in bulk operation", createdOrders.size());
+            return new ResponseEntity<>(response, HttpStatus.CREATED);
+            
+        } catch (IllegalArgumentException e) {
+            logger.warn("Bulk trade order creation failed due to validation error: {}", e.getMessage());
+            
+            // Build failure response for validation errors
+            BulkTradeOrderResponseDTO response = new BulkTradeOrderResponseDTO(
+                    BulkTradeOrderResponseDTO.BulkStatus.FAILURE,
+                    "Bulk operation failed due to validation errors: " + e.getMessage(),
+                    request.getTradeOrders().size(),
+                    0,
+                    request.getTradeOrders().size(),
+                    createFailureResults(request.getTradeOrders().size(), e.getMessage())
+            );
+            
+            return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
+            
+        } catch (DataIntegrityViolationException e) {
+            logger.error("Bulk trade order creation failed due to database constraint violation: {}", e.getMessage());
+            
+            // Build failure response for database constraint violations
+            BulkTradeOrderResponseDTO response = new BulkTradeOrderResponseDTO(
+                    BulkTradeOrderResponseDTO.BulkStatus.FAILURE,
+                    "Bulk operation failed due to database constraint violations",
+                    request.getTradeOrders().size(),
+                    0,
+                    request.getTradeOrders().size(),
+                    createFailureResults(request.getTradeOrders().size(), "Database constraint violation")
+            );
+            
+            return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
+            
+        } catch (TransactionException e) {
+            logger.error("Bulk trade order creation failed due to transaction error: {}", e.getMessage(), e);
+            
+            // Build failure response for transaction errors
+            BulkTradeOrderResponseDTO response = new BulkTradeOrderResponseDTO(
+                    BulkTradeOrderResponseDTO.BulkStatus.FAILURE,
+                    "Bulk operation failed due to transaction error",
+                    request.getTradeOrders().size(),
+                    0,
+                    request.getTradeOrders().size(),
+                    createFailureResults(request.getTradeOrders().size(), "Transaction failed")
+            );
+            
+            return new ResponseEntity<>(response, HttpStatus.INTERNAL_SERVER_ERROR);
+            
+        } catch (Exception e) {
+            logger.error("Unexpected error during bulk trade order creation: {}", e.getMessage(), e);
+            
+            // Build failure response for unexpected errors
+            BulkTradeOrderResponseDTO response = new BulkTradeOrderResponseDTO(
+                    BulkTradeOrderResponseDTO.BulkStatus.FAILURE,
+                    "Bulk operation failed due to unexpected error",
+                    request.getTradeOrders().size(),
+                    0,
+                    request.getTradeOrders().size(),
+                    createFailureResults(request.getTradeOrders().size(), "Internal server error")
+            );
+            
+            return new ResponseEntity<>(response, HttpStatus.INTERNAL_SERVER_ERROR);
+        }
     }
 
     @PutMapping("/{id}")
@@ -151,6 +259,19 @@ public class TradeOrderController {
             logger.error("Exception in submitTradeOrder: {}: {}", e.getClass().getName(), e.getMessage(), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
+    }
+
+    private List<TradeOrderResultDTO> createFailureResults(int count, String errorMessage) {
+        List<TradeOrderResultDTO> results = new ArrayList<>();
+        for (int i = 0; i < count; i++) {
+            results.add(new TradeOrderResultDTO(
+                    i,
+                    TradeOrderResultDTO.ResultStatus.FAILURE,
+                    errorMessage,
+                    null
+            ));
+        }
+        return results;
     }
 
     private TradeOrderResponseDTO toResponseDTO(TradeOrder tradeOrder) {

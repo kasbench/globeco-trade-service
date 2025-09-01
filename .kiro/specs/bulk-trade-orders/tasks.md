@@ -20,7 +20,7 @@
   - Add proper error handling and logging for bulk operations
   - _Requirements: 2.1, 2.2, 2.3, 4.1, 4.3_
 
-- [ ] 4. Add bulk endpoint to TradeOrderController
+- [x] 4. Add bulk endpoint to TradeOrderController
   - Create POST /api/v1/tradeOrders/bulk endpoint method
   - Implement request validation and DTO mapping from BulkTradeOrderRequestDTO to List<TradeOrder>
   - Add response mapping from service results to BulkTradeOrderResponseDTO
