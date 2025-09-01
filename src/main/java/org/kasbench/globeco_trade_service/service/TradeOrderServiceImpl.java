@@ -127,6 +127,7 @@ public class TradeOrderServiceImpl implements TradeOrderService {
     @Transactional
     @CacheEvict(value = "tradeOrders", allEntries = true, cacheManager = "cacheManager")
     public TradeOrder createTradeOrder(TradeOrder tradeOrder) {
+        logger.info("Creating trade order: {}", tradeOrder.getOrderId());
         tradeOrder.setId(null); // Ensure ID is not set for new entity
         if (tradeOrder.getBlotter() != null && tradeOrder.getBlotter().getId() != null) {
             Blotter blotter = blotterRepository.findById(tradeOrder.getBlotter().getId())
@@ -142,6 +143,7 @@ public class TradeOrderServiceImpl implements TradeOrderService {
         if (tradeOrder.getQuantitySent() == null) {
             tradeOrder.setQuantitySent(java.math.BigDecimal.ZERO);
         }
+        logger.info("Saving trade order: {}", tradeOrder.getOrderId());
         return tradeOrderRepository.save(tradeOrder);
     }
 
