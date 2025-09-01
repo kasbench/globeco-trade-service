@@ -14,13 +14,13 @@ public class TradeOrder {
     @Column(name = "order_id", nullable = false)
     private Integer orderId;
 
-    @Column(name = "portfolio_id", nullable = false, length = 24)
+    @Column(name = "portfolio_id", nullable = false, columnDefinition = "char(24)")
     private String portfolioId;
 
-    @Column(name = "order_type", nullable = false, length = 10)
+    @Column(name = "order_type", nullable = false, columnDefinition = "char(10)")
     private String orderType;
 
-    @Column(name = "security_id", nullable = false, length = 24)
+    @Column(name = "security_id", nullable = false, columnDefinition = "char(24)")
     private String securityId;
 
     @Column(nullable = false, precision = 18, scale = 8)
