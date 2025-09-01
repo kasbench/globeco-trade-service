@@ -34,7 +34,7 @@
   - Configure connection pool settings for bulk operations
   - _Requirements: 4.1, 4.2_
 
-- [ ] 6. Create unit tests for bulk DTOs
+- [x] 6. Create unit tests for bulk DTOs
   - Write tests for BulkTradeOrderRequestDTO validation constraints
   - Test BulkTradeOrderResponseDTO serialization and deserialization
   - Verify TradeOrderResultDTO status and message handling
