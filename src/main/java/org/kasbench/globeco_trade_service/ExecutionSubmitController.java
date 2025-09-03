@@ -24,29 +24,35 @@ public class ExecutionSubmitController {
 
     @PostMapping("/execution/{id}/submit")
     public ResponseEntity<?> submitExecution(@PathVariable Integer id) {
-        ExecutionService.SubmitResult result = executionService.submitExecution(id);
-        if (result.getStatus() != null && result.getStatus().equals("submitted")) {
-            var opt = executionService.getExecutionById(id);
-            if (opt.isPresent()) {
-                Execution execution = opt.get();
-                ExecutionResponseDTO dto = executionController.toResponseDTO(execution);
-                return ResponseEntity.ok(dto);
+        long startTime = System.currentTimeMillis();
+        try {
+            ExecutionService.SubmitResult result = executionService.submitExecution(id);
+            if (result.getStatus() != null && result.getStatus().equals("submitted")) {
+                var opt = executionService.getExecutionById(id);
+                if (opt.isPresent()) {
+                    Execution execution = opt.get();
+                    ExecutionResponseDTO dto = executionController.toResponseDTO(execution);
+                    return ResponseEntity.ok(dto);
+                } else {
+                    return ResponseEntity.status(404).body(java.util.Map.of("error", "Execution not found after submit"));
+                }
+            } else if (result.getError() != null) {
+                String error = result.getError();
+                if (error.contains("not found")) {
+                    return ResponseEntity.status(404).body(java.util.Map.of("error", error));
+                } else if (error.contains("Client error")) {
+                    return ResponseEntity.status(400).body(java.util.Map.of("error", error));
+                } else if (error.contains("unavailable")) {
+                    return ResponseEntity.status(500).body(java.util.Map.of("error", error));
+                } else {
+                    return ResponseEntity.status(500).body(java.util.Map.of("error", error));
+                }
             } else {
-                return ResponseEntity.status(404).body(java.util.Map.of("error", "Execution not found after submit"));
+                return ResponseEntity.status(500).body(java.util.Map.of("error", "Unknown error"));
             }
-        } else if (result.getError() != null) {
-            String error = result.getError();
-            if (error.contains("not found")) {
-                return ResponseEntity.status(404).body(java.util.Map.of("error", error));
-            } else if (error.contains("Client error")) {
-                return ResponseEntity.status(400).body(java.util.Map.of("error", error));
-            } else if (error.contains("unavailable")) {
-                return ResponseEntity.status(500).body(java.util.Map.of("error", error));
-            } else {
-                return ResponseEntity.status(500).body(java.util.Map.of("error", error));
-            }
-        } else {
-            return ResponseEntity.status(500).body(java.util.Map.of("error", "Unknown error"));
-        }
+        } finally {
+            long executionTime = System.currentTimeMillis() - startTime;
+            org.slf4j.LoggerFactory.getLogger(ExecutionSubmitController.class).info("(Execution Submit Controller) submitExecution method execution time: {} ms", executionTime);
+    }
     }
 } 

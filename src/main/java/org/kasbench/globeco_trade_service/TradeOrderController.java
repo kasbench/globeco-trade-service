@@ -219,6 +219,7 @@ public class TradeOrderController {
             @RequestBody TradeOrderSubmitDTO dto,
             @RequestParam(value = "noExecuteSubmit", required = false, defaultValue = "false") boolean noExecuteSubmit) {
         
+        long startTime = System.currentTimeMillis();
         logger.info("submitTradeOrder called with id={}, dto={}, noExecuteSubmit={}", id, dto, noExecuteSubmit);
         
         try {
@@ -258,6 +259,9 @@ public class TradeOrderController {
         } catch (Exception e) {
             logger.error("Exception in submitTradeOrder: {}: {}", e.getClass().getName(), e.getMessage(), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        } finally {
+            long executionTime = System.currentTimeMillis() - startTime;
+            logger.info("(Trade Order Controller) submitTradeOrder execution completed in {} milliseconds", executionTime);
         }
     }
 

@@ -54,6 +54,10 @@ spec:
           args:
             - "-c"
             - "listen_addresses=0.0.0.0"
+            - "-c"
+            - "max_connections=200"
+            - "-c"
+            - "shared_buffers=256MB"
           volumeMounts:
             - name: globeco-trade-service-postgresdb-storage
               mountPath: /var/lib/postgresql/data
