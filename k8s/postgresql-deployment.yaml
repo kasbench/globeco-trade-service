@@ -17,7 +17,7 @@ metadata:
   name: globeco-trade-service-postgresql
   namespace: globeco
 spec:
-  serviceName: globeco-trade-servicepostgresql-headless
+  serviceName: globeco-trade-service-postgresql-headless
   replicas: 1
   selector:
     matchLabels:
@@ -77,12 +77,18 @@ spec:
   volumeClaimTemplates:
     - metadata:
         name: globeco-trade-service-postgresdb-storage
+        labels:
+          app: trade-service-postgres
       spec:
         accessModes: [ "ReadWriteOnce" ]
         storageClassName: local-storage
         resources:
           requests:
             storage: 10Gi
+        selector:
+          matchLabels:
+            app: trade-service-postgres
+            type: local
 ---
 apiVersion: v1
 kind: Service
