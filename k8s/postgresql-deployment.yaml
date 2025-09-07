@@ -58,9 +58,22 @@ spec:
             - "max_connections=200"
             - "-c"
             - "shared_buffers=256MB"
+            - "-c"
+            - "effective_cache_size=1GB"
+            - "-c"
+            - "work_mem=4MB"
+            - "-c"
+            - "maintenance_work_mem=64MB"
           volumeMounts:
             - name: globeco-trade-service-postgresdb-storage
               mountPath: /var/lib/postgresql/data
+          resources:
+            requests:
+              memory: "2Gi"
+              cpu: "1000m"
+            limits:
+              memory: "2Gi"
+              cpu: "1000m"
   volumeClaimTemplates:
     - metadata:
         name: globeco-trade-service-postgresdb-storage
