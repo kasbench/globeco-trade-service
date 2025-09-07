@@ -50,10 +50,10 @@ public class TradeOrderServiceImpl implements TradeOrderService {
 
     @Autowired
     public TradeOrderServiceImpl(TradeOrderRepository tradeOrderRepository, BlotterRepository blotterRepository,
-                                 ExecutionRepository executionRepository, TradeTypeRepository tradeTypeRepository,
-                                 ExecutionStatusRepository executionStatusRepository, DestinationRepository destinationRepository,
-                                 ExecutionService executionService, 
-                                 @org.springframework.beans.factory.annotation.Qualifier("executionServiceRetryTemplate") RetryTemplate retryTemplate) {
+            ExecutionRepository executionRepository, TradeTypeRepository tradeTypeRepository,
+            ExecutionStatusRepository executionStatusRepository, DestinationRepository destinationRepository,
+            ExecutionService executionService,
+            @org.springframework.beans.factory.annotation.Qualifier("executionServiceRetryTemplate") RetryTemplate retryTemplate) {
         this.tradeOrderRepository = tradeOrderRepository;
         this.blotterRepository = blotterRepository;
         this.executionRepository = executionRepository;
@@ -75,7 +75,7 @@ public class TradeOrderServiceImpl implements TradeOrderService {
     public PaginatedResult<TradeOrder> getAllTradeOrders(Integer limit, Integer offset) {
         return getAllTradeOrders(limit, offset, null);
     }
-    
+
     @Override
     @Cacheable(value = "tradeOrders", cacheManager = "cacheManager")
     public PaginatedResult<TradeOrder> getAllTradeOrders(Integer limit, Integer offset, Integer orderId) {
@@ -105,7 +105,7 @@ public class TradeOrderServiceImpl implements TradeOrderService {
             }
         }
     }
-    
+
     /**
      * Helper method to create Pageable from limit and offset
      */
@@ -135,7 +135,8 @@ public class TradeOrderServiceImpl implements TradeOrderService {
         tradeOrder.setId(null); // Ensure ID is not set for new entity
         if (tradeOrder.getBlotter() != null && tradeOrder.getBlotter().getId() != null) {
             Blotter blotter = blotterRepository.findById(tradeOrder.getBlotter().getId())
-                    .orElseThrow(() -> new IllegalArgumentException("Blotter not found: " + tradeOrder.getBlotter().getId()));
+                    .orElseThrow(() -> new IllegalArgumentException(
+                            "Blotter not found: " + tradeOrder.getBlotter().getId()));
             tradeOrder.setBlotter(blotter);
         } else {
             tradeOrder.setBlotter(null);
@@ -156,7 +157,7 @@ public class TradeOrderServiceImpl implements TradeOrderService {
     @CacheEvict(value = "tradeOrders", allEntries = true, cacheManager = "cacheManager")
     public List<TradeOrder> createTradeOrdersBulk(List<TradeOrder> tradeOrders) {
         logger.info("Creating bulk trade orders: {} orders", tradeOrders != null ? tradeOrders.size() : 0);
-        
+
         // Validate input parameters
         if (tradeOrders == null) {
             throw new IllegalArgumentException("Trade orders list cannot be null");
@@ -164,10 +165,10 @@ public class TradeOrderServiceImpl implements TradeOrderService {
         if (tradeOrders.isEmpty()) {
             throw new IllegalArgumentException("Trade orders list cannot be empty");
         }
-        
+
         // Validate all orders before any database operations
         validateTradeOrdersBulk(tradeOrders);
-        
+
         // Prepare all orders for insertion
         for (int i = 0; i < tradeOrders.size(); i++) {
             TradeOrder tradeOrder = tradeOrders.get(i);
@@ -175,10 +176,11 @@ public class TradeOrderServiceImpl implements TradeOrderService {
                 prepareTradeOrderForCreation(tradeOrder);
             } catch (Exception e) {
                 logger.error("Failed to prepare trade order at index {}: {}", i, e.getMessage());
-                throw new IllegalArgumentException("Failed to prepare trade order at index " + i + ": " + e.getMessage(), e);
+                throw new IllegalArgumentException(
+                        "Failed to prepare trade order at index " + i + ": " + e.getMessage(), e);
             }
         }
-        
+
         try {
             // Perform batch insert in single transaction
             logger.debug("Performing batch insert for {} trade orders", tradeOrders.size());
@@ -192,7 +194,8 @@ public class TradeOrderServiceImpl implements TradeOrderService {
     }
 
     /**
-     * Validates all trade orders in the bulk request before any database operations.
+     * Validates all trade orders in the bulk request before any database
+     * operations.
      * This method performs comprehensive validation to ensure data integrity.
      * 
      * @param tradeOrders List of trade orders to validate
@@ -200,20 +203,21 @@ public class TradeOrderServiceImpl implements TradeOrderService {
      */
     private void validateTradeOrdersBulk(List<TradeOrder> tradeOrders) {
         logger.debug("Validating {} trade orders for bulk creation", tradeOrders.size());
-        
+
         for (int i = 0; i < tradeOrders.size(); i++) {
             TradeOrder tradeOrder = tradeOrders.get(i);
             try {
                 validateIndividualTradeOrder(tradeOrder, i);
             } catch (Exception e) {
                 logger.error("Validation failed for trade order at index {}: {}", i, e.getMessage());
-                throw new IllegalArgumentException("Validation failed for trade order at index " + i + ": " + e.getMessage(), e);
+                throw new IllegalArgumentException(
+                        "Validation failed for trade order at index " + i + ": " + e.getMessage(), e);
             }
         }
-        
+
         // Check for duplicate order IDs within the batch
         validateNoDuplicateOrderIds(tradeOrders);
-        
+
         logger.debug("Bulk validation completed successfully for {} trade orders", tradeOrders.size());
     }
 
@@ -221,14 +225,15 @@ public class TradeOrderServiceImpl implements TradeOrderService {
      * Validates an individual trade order within a bulk request.
      * 
      * @param tradeOrder The trade order to validate
-     * @param index The index of the trade order in the bulk request (for error reporting)
+     * @param index      The index of the trade order in the bulk request (for error
+     *                   reporting)
      * @throws IllegalArgumentException if validation fails
      */
     private void validateIndividualTradeOrder(TradeOrder tradeOrder, int index) {
         if (tradeOrder == null) {
             throw new IllegalArgumentException("Trade order cannot be null");
         }
-        
+
         // Validate required fields
         if (tradeOrder.getOrderId() == null) {
             throw new IllegalArgumentException("Order ID is required");
@@ -245,31 +250,31 @@ public class TradeOrderServiceImpl implements TradeOrderService {
         if (tradeOrder.getQuantity() == null) {
             throw new IllegalArgumentException("Quantity is required");
         }
-        
+
         // Validate business rules
         if (tradeOrder.getQuantity().compareTo(BigDecimal.ZERO) <= 0) {
             throw new IllegalArgumentException("Quantity must be greater than zero");
         }
-        
+
         // Validate order type
         String normalizedOrderType = tradeOrder.getOrderType().trim().toUpperCase();
         if (!isValidOrderType(normalizedOrderType)) {
-            throw new IllegalArgumentException("Invalid order type: " + tradeOrder.getOrderType() + 
-                ". Valid types are: BUY, SELL, SHORT, COVER, EXRC");
+            throw new IllegalArgumentException("Invalid order type: " + tradeOrder.getOrderType() +
+                    ". Valid types are: BUY, SELL, SHORT, COVER, EXRC");
         }
-        
+
         // Validate limit price if provided
         if (tradeOrder.getLimitPrice() != null && tradeOrder.getLimitPrice().compareTo(BigDecimal.ZERO) <= 0) {
             throw new IllegalArgumentException("Limit price must be greater than zero when provided");
         }
-        
+
         // Validate blotter reference if provided
         if (tradeOrder.getBlotter() != null && tradeOrder.getBlotter().getId() != null) {
             if (!blotterRepository.existsById(tradeOrder.getBlotter().getId())) {
                 throw new IllegalArgumentException("Blotter not found: " + tradeOrder.getBlotter().getId());
             }
         }
-        
+
         // Validate string field lengths
         if (tradeOrder.getPortfolioId().length() > 24) {
             throw new IllegalArgumentException("Portfolio ID cannot exceed 24 characters");
@@ -293,9 +298,9 @@ public class TradeOrderServiceImpl implements TradeOrderService {
         for (int i = 0; i < tradeOrders.size(); i++) {
             Integer orderId = tradeOrders.get(i).getOrderId();
             if (!orderIds.add(orderId)) {
-                throw new IllegalArgumentException("Duplicate order ID found in bulk request: " + orderId + 
-                    " (first occurrence at index " + findFirstOccurrence(tradeOrders, orderId) + 
-                    ", duplicate at index " + i + ")");
+                throw new IllegalArgumentException("Duplicate order ID found in bulk request: " + orderId +
+                        " (first occurrence at index " + findFirstOccurrence(tradeOrders, orderId) +
+                        ", duplicate at index " + i + ")");
             }
         }
     }
@@ -304,7 +309,7 @@ public class TradeOrderServiceImpl implements TradeOrderService {
      * Finds the first occurrence of an order ID in the list.
      * 
      * @param tradeOrders List of trade orders
-     * @param orderId Order ID to find
+     * @param orderId     Order ID to find
      * @return Index of first occurrence
      */
     private int findFirstOccurrence(List<TradeOrder> tradeOrders, Integer orderId) {
@@ -319,16 +324,18 @@ public class TradeOrderServiceImpl implements TradeOrderService {
     /**
      * Checks if the given order type is valid.
      * 
-     * @param orderType The order type to validate (should be normalized to uppercase)
+     * @param orderType The order type to validate (should be normalized to
+     *                  uppercase)
      * @return true if valid, false otherwise
      */
     private boolean isValidOrderType(String orderType) {
-        return "BUY".equals(orderType) || "SELL".equals(orderType) || 
-               "SHORT".equals(orderType) || "COVER".equals(orderType) || "EXRC".equals(orderType);
+        return "BUY".equals(orderType) || "SELL".equals(orderType) ||
+                "SHORT".equals(orderType) || "COVER".equals(orderType) || "EXRC".equals(orderType);
     }
 
     /**
-     * Prepares a trade order for creation by setting default values and resolving references.
+     * Prepares a trade order for creation by setting default values and resolving
+     * references.
      * 
      * @param tradeOrder The trade order to prepare
      * @throws IllegalArgumentException if blotter reference is invalid
@@ -336,26 +343,27 @@ public class TradeOrderServiceImpl implements TradeOrderService {
     private void prepareTradeOrderForCreation(TradeOrder tradeOrder) {
         // Ensure ID is not set for new entity
         tradeOrder.setId(null);
-        
+
         // Set default timestamp if not provided
         if (tradeOrder.getTradeTimestamp() == null) {
             tradeOrder.setTradeTimestamp(OffsetDateTime.now());
         }
-        
+
         // Set default submitted status if not provided
         if (tradeOrder.getSubmitted() == null) {
             tradeOrder.setSubmitted(false);
         }
-        
+
         // Set default quantity sent if not provided
         if (tradeOrder.getQuantitySent() == null) {
             tradeOrder.setQuantitySent(BigDecimal.ZERO);
         }
-        
+
         // Resolve blotter reference if provided
         if (tradeOrder.getBlotter() != null && tradeOrder.getBlotter().getId() != null) {
             Blotter blotter = blotterRepository.findById(tradeOrder.getBlotter().getId())
-                    .orElseThrow(() -> new IllegalArgumentException("Blotter not found: " + tradeOrder.getBlotter().getId()));
+                    .orElseThrow(() -> new IllegalArgumentException(
+                            "Blotter not found: " + tradeOrder.getBlotter().getId()));
             tradeOrder.setBlotter(blotter);
         } else {
             tradeOrder.setBlotter(null);
@@ -378,7 +386,8 @@ public class TradeOrderServiceImpl implements TradeOrderService {
         existing.setSubmitted(tradeOrder.getSubmitted());
         if (tradeOrder.getBlotter() != null && tradeOrder.getBlotter().getId() != null) {
             Blotter blotter = blotterRepository.findById(tradeOrder.getBlotter().getId())
-                    .orElseThrow(() -> new IllegalArgumentException("Blotter not found: " + tradeOrder.getBlotter().getId()));
+                    .orElseThrow(() -> new IllegalArgumentException(
+                            "Blotter not found: " + tradeOrder.getBlotter().getId()));
             existing.setBlotter(blotter);
         } else {
             existing.setBlotter(null);
@@ -406,34 +415,34 @@ public class TradeOrderServiceImpl implements TradeOrderService {
     @Override
     @Transactional
     public Execution submitTradeOrder(Integer tradeOrderId, TradeOrderSubmitDTO dto, boolean noExecuteSubmit) {
-        logger.info("TradeOrderServiceImpl.submitTradeOrder called with tradeOrderId={}, dto={}, noExecuteSubmit={}", 
-                   tradeOrderId, dto, noExecuteSubmit);
-        
+        logger.info("TradeOrderServiceImpl.submitTradeOrder called with tradeOrderId={}, dto={}, noExecuteSubmit={}",
+                tradeOrderId, dto, noExecuteSubmit);
+
         // Store original values for potential rollback
         java.math.BigDecimal originalQuantitySent = null;
         Boolean originalSubmittedStatus = null;
         Execution savedExecution = null;
-        
+
         try {
             TradeOrder tradeOrder = tradeOrderRepository.findByIdWithBlotter(tradeOrderId)
                     .orElseThrow(() -> new IllegalArgumentException("TradeOrder not found: " + tradeOrderId));
-            
+
             // Store original values for rollback
             originalQuantitySent = tradeOrder.getQuantitySent();
             originalSubmittedStatus = tradeOrder.getSubmitted();
-            
+
             if (dto.getQuantity() == null) {
                 throw new IllegalArgumentException("Quantity must not be null");
             }
             java.math.BigDecimal available = tradeOrder.getQuantity().subtract(
-                tradeOrder.getQuantitySent() == null ? java.math.BigDecimal.ZERO : tradeOrder.getQuantitySent()
-            );
+                    tradeOrder.getQuantitySent() == null ? java.math.BigDecimal.ZERO : tradeOrder.getQuantitySent());
             if (dto.getQuantity().compareTo(available) > 0) {
                 throw new IllegalArgumentException("Requested quantity exceeds available quantity");
             }
-            
+
             // Normalize orderType before switch
-            String normalizedOrderType = tradeOrder.getOrderType() == null ? null : tradeOrder.getOrderType().trim().toUpperCase();
+            String normalizedOrderType = tradeOrder.getOrderType() == null ? null
+                    : tradeOrder.getOrderType().trim().toUpperCase();
             // Map order_type to trade_type_id
             Integer tradeTypeId = switch (normalizedOrderType) {
                 case "BUY" -> 1;
@@ -443,14 +452,15 @@ public class TradeOrderServiceImpl implements TradeOrderService {
                 case "EXRC" -> 5;
                 default -> throw new IllegalArgumentException("Unknown order_type: " + tradeOrder.getOrderType());
             };
-            
+
             TradeType tradeType = tradeTypeRepository.findById(tradeTypeId)
                     .orElseThrow(() -> new IllegalArgumentException("TradeType not found: " + tradeTypeId));
             ExecutionStatus status = executionStatusRepository.findById(1)
                     .orElseThrow(() -> new IllegalArgumentException("ExecutionStatus not found: 1"));
             Destination destination = destinationRepository.findById(dto.getDestinationId())
-                    .orElseThrow(() -> new IllegalArgumentException("Destination not found: " + dto.getDestinationId()));
-            
+                    .orElseThrow(
+                            () -> new IllegalArgumentException("Destination not found: " + dto.getDestinationId()));
+
             // Create and save execution
             Execution execution = new Execution();
             execution.setExecutionTimestamp(java.time.OffsetDateTime.now());
@@ -467,22 +477,34 @@ public class TradeOrderServiceImpl implements TradeOrderService {
             if (tradeOrder.getBlotter() != null) {
                 execution.setBlotter(tradeOrder.getBlotter());
             }
-            
+
+            long executionSaveStart = System.currentTimeMillis();
             savedExecution = executionRepository.save(execution);
-            
+            long executionSaveEnd = System.currentTimeMillis();
+            logger.info("(Trade Order Service) Execution save completed in {}ms for tradeOrderId={}",
+                    (executionSaveEnd - executionSaveStart), tradeOrderId);
+
             // Update trade order quantities
-            java.math.BigDecimal newQuantitySent = (tradeOrder.getQuantitySent() == null ? java.math.BigDecimal.ZERO : tradeOrder.getQuantitySent()).add(dto.getQuantity());
-            newQuantitySent = newQuantitySent.setScale(tradeOrder.getQuantity().scale(), java.math.RoundingMode.HALF_UP);
+            java.math.BigDecimal newQuantitySent = (tradeOrder.getQuantitySent() == null ? java.math.BigDecimal.ZERO
+                    : tradeOrder.getQuantitySent()).add(dto.getQuantity());
+            newQuantitySent = newQuantitySent.setScale(tradeOrder.getQuantity().scale(),
+                    java.math.RoundingMode.HALF_UP);
             tradeOrder.setQuantitySent(newQuantitySent);
-            
+
             // Only set submitted if fully sent (within 0.001)
-            if (tradeOrder.getQuantity().subtract(tradeOrder.getQuantitySent()).abs().compareTo(new java.math.BigDecimal("0.01")) <= 0) {
+            if (tradeOrder.getQuantity().subtract(tradeOrder.getQuantitySent()).abs()
+                    .compareTo(new java.math.BigDecimal("0.01")) <= 0) {
                 tradeOrder.setSubmitted(true);
             }
-            
+
+            long tradeOrderSaveStart = System.currentTimeMillis();
             tradeOrderRepository.save(tradeOrder);
-            
-            // If noExecuteSubmit is false (default), automatically submit to execution service
+            long tradeOrderSaveEnd = System.currentTimeMillis();
+            logger.info("(Trade Order Service) TradeOrder save completed in {}ms for tradeOrderId={}",
+                    (tradeOrderSaveEnd - tradeOrderSaveStart), tradeOrderId);
+
+            // If noExecuteSubmit is false (default), automatically submit to execution
+            // service
             if (!noExecuteSubmit) {
                 final Integer executionId = savedExecution.getId();
                 logger.info("Automatically submitting execution {} to external service", executionId);
@@ -490,74 +512,85 @@ public class TradeOrderServiceImpl implements TradeOrderService {
                     // Use retry template for external service call with enhanced logging
                     ExecutionService.SubmitResult result = retryTemplate.execute(context -> {
                         if (context.getRetryCount() > 0) {
-                            logger.warn("Retrying execution service submission for execution {} (attempt {})", 
-                                      executionId, context.getRetryCount() + 1);
+                            logger.warn("Retrying execution service submission for execution {} (attempt {})",
+                                    executionId, context.getRetryCount() + 1);
                         } else {
-                            logger.debug("Attempting execution service submission for execution {} (attempt {})", 
-                                       executionId, context.getRetryCount() + 1);
+                            logger.debug("Attempting execution service submission for execution {} (attempt {})",
+                                    executionId, context.getRetryCount() + 1);
                         }
                         return executionService.submitExecution(executionId);
                     });
-                    
+
                     if (result.getError() != null || !"submitted".equals(result.getStatus())) {
                         throw new RuntimeException("Execution service submission failed: " + result.getError());
                     }
-                    
+
                     logger.info("Execution {} successfully submitted to external service", executionId);
-                    
+
                     // Re-fetch the execution to get updated status and execution service ID
+                    long executionRefetchStart = System.currentTimeMillis();
                     savedExecution = executionRepository.findById(executionId)
-                            .orElseThrow(() -> new RuntimeException("Execution not found after submission: " + executionId));
-                    
+                            .orElseThrow(
+                                    () -> new RuntimeException("Execution not found after submission: " + executionId));
+                    long executionRefetchEnd = System.currentTimeMillis();
+                    logger.info("Execution refetch completed in {}ms for executionId={}",
+                            (executionRefetchEnd - executionRefetchStart), executionId);
+
                 } catch (Exception executionServiceException) {
-                    logger.error("External execution service failure for trade order {}: {}", 
-                               tradeOrderId, executionServiceException.getMessage());
-                    logger.error("Failed to submit execution {} to external service after retries, rolling back: {}", 
-                               executionId, executionServiceException.getMessage());
-                    
+                    logger.error("External execution service failure for trade order {}: {}",
+                            tradeOrderId, executionServiceException.getMessage());
+                    logger.error("Failed to submit execution {} to external service after retries, rolling back: {}",
+                            executionId, executionServiceException.getMessage());
+
                     // Compensating transaction: rollback the trade order and execution
-                    performCompensatingTransaction(savedExecution, tradeOrder, originalQuantitySent, originalSubmittedStatus);
-                    
+                    performCompensatingTransaction(savedExecution, tradeOrder, originalQuantitySent,
+                            originalSubmittedStatus);
+
                     // Determine appropriate exception type based on cause
                     if (executionServiceException.getCause() instanceof HttpClientErrorException) {
-                        throw new IllegalArgumentException("Execution service rejected the request: " + executionServiceException.getMessage());
+                        throw new IllegalArgumentException(
+                                "Execution service rejected the request: " + executionServiceException.getMessage());
                     } else {
-                        throw new RuntimeException("Failed to submit execution to external service: " + executionServiceException.getMessage());
+                        throw new RuntimeException("Failed to submit execution to external service: "
+                                + executionServiceException.getMessage());
                     }
                 }
             }
-            
+
             return savedExecution;
-            
+
         } catch (Exception e) {
-            logger.error("Exception in TradeOrderServiceImpl.submitTradeOrder: {}: {}", e.getClass().getName(), e.getMessage(), e);
+            logger.error("Exception in TradeOrderServiceImpl.submitTradeOrder: {}: {}", e.getClass().getName(),
+                    e.getMessage(), e);
             throw e;
         }
     }
-    
+
     /**
-     * Perform compensating transaction to rollback changes when execution service fails
+     * Perform compensating transaction to rollback changes when execution service
+     * fails
      */
-    private void performCompensatingTransaction(Execution execution, TradeOrder tradeOrder, 
-                                              java.math.BigDecimal originalQuantitySent, Boolean originalSubmittedStatus) {
+    private void performCompensatingTransaction(Execution execution, TradeOrder tradeOrder,
+            java.math.BigDecimal originalQuantitySent, Boolean originalSubmittedStatus) {
         try {
-            logger.info("Performing compensating transaction for execution {} and trade order {}", 
-                       execution.getId(), tradeOrder.getId());
-            
+            logger.info("Performing compensating transaction for execution {} and trade order {}",
+                    execution.getId(), tradeOrder.getId());
+
             // Delete the execution record
             executionRepository.deleteById(execution.getId());
             logger.debug("Deleted execution record {}", execution.getId());
-            
+
             // Restore trade order state
             tradeOrder.setQuantitySent(originalQuantitySent);
             tradeOrder.setSubmitted(originalSubmittedStatus);
             tradeOrderRepository.save(tradeOrder);
             logger.debug("Restored trade order {} to original state", tradeOrder.getId());
-            
+
         } catch (Exception rollbackException) {
-            logger.error("CRITICAL: Failed to perform compensating transaction for execution {} and trade order {}: {}", 
-                       execution.getId(), tradeOrder.getId(), rollbackException.getMessage(), rollbackException);
-            // Note: In a production system, this should trigger an alert or be handled by a dead letter queue
+            logger.error("CRITICAL: Failed to perform compensating transaction for execution {} and trade order {}: {}",
+                    execution.getId(), tradeOrder.getId(), rollbackException.getMessage(), rollbackException);
+            // Note: In a production system, this should trigger an alert or be handled by a
+            // dead letter queue
         }
     }
-} 
+}

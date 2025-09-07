@@ -85,8 +85,8 @@ public class ExecutionV2Controller {
 
             @Parameter(description = "Filter by execution service ID (exact match)", example = "789") @RequestParam(name = "executionServiceId", required = false) Integer executionServiceId) {
 
-        logger.info("GET /api/v2/executions - IP: {}, limit: {}, offset: {}, sort: {}, filters applied",
-                request.getRemoteAddr(), limit, offset, sort);
+        // logger.info("GET /api/v2/executions - IP: {}, limit: {}, offset: {}, sort: {}, filters applied",
+        //         request.getRemoteAddr(), limit, offset, sort);
 
         try {
             // Validate sort fields if provided
