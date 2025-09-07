@@ -415,6 +415,7 @@ public class TradeOrderServiceImpl implements TradeOrderService {
     @Override
     @Transactional
     public Execution submitTradeOrder(Integer tradeOrderId, TradeOrderSubmitDTO dto, boolean noExecuteSubmit) {
+        long methodStartTime = System.currentTimeMillis();
         logger.info("TradeOrderServiceImpl.submitTradeOrder called with tradeOrderId={}, dto={}, noExecuteSubmit={}",
                 tradeOrderId, dto, noExecuteSubmit);
 
@@ -557,9 +558,16 @@ public class TradeOrderServiceImpl implements TradeOrderService {
                 }
             }
 
+            long methodEndTime = System.currentTimeMillis();
+            logger.info("(Trade Order Service) TradeOrderServiceImpl.submitTradeOrder completed in {}ms for tradeOrderId={}",
+                    (methodEndTime - methodStartTime), tradeOrderId);
+            logger.info("(Trade Order Service) About to return from submitTradeOrder for tradeOrderId={}, transaction commit will happen next", tradeOrderId);
             return savedExecution;
 
         } catch (Exception e) {
+            long methodEndTime = System.currentTimeMillis();
+            logger.info("(Trade Order Service) TradeOrderServiceImpl.submitTradeOrder failed after {}ms for tradeOrderId={}",
+                    (methodEndTime - methodStartTime), tradeOrderId);
             logger.error("Exception in TradeOrderServiceImpl.submitTradeOrder: {}: {}", e.getClass().getName(),
                     e.getMessage(), e);
             throw e;

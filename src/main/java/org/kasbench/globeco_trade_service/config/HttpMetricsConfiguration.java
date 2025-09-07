@@ -15,6 +15,9 @@ import java.util.concurrent.atomic.AtomicInteger;
  * - http_requests_total (Counter)
  * - http_request_duration (Timer/Histogram)
  * - http_requests_in_flight (Gauge)
+ * 
+ * NOTE: This configuration may cause performance overhead under high load.
+ * See documentation/performance-optimization-guide.md for optimization recommendations.
  */
 @Configuration
 public class HttpMetricsConfiguration {

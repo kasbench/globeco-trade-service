@@ -4,25 +4,24 @@ import org.kasbench.globeco_trade_service.entity.*;
 import org.kasbench.globeco_trade_service.repository.*;
 import org.kasbench.globeco_trade_service.dto.ExecutionPutFillDTO;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.client.HttpStatusCodeException;
-import org.springframework.web.client.ResourceAccessException;
 import org.springframework.http.ResponseEntity;
-import org.springframework.http.HttpStatus;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
-import org.springframework.retry.support.RetryTemplate;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.math.BigDecimal;
+import jakarta.annotation.PostConstruct;
 
 @Service
 public class ExecutionServiceImpl implements ExecutionService {
@@ -36,6 +35,10 @@ public class ExecutionServiceImpl implements ExecutionService {
     private final org.springframework.retry.support.RetryTemplate retryTemplate;
     @Value("${execution.service.base-url:http://globeco-execution-service:8084}")
     private String executionServiceBaseUrl;
+
+    // Cache for execution statuses - loaded once at startup
+    private final Map<Integer, ExecutionStatus> executionStatusCache = new ConcurrentHashMap<>();
+    private final Map<String, ExecutionStatus> executionStatusByAbbreviationCache = new ConcurrentHashMap<>();
 
     @Autowired
     public ExecutionServiceImpl(
@@ -55,6 +58,31 @@ public class ExecutionServiceImpl implements ExecutionService {
         this.destinationRepository = destinationRepository;
         this.restTemplate = restTemplate;
         this.retryTemplate = retryTemplate;
+    }
+
+    @PostConstruct
+    private void initializeExecutionStatusCache() {
+        List<ExecutionStatus> statuses = executionStatusRepository.findAll();
+        for (ExecutionStatus status : statuses) {
+            executionStatusCache.put(status.getId(), status);
+            executionStatusByAbbreviationCache.put(status.getAbbreviation(), status);
+        }
+        org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(ExecutionServiceImpl.class);
+        logger.info("Initialized execution status cache with {} statuses", statuses.size());
+    }
+
+    /**
+     * Get execution status by ID from cache
+     */
+    private ExecutionStatus getExecutionStatusById(Integer id) {
+        return executionStatusCache.get(id);
+    }
+
+    /**
+     * Get execution status by abbreviation from cache
+     */
+    private ExecutionStatus getExecutionStatusByAbbreviation(String abbreviation) {
+        return executionStatusByAbbreviationCache.get(abbreviation);
     }
 
     @Override
@@ -151,9 +179,11 @@ public class ExecutionServiceImpl implements ExecutionService {
         }
 
         // Validate execution status
-        ExecutionStatus newStatus = executionStatusRepository.findByAbbreviation(fillDTO.getExecutionStatus())
-                .orElseThrow(() -> new IllegalArgumentException("Invalid execution status: "
-                        + fillDTO.getExecutionStatus() + ". Valid values are: NEW, SENT, PART, FILL, CANC"));
+        ExecutionStatus newStatus = getExecutionStatusByAbbreviation(fillDTO.getExecutionStatus());
+        if (newStatus == null) {
+            throw new IllegalArgumentException("Invalid execution status: "
+                    + fillDTO.getExecutionStatus() + ". Valid values are: NEW, SENT, PART, FILL, CANC");
+        }
 
         // Validate quantity filled
         if (fillDTO.getQuantityFilled().compareTo(BigDecimal.ZERO) < 0) {
@@ -204,9 +234,13 @@ public class ExecutionServiceImpl implements ExecutionService {
                 logger.debug("Attempting execution service submission for execution {} (attempt {})",
                         id, context.getRetryCount() + 1);
 
+                long apiCallStartTime = System.currentTimeMillis();
                 ResponseEntity<java.util.Map<String, Object>> result = restTemplate.postForEntity(
                         url, payload, (Class<java.util.Map<String, Object>>) (Class<?>) java.util.Map.class);
+                long apiCallDuration = System.currentTimeMillis() - apiCallStartTime;
 
+                logger.info("(Execution Service) Execution service API call completed in {} ms for execution {}",
+                        apiCallDuration, id);
                 logger.debug("Execution service responded with status: {}", result.getStatusCode());
                 return result;
             });
@@ -222,7 +256,7 @@ public class ExecutionServiceImpl implements ExecutionService {
                 execution.setQuantityPlaced(execution.getQuantityOrdered());
 
                 // Set status to SENT (id=2)
-                ExecutionStatus sentStatus = executionStatusRepository.findById(2).orElse(null);
+                ExecutionStatus sentStatus = getExecutionStatusById(2);
                 if (sentStatus != null) {
                     execution.setExecutionStatus(sentStatus);
                 }
@@ -260,9 +294,11 @@ public class ExecutionServiceImpl implements ExecutionService {
 
     private void resolveRelationships(Execution execution) {
         if (execution.getExecutionStatus() != null && execution.getExecutionStatus().getId() != null) {
-            ExecutionStatus status = executionStatusRepository.findById(execution.getExecutionStatus().getId())
-                    .orElseThrow(() -> new IllegalArgumentException(
-                            "ExecutionStatus not found: " + execution.getExecutionStatus().getId()));
+            ExecutionStatus status = getExecutionStatusById(execution.getExecutionStatus().getId());
+            if (status == null) {
+                throw new IllegalArgumentException(
+                        "ExecutionStatus not found: " + execution.getExecutionStatus().getId());
+            }
             execution.setExecutionStatus(status);
         } else {
             throw new IllegalArgumentException("ExecutionStatus is required");
@@ -303,9 +339,11 @@ public class ExecutionServiceImpl implements ExecutionService {
 
     private void resolveRelationshipsForUpdate(Execution existing, Execution incoming) {
         if (incoming.getExecutionStatus() != null && incoming.getExecutionStatus().getId() != null) {
-            ExecutionStatus status = executionStatusRepository.findById(incoming.getExecutionStatus().getId())
-                    .orElseThrow(() -> new IllegalArgumentException(
-                            "ExecutionStatus not found: " + incoming.getExecutionStatus().getId()));
+            ExecutionStatus status = getExecutionStatusById(incoming.getExecutionStatus().getId());
+            if (status == null) {
+                throw new IllegalArgumentException(
+                        "ExecutionStatus not found: " + incoming.getExecutionStatus().getId());
+            }
             existing.setExecutionStatus(status);
         }
         if (incoming.getBlotter() != null && incoming.getBlotter().getId() != null) {

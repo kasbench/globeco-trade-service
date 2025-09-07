@@ -223,8 +223,11 @@ public class TradeOrderController {
             logger.info("Starting tradeOrderService.submitTradeOrder call for id={}", id);
             Execution execution = tradeOrderService.submitTradeOrder(id, dto, noExecuteSubmit);
             long serviceCallEndTime = System.currentTimeMillis();
-            logger.info("(Trade Order Service) Completed tradeOrderService.submitTradeOrder call for id={} in {} milliseconds",
+            logger.info(
+                    "(Trade Order Controller) Completed tradeOrderService.submitTradeOrder call for id={} in {} milliseconds",
                     id, (serviceCallEndTime - serviceCallStartTime));
+
+            long dtoConversionStartTime = System.currentTimeMillis();
             ExecutionResponseDTO response;
             try {
                 response = toExecutionResponseDTO(execution);
@@ -233,8 +236,21 @@ public class TradeOrderController {
                         mappingEx.getMessage(), mappingEx);
                 return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
             }
+            long dtoConversionEndTime = System.currentTimeMillis();
+            logger.info("(Trade Order Controller) DTO conversion completed for id={} in {} milliseconds",
+                    id, (dtoConversionEndTime - dtoConversionStartTime));
             logger.info("Returning ExecutionResponseDTO: {}", response);
-            return new ResponseEntity<>(response, HttpStatus.CREATED);
+
+            long responseCreationStartTime = System.currentTimeMillis();
+            ResponseEntity<ExecutionResponseDTO> responseEntity = new ResponseEntity<>(response, HttpStatus.CREATED);
+            long responseCreationEndTime = System.currentTimeMillis();
+            logger.info("(Trade Order Controller) Response entity creation completed for id={} in {} milliseconds",
+                    id, (responseCreationEndTime - responseCreationStartTime));
+
+            long beforeReturnTime = System.currentTimeMillis();
+            logger.info("(Trade Order Controller) About to return response for id={} at {} ms from start",
+                    id, (beforeReturnTime - startTime));
+            return responseEntity;
         } catch (IllegalArgumentException e) {
             if (e.getMessage().contains("Execution service rejected the request")) {
                 // External service validation error - return 400 with details
@@ -263,6 +279,9 @@ public class TradeOrderController {
             logger.error("Exception in submitTradeOrder: {}: {}", e.getClass().getName(), e.getMessage(), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         } finally {
+            long finallyStartTime = System.currentTimeMillis();
+            logger.info("(Trade Order Controller) Finally block entered for id={} at {} ms from start",
+                    id, (finallyStartTime - startTime));
             long executionTime = System.currentTimeMillis() - startTime;
             logger.info("(Trade Order Controller) submitTradeOrder execution completed in {} milliseconds",
                     executionTime);

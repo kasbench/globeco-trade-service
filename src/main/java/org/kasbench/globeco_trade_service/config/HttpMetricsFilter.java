@@ -19,8 +19,11 @@ import java.util.concurrent.atomic.AtomicInteger;
  * Records three types of metrics:
  * - http_requests_total (Counter) - total number of requests with labels
  * - http_request_duration (Timer) - request duration histogram with labels
- * - http_requests_in_flight (Gauge) - current number of requests being processed
+ * - http_requests_in_flight (Gauge) - current number of requests being
+ * processed
  */
+// NOTE: This filter may cause performance overhead under high load.
+// See documentation/performance-optimization-guide.md for optimization recommendations.
 @Component
 public class HttpMetricsFilter implements Filter {
 
@@ -98,18 +101,17 @@ public class HttpMetricsFilter implements Filter {
             Timer timer = Timer.builder("http_request_duration")
                     .description("Duration of HTTP requests")
                     .serviceLevelObjectives(
-                        Duration.ofMillis(5),
-                        Duration.ofMillis(10),
-                        Duration.ofMillis(25),
-                        Duration.ofMillis(50),
-                        Duration.ofMillis(100),
-                        Duration.ofMillis(250),
-                        Duration.ofMillis(500),
-                        Duration.ofMillis(1_000),
-                        Duration.ofMillis(2_000),
-                        Duration.ofMillis(5_000),
-                        Duration.ofMillis(10_000)
-                    )
+                            Duration.ofMillis(5),
+                            Duration.ofMillis(10),
+                            Duration.ofMillis(25),
+                            Duration.ofMillis(50),
+                            Duration.ofMillis(100),
+                            Duration.ofMillis(250),
+                            Duration.ofMillis(500),
+                            Duration.ofMillis(1_000),
+                            Duration.ofMillis(2_000),
+                            Duration.ofMillis(5_000),
+                            Duration.ofMillis(10_000))
                     .maximumExpectedValue(Duration.ofMillis(20_000))
                     .publishPercentileHistogram(false)
                     .tag("method", method)
@@ -205,6 +207,5 @@ public class HttpMetricsFilter implements Filter {
     private String normalizeStatusCode(int statusCode) {
         return String.valueOf(statusCode);
     }
-
 
 }
