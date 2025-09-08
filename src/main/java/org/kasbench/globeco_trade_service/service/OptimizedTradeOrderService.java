@@ -38,6 +38,7 @@ public class OptimizedTradeOrderService {
     private final ExecutionStatusRepository executionStatusRepository;
     private final DestinationRepository destinationRepository;
     private final ExecutionService executionService;
+    private final AsyncExecutionService asyncExecutionService;
     private final RetryTemplate retryTemplate;
     private final TransactionCompensationHandler compensationHandler;
     
@@ -49,6 +50,7 @@ public class OptimizedTradeOrderService {
             ExecutionStatusRepository executionStatusRepository,
             DestinationRepository destinationRepository,
             ExecutionService executionService,
+            AsyncExecutionService asyncExecutionService,
             @org.springframework.beans.factory.annotation.Qualifier("executionServiceRetryTemplate") RetryTemplate retryTemplate,
             TransactionCompensationHandler compensationHandler) {
         this.tradeOrderRepository = tradeOrderRepository;
@@ -57,6 +59,7 @@ public class OptimizedTradeOrderService {
         this.executionStatusRepository = executionStatusRepository;
         this.destinationRepository = destinationRepository;
         this.executionService = executionService;
+        this.asyncExecutionService = asyncExecutionService;
         this.retryTemplate = retryTemplate;
         this.compensationHandler = compensationHandler;
     }
@@ -261,13 +264,13 @@ public class OptimizedTradeOrderService {
     }
     
     /**
-     * Submits execution to external service with retry logic.
+     * Submits execution to external service with retry logic (synchronous).
      * This method is called outside of any database transaction to avoid blocking commits.
      * 
      * @param executionId The ID of the execution to submit
      */
     private void submitToExternalService(Integer executionId) {
-        logger.info("Submitting execution {} to external service", executionId);
+        logger.info("Submitting execution {} to external service (synchronous)", executionId);
         
         ExecutionService.SubmitResult result = retryTemplate.execute(context -> {
             if (context.getRetryCount() > 0) {
@@ -285,6 +288,114 @@ public class OptimizedTradeOrderService {
         }
         
         logger.info("Execution {} successfully submitted to external service", executionId);
+    }
+    
+    /**
+     * Submits execution to external service asynchronously with retry logic and compensation handling.
+     * This method leverages the AsyncExecutionService to perform the submission without blocking
+     * the calling thread, implementing Requirements 8.4 and 8.5.
+     * 
+     * @param executionId The ID of the execution to submit
+     * @return CompletableFuture that completes when the async submission is done
+     */
+    private java.util.concurrent.CompletableFuture<ExecutionService.SubmitResult> submitToExternalServiceAsync(Integer executionId) {
+        logger.info("Submitting execution {} to external service (asynchronous)", executionId);
+        
+        return asyncExecutionService.submitExecutionAsync(executionId)
+                .whenComplete((result, throwable) -> {
+                    if (throwable != null) {
+                        logger.error("Async execution service submission failed for execution {}: {}", 
+                                executionId, throwable.getMessage());
+                    } else if (result.getError() != null || !"submitted".equals(result.getStatus())) {
+                        logger.warn("Async execution service submission completed with error for execution {}: {}", 
+                                executionId, result.getError());
+                    } else {
+                        logger.info("Execution {} successfully submitted to external service asynchronously", executionId);
+                    }
+                });
+    }
+    
+    /**
+     * Enhanced version of submitTradeOrder that uses asynchronous execution submission.
+     * This method implements Requirements 8.4 and 8.5 by using the AsyncExecutionService
+     * for external service calls, providing better performance under load.
+     * 
+     * @param tradeOrderId The ID of the trade order to submit
+     * @param dto The submission details
+     * @param noExecuteSubmit When false, automatically submits to execution service; when true, only creates local execution
+     * @param useAsync When true, uses async execution submission; when false, uses synchronous submission
+     * @return The created execution record
+     */
+    public Execution submitTradeOrderAsync(Integer tradeOrderId, TradeOrderSubmitDTO dto, boolean noExecuteSubmit, boolean useAsync) {
+        long methodStartTime = System.currentTimeMillis();
+        logger.info("OptimizedTradeOrderService.submitTradeOrderAsync called with tradeOrderId={}, dto={}, noExecuteSubmit={}, useAsync={}",
+                tradeOrderId, dto, noExecuteSubmit, useAsync);
+        
+        try {
+            // Step 1: Load trade order (read-only, no transaction needed)
+            TradeOrder tradeOrder = tradeOrderRepository.findByIdWithBlotter(tradeOrderId)
+                    .orElseThrow(() -> new IllegalArgumentException("TradeOrder not found: " + tradeOrderId));
+            
+            // Store original values for potential compensation
+            BigDecimal originalQuantitySent = tradeOrder.getQuantitySent();
+            Boolean originalSubmittedStatus = tradeOrder.getSubmitted();
+            
+            // Step 2: Create execution record (short transaction)
+            Execution savedExecution = createExecutionRecord(tradeOrder, dto);
+            
+            // Step 3: Update trade order quantities (short transaction)
+            updateTradeOrderQuantities(tradeOrderId, dto.getQuantity());
+            
+            // Step 4: Submit to external service (no transaction)
+            if (!noExecuteSubmit) {
+                final Integer executionId = savedExecution.getId();
+                
+                if (useAsync) {
+                    // Use async submission - fire and forget with built-in compensation
+                    submitToExternalServiceAsync(executionId);
+                    logger.info("Async execution submission initiated for execution {}", executionId);
+                } else {
+                    // Use synchronous submission with manual compensation handling
+                    try {
+                        submitToExternalService(executionId);
+                        
+                        // Re-fetch execution to get updated status and execution service ID
+                        savedExecution = executionRepository.findById(executionId)
+                                .orElseThrow(() -> new RuntimeException("Execution not found after submission: " + executionId));
+                        
+                    } catch (Exception executionServiceException) {
+                        logger.error("External execution service failure for trade order {}: {}",
+                                tradeOrderId, executionServiceException.getMessage());
+                        
+                        // Use the enhanced TransactionCompensationHandler for async compensation
+                        TransactionCompensationHandler.TradeOrderState originalState = 
+                                new TransactionCompensationHandler.TradeOrderState(tradeOrderId, originalQuantitySent, originalSubmittedStatus);
+                        compensationHandler.compensateFailedSubmission(savedExecution, originalState);
+                        
+                        // Re-throw appropriate exception
+                        if (executionServiceException.getCause() instanceof org.springframework.web.client.HttpClientErrorException) {
+                            throw new IllegalArgumentException(
+                                    "Execution service rejected the request: " + executionServiceException.getMessage());
+                        } else {
+                            throw new RuntimeException("Failed to submit execution to external service: "
+                                    + executionServiceException.getMessage());
+                        }
+                    }
+                }
+            }
+            
+            long methodEndTime = System.currentTimeMillis();
+            logger.info("OptimizedTradeOrderService.submitTradeOrderAsync completed in {}ms for tradeOrderId={}",
+                    (methodEndTime - methodStartTime), tradeOrderId);
+            
+            return savedExecution;
+            
+        } catch (Exception e) {
+            long methodEndTime = System.currentTimeMillis();
+            logger.error("OptimizedTradeOrderService.submitTradeOrderAsync failed after {}ms for tradeOrderId={}: {}",
+                    (methodEndTime - methodStartTime), tradeOrderId, e.getMessage());
+            throw e;
+        }
     }
     
 

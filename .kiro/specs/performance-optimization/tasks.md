@@ -6,7 +6,7 @@
   - Add connection pool health checks and alerting thresholds
   - _Requirements: 1.1, 1.2, 1.3, 1.4, 1.5_
 
-- [ ] 2. Transaction Scope Reduction - Core Service Refactoring
+- [x] 2. Transaction Scope Reduction - Core Service Refactoring
   - [x] 2.1 Create OptimizedTradeOrderService with separate transaction methods
     - Implement createExecutionRecord method with REQUIRES_NEW propagation
     - Implement updateTradeOrderQuantities method with REQUIRES_NEW propagation
@@ -20,13 +20,13 @@
     - _Requirements: 2.5_
 
 - [ ] 3. Asynchronous Processing Framework Implementation
-  - [ ] 3.1 Create async configuration with dedicated thread pools
+  - [x] 3.1 Create async configuration with dedicated thread pools
     - Configure executionSubmissionExecutor for external service calls
     - Configure metricsRecordingExecutor for metrics processing
     - Set appropriate pool sizes and rejection policies
     - _Requirements: 8.1, 8.2, 8.3_
 
-  - [ ] 3.2 Implement AsyncExecutionService
+  - [x] 3.2 Implement AsyncExecutionService
     - Create async method for external execution service submission
     - Implement retry logic with exponential backoff
     - Add compensation handling for async failures

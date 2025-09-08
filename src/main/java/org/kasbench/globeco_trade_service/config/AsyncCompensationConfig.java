@@ -4,58 +4,95 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
+import org.springframework.core.task.TaskExecutor;
 
-import java.util.concurrent.Executor;
 import java.util.concurrent.ThreadPoolExecutor;
 
 /**
- * Configuration for asynchronous compensation processing.
- * This configuration provides dedicated thread pools for compensation operations
- * to ensure they don't block the main application threads.
+ * Configuration for asynchronous processing with dedicated thread pools
+ * for external service calls and metrics processing.
  */
 @Configuration
 @EnableAsync
 public class AsyncCompensationConfig {
-    
+
     /**
-     * Creates a dedicated executor for compensation operations.
-     * This executor is configured with appropriate pool sizes and rejection policies
-     * to handle compensation operations asynchronously.
+     * Thread pool executor for external service calls (execution submissions).
+     * Configured with appropriate pool sizes and rejection policy for handling
+     * external service integration without blocking main request threads.
      * 
-     * @return The compensation executor
+     * Requirements: 8.1, 8.2
      */
-    @Bean("compensationExecutor")
-    public Executor compensationExecutor() {
+    @Bean("executionSubmissionExecutor")
+    public TaskExecutor executionSubmissionExecutor() {
         ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
         
-        // Core pool size - number of threads to keep alive
-        executor.setCorePoolSize(2);
+        // Core pool size - minimum threads always alive
+        executor.setCorePoolSize(10);
         
-        // Maximum pool size - maximum number of threads
-        executor.setMaxPoolSize(5);
+        // Maximum pool size - scales up under load
+        executor.setMaxPoolSize(50);
         
-        // Queue capacity - number of tasks to queue before creating new threads
+        // Queue capacity - requests queued when all core threads busy
         executor.setQueueCapacity(100);
         
-        // Thread name prefix for easier debugging
-        executor.setThreadNamePrefix("compensation-");
+        // Thread naming for easier debugging
+        executor.setThreadNamePrefix("execution-submit-");
         
-        // Rejection policy - what to do when pool and queue are full
-        // CallerRunsPolicy ensures the task is executed by the calling thread
-        // This provides backpressure and prevents task loss
+        // Rejection policy - caller runs when pool and queue are full
+        // This provides backpressure without dropping requests
         executor.setRejectedExecutionHandler(new ThreadPoolExecutor.CallerRunsPolicy());
         
         // Allow core threads to timeout when idle
         executor.setAllowCoreThreadTimeOut(true);
         
-        // Keep alive time for idle threads (in seconds)
+        // Keep alive time for idle threads
         executor.setKeepAliveSeconds(60);
         
         // Wait for tasks to complete on shutdown
         executor.setWaitForTasksToCompleteOnShutdown(true);
-        
-        // Maximum time to wait for tasks to complete on shutdown (in seconds)
         executor.setAwaitTerminationSeconds(30);
+        
+        executor.initialize();
+        return executor;
+    }
+
+    /**
+     * Thread pool executor for metrics processing.
+     * Configured with smaller pool size since metrics recording should be
+     * lightweight and non-blocking to request processing.
+     * 
+     * Requirements: 8.2, 8.3
+     */
+    @Bean("metricsRecordingExecutor")
+    public TaskExecutor metricsRecordingExecutor() {
+        ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
+        
+        // Smaller core pool for metrics processing
+        executor.setCorePoolSize(2);
+        
+        // Maximum pool size for metrics
+        executor.setMaxPoolSize(5);
+        
+        // Larger queue capacity since metrics can be buffered
+        executor.setQueueCapacity(1000);
+        
+        // Thread naming for easier debugging
+        executor.setThreadNamePrefix("metrics-");
+        
+        // Rejection policy - discard oldest when queue is full
+        // For metrics, it's acceptable to drop old metrics under extreme load
+        executor.setRejectedExecutionHandler(new ThreadPoolExecutor.DiscardOldestPolicy());
+        
+        // Allow core threads to timeout when idle
+        executor.setAllowCoreThreadTimeOut(true);
+        
+        // Keep alive time for idle threads
+        executor.setKeepAliveSeconds(60);
+        
+        // Wait for tasks to complete on shutdown
+        executor.setWaitForTasksToCompleteOnShutdown(true);
+        executor.setAwaitTerminationSeconds(15);
         
         executor.initialize();
         return executor;
