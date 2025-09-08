@@ -21,7 +21,8 @@ import java.util.Optional;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.math.BigDecimal;
-import jakarta.annotation.PostConstruct;
+import org.springframework.boot.context.event.ApplicationReadyEvent;
+import org.springframework.context.event.EventListener;
 
 @Service
 public class ExecutionServiceImpl implements ExecutionService {
@@ -60,8 +61,8 @@ public class ExecutionServiceImpl implements ExecutionService {
         this.retryTemplate = retryTemplate;
     }
 
-    @PostConstruct
-    private void initializeExecutionStatusCache() {
+    @EventListener(ApplicationReadyEvent.class)
+    public void initializeExecutionStatusCache() {
         List<ExecutionStatus> statuses = executionStatusRepository.findAll();
         for (ExecutionStatus status : statuses) {
             executionStatusCache.put(status.getId(), status);
