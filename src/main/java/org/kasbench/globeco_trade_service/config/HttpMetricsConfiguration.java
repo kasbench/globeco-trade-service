@@ -16,8 +16,8 @@ import java.util.concurrent.atomic.AtomicInteger;
  * - http_request_duration (Timer/Histogram)
  * - http_requests_in_flight (Gauge)
  * 
- * NOTE: This configuration may cause performance overhead under high load.
- * See documentation/performance-optimization-guide.md for optimization recommendations.
+ * Uses OptimizedHttpMetricsFilter for improved performance under high load
+ * with async metrics recording and path normalization caching.
  */
 @Configuration
 public class HttpMetricsConfiguration {
@@ -66,19 +66,20 @@ public class HttpMetricsConfiguration {
     }
 
     /**
-     * Registers the HttpMetricsFilter to intercept all HTTP requests.
+     * Registers the OptimizedHttpMetricsFilter to intercept all HTTP requests.
      * Sets high priority to ensure metrics are recorded for all requests.
+     * Uses the optimized implementation for better performance under load.
      * 
-     * @param httpMetricsFilter the filter instance to register
+     * @param optimizedHttpMetricsFilter the optimized filter instance to register
      * @return the configured FilterRegistrationBean
      */
     @Bean
-    public FilterRegistrationBean<HttpMetricsFilter> httpMetricsFilterRegistration(HttpMetricsFilter httpMetricsFilter) {
-        FilterRegistrationBean<HttpMetricsFilter> registration = new FilterRegistrationBean<>();
-        registration.setFilter(httpMetricsFilter);
+    public FilterRegistrationBean<OptimizedHttpMetricsFilter> httpMetricsFilterRegistration(OptimizedHttpMetricsFilter optimizedHttpMetricsFilter) {
+        FilterRegistrationBean<OptimizedHttpMetricsFilter> registration = new FilterRegistrationBean<>();
+        registration.setFilter(optimizedHttpMetricsFilter);
         registration.addUrlPatterns("/*");
         registration.setOrder(1); // High priority to capture all requests
-        registration.setName("httpMetricsFilter");
+        registration.setName("optimizedHttpMetricsFilter");
         return registration;
     }
 

@@ -24,7 +24,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  */
 // NOTE: This filter may cause performance overhead under high load.
 // See documentation/performance-optimization-guide.md for optimization recommendations.
-@Component
+// @Component - Disabled in favor of OptimizedHttpMetricsFilter
 public class HttpMetricsFilter implements Filter {
 
     private static final Logger logger = LoggerFactory.getLogger(HttpMetricsFilter.class);
