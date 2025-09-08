@@ -7,13 +7,13 @@
   - _Requirements: 1.1, 1.2, 1.3, 1.4, 1.5_
 
 - [ ] 2. Transaction Scope Reduction - Core Service Refactoring
-  - [ ] 2.1 Create OptimizedTradeOrderService with separate transaction methods
+  - [x] 2.1 Create OptimizedTradeOrderService with separate transaction methods
     - Implement createExecutionRecord method with REQUIRES_NEW propagation
     - Implement updateTradeOrderQuantities method with REQUIRES_NEW propagation
     - Refactor submitTradeOrder to coordinate without holding long transactions
     - _Requirements: 2.1, 2.2, 2.3, 2.4_
 
-  - [ ] 2.2 Implement Transaction Compensation Handler
+  - [x] 2.2 Implement Transaction Compensation Handler
     - Create TransactionCompensationHandler component for saga pattern
     - Implement compensateFailedSubmission method with async rollback
     - Add dead letter queue integration for failed compensations
