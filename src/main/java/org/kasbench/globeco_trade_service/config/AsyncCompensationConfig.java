@@ -2,6 +2,7 @@ package org.kasbench.globeco_trade_service.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Primary;
 import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.core.task.TaskExecutor;
@@ -21,9 +22,12 @@ public class AsyncCompensationConfig {
      * Configured with appropriate pool sizes and rejection policy for handling
      * external service integration without blocking main request threads.
      * 
+     * This is marked as @Primary to serve as the default TaskExecutor for @Async methods.
+     * 
      * Requirements: 8.1, 8.2
      */
     @Bean("executionSubmissionExecutor")
+    @Primary
     public TaskExecutor executionSubmissionExecutor() {
         ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
         

@@ -16,7 +16,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @AutoConfigureMockMvc
-public class TradeTypeControllerTest extends org.kasbench.globeco_trade_service.AbstractPostgresContainerTest {
+public class TradeTypeControllerTest extends AbstractH2Test {
     @Autowired
     private MockMvc mockMvc;
     @Autowired

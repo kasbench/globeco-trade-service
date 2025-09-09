@@ -1,8 +1,10 @@
 package org.kasbench.globeco_trade_service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 import org.kasbench.globeco_trade_service.dto.DestinationPostDTO;
 import org.kasbench.globeco_trade_service.dto.DestinationPutDTO;
 import org.kasbench.globeco_trade_service.entity.Destination;
@@ -11,12 +13,17 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.concurrent.TimeUnit;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @AutoConfigureMockMvc
-public class DestinationControllerTest extends org.kasbench.globeco_trade_service.AbstractPostgresContainerTest {
+@Transactional
+@Timeout(value = 10, unit = TimeUnit.SECONDS)
+public class DestinationControllerTest extends AbstractH2Test {
     @Autowired
     private MockMvc mockMvc;
     @Autowired
@@ -33,6 +40,18 @@ public class DestinationControllerTest extends org.kasbench.globeco_trade_servic
         destination.setDescription("Merrill Lynch");
         destination.setVersion(1);
         destination = destinationService.createDestination(destination);
+    }
+
+    @AfterEach
+    void tearDown() {
+        // Clean up test data
+        try {
+            if (destination != null && destination.getId() != null) {
+                destinationService.deleteDestination(destination.getId(), destination.getVersion());
+            }
+        } catch (Exception e) {
+            // Ignore cleanup errors
+        }
     }
 
     @Test

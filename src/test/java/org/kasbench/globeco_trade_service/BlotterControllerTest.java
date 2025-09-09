@@ -1,8 +1,10 @@
 package org.kasbench.globeco_trade_service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 import org.kasbench.globeco_trade_service.dto.BlotterPostDTO;
 import org.kasbench.globeco_trade_service.dto.BlotterPutDTO;
 import org.kasbench.globeco_trade_service.entity.Blotter;
@@ -11,12 +13,17 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.http.MediaType;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.concurrent.TimeUnit;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @AutoConfigureMockMvc
-public class BlotterControllerTest extends org.kasbench.globeco_trade_service.AbstractPostgresContainerTest {
+@Transactional
+@Timeout(value = 10, unit = TimeUnit.SECONDS)
+public class BlotterControllerTest extends AbstractH2Test {
     @Autowired
     private MockMvc mockMvc;
     @Autowired
@@ -33,6 +40,11 @@ public class BlotterControllerTest extends org.kasbench.globeco_trade_service.Ab
         blotter.setAbbreviation("EQ");
         blotter.setName("Equity");
         blotter = blotterRepository.saveAndFlush(blotter);
+    }
+
+    @AfterEach
+    void tearDown() {
+        blotterRepository.deleteAll();
     }
 
     @Test
@@ -110,4 +122,4 @@ public class BlotterControllerTest extends org.kasbench.globeco_trade_service.Ab
                 .param("version", "1"))
                 .andExpect(status().isNotFound());
     }
-} 
+}
