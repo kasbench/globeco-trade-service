@@ -14,6 +14,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Map;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -33,6 +35,7 @@ public class BulkExecutionSubmissionService {
     private final ExecutionServiceClient executionServiceClient;
     private final ExecutionBatchProperties batchProperties;
     private final ExecutionFailureHandler failureHandler;
+    private final BulkExecutionErrorHandler errorHandler;
     
     @Autowired
     public BulkExecutionSubmissionService(
@@ -40,12 +43,14 @@ public class BulkExecutionSubmissionService {
             ExecutionBatchProcessor batchProcessor,
             ExecutionServiceClient executionServiceClient,
             ExecutionBatchProperties batchProperties,
-            ExecutionFailureHandler failureHandler) {
+            ExecutionFailureHandler failureHandler,
+            BulkExecutionErrorHandler errorHandler) {
         this.executionRepository = executionRepository;
         this.batchProcessor = batchProcessor;
         this.executionServiceClient = executionServiceClient;
         this.batchProperties = batchProperties;
         this.failureHandler = failureHandler;
+        this.errorHandler = errorHandler;
     }
     
     /**
@@ -95,8 +100,16 @@ public class BulkExecutionSubmissionService {
             
         } catch (Exception ex) {
             long duration = System.currentTimeMillis() - startTime;
-            logger.error("Bulk execution submission failed after {} ms for {} executions: {}", 
-                        duration, executionIds.size(), ex.getMessage(), ex);
+            
+            // Map exception to detailed error information
+            Map<String, Object> executionContext = errorHandler.createExecutionContext(executionIds, executionIds.size(), 1);
+            BulkExecutionErrorHandler.ErrorInfo errorInfo = errorHandler.mapException(ex, executionContext);
+            
+            // Log detailed error information
+            errorHandler.logError(errorInfo, executionIds, executionIds.size());
+            
+            logger.error("Bulk execution submission failed after {} ms for {} executions: [{}] {}", 
+                        duration, executionIds.size(), errorInfo.getErrorCode(), errorInfo.getMessage(), ex);
             throw ex;
         }
     }
@@ -154,11 +167,21 @@ public class BulkExecutionSubmissionService {
             
         } catch (Exception ex) {
             long batchDuration = System.currentTimeMillis() - batchStartTime;
-            logger.error("Batch processing failed after {} ms for {} executions: {}", 
-                        batchDuration, batchSize, ex.getMessage(), ex);
             
-            // Create failure result for all executions in this batch
-            return createBatchFailureResult(executions, ex.getMessage());
+            // Map exception to detailed error information
+            List<Integer> executionIdList = executions.stream().map(Execution::getId).collect(Collectors.toList());
+            Map<String, Object> executionContext = errorHandler.createExecutionContext(executionIdList, batchSize, 1);
+            BulkExecutionErrorHandler.ErrorInfo errorInfo = errorHandler.mapException(ex, executionContext);
+            
+            // Log detailed error information
+            errorHandler.logError(errorInfo, executionIdList, batchSize);
+            
+            logger.error("Batch processing failed after {} ms for {} executions: [{}] {}", 
+                        batchDuration, batchSize, errorInfo.getErrorCode(), errorInfo.getMessage(), ex);
+            
+            // Create failure result for all executions in this batch with detailed error info
+            String errorMessage = String.format("[%s] %s", errorInfo.getErrorCode(), errorInfo.getMessage());
+            return createBatchFailureResult(executions, errorMessage);
         }
     }
     
@@ -233,14 +256,23 @@ public class BulkExecutionSubmissionService {
                             i + 1, batchResult.getSuccessful(), batchResult.getFailed());
                 
             } catch (Exception ex) {
-                logger.error("Batch {} failed completely: {}", i + 1, ex.getMessage(), ex);
+                // Map exception to detailed error information
+                List<Integer> batchExecutionIds = batch.stream().map(Execution::getId).collect(Collectors.toList());
+                Map<String, Object> executionContext = errorHandler.createExecutionContext(batchExecutionIds, batch.size(), 1);
+                BulkExecutionErrorHandler.ErrorInfo errorInfo = errorHandler.mapException(ex, executionContext);
                 
-                // Add failure results for all executions in this batch
+                // Log detailed error information
+                errorHandler.logError(errorInfo, batchExecutionIds, batch.size());
+                
+                logger.error("Batch {} failed completely: [{}] {}", i + 1, errorInfo.getErrorCode(), errorInfo.getMessage(), ex);
+                
+                // Add failure results for all executions in this batch with detailed error info
+                String errorMessage = String.format("[%s] %s", errorInfo.getErrorCode(), errorInfo.getMessage());
                 for (Execution execution : batch) {
                     allResults.add(new ExecutionSubmitResult(
                         execution.getId(), 
                         "FAILED", 
-                        "Batch processing failed: " + ex.getMessage(),
+                        errorMessage,
                         null
                     ));
                     totalFailed++;
@@ -275,11 +307,21 @@ public class BulkExecutionSubmissionService {
                 failed += singleResult.getFailed();
                 
             } catch (Exception ex) {
-                logger.error("Individual execution {} failed: {}", execution.getId(), ex.getMessage());
+                // Map exception to detailed error information
+                List<Integer> singleExecutionId = List.of(execution.getId());
+                Map<String, Object> executionContext = errorHandler.createExecutionContext(singleExecutionId, 1, 1);
+                BulkExecutionErrorHandler.ErrorInfo errorInfo = errorHandler.mapException(ex, executionContext);
+                
+                // Log detailed error information
+                errorHandler.logError(errorInfo, singleExecutionId, 1);
+                
+                logger.error("Individual execution {} failed: [{}] {}", execution.getId(), errorInfo.getErrorCode(), errorInfo.getMessage());
+                
+                String errorMessage = String.format("[%s] %s", errorInfo.getErrorCode(), errorInfo.getMessage());
                 results.add(new ExecutionSubmitResult(
                     execution.getId(), 
                     "FAILED", 
-                    ex.getMessage(),
+                    errorMessage,
                     null
                 ));
                 failed++;

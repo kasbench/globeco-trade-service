@@ -40,12 +40,15 @@ class BulkExecutionSubmissionServiceTest {
     @Mock
     private ExecutionFailureHandler failureHandler;
 
+    @Mock
+    private BulkExecutionErrorHandler errorHandler;
+
     private BulkExecutionSubmissionService service;
 
     @BeforeEach
     void setUp() {
         service = new BulkExecutionSubmissionService(
-            executionRepository, batchProcessor, executionServiceClient, batchProperties, failureHandler);
+            executionRepository, batchProcessor, executionServiceClient, batchProperties, failureHandler, errorHandler);
     }
 
     @Test

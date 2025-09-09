@@ -19,11 +19,11 @@ import org.springframework.web.client.ResourceAccessException;
 
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -41,15 +41,38 @@ class ExecutionFailureHandlerTest {
     @Mock
     private RetryTemplate retryTemplate;
 
+    @Mock
+    private BulkExecutionErrorHandler errorHandler;
+
     private ExecutionFailureHandler failureHandler;
 
     @BeforeEach
     void setUp() {
         failureHandler = new ExecutionFailureHandler(
-            batchProcessor, executionServiceClient, batchProperties, retryTemplate);
+            batchProcessor, executionServiceClient, batchProperties, retryTemplate, errorHandler);
         
         // Default configuration - use lenient to avoid unnecessary stubbing warnings
         lenient().when(batchProperties.getRetryFailedIndividually()).thenReturn(3);
+        
+        // Setup default error handler behavior
+        lenient().when(errorHandler.createExecutionContext(any(), anyInt(), anyInt()))
+            .thenReturn(new HashMap<>());
+        lenient().when(errorHandler.mapException(any(), any()))
+            .thenReturn(createDefaultErrorInfo());
+        lenient().when(errorHandler.shouldRetry(any(), anyInt(), anyInt()))
+            .thenReturn(true);
+    }
+    
+    private BulkExecutionErrorHandler.ErrorInfo createDefaultErrorInfo() {
+        return new BulkExecutionErrorHandler.ErrorInfo(
+            BulkExecutionErrorHandler.ErrorCategory.UNKNOWN_ERROR,
+            BulkExecutionErrorHandler.ErrorSeverity.MEDIUM,
+            "TEST_ERROR",
+            "Test error message",
+            "Detailed test error message",
+            true,
+            new HashMap<>()
+        );
     }
 
     @Test
@@ -160,9 +183,22 @@ class ExecutionFailureHandlerTest {
     void testRetryExecutionIndividually_PermanentFailure_ReturnsRetryExhausted() throws Exception {
         // Arrange
         Execution execution = createTestExecution(1);
+        RuntimeException validationException = new RuntimeException("validation error - invalid execution data");
         
-        when(retryTemplate.execute(any())).thenThrow(
-            new RuntimeException("validation error - invalid execution data"));
+        // Mock error handler to return non-retryable error
+        BulkExecutionErrorHandler.ErrorInfo nonRetryableError = new BulkExecutionErrorHandler.ErrorInfo(
+            BulkExecutionErrorHandler.ErrorCategory.VALIDATION_ERROR,
+            BulkExecutionErrorHandler.ErrorSeverity.MEDIUM,
+            "VALIDATION_ERROR",
+            "Validation error",
+            "validation error - invalid execution data",
+            false, // Not retryable
+            new HashMap<>()
+        );
+        
+        when(retryTemplate.execute(any())).thenThrow(validationException);
+        when(errorHandler.mapException(eq(validationException), any())).thenReturn(nonRetryableError);
+        when(errorHandler.shouldRetry(eq(nonRetryableError), anyInt(), anyInt())).thenReturn(false);
 
         // Act
         ExecutionSubmitResult result = failureHandler.retryExecutionIndividually(execution);
@@ -170,16 +206,29 @@ class ExecutionFailureHandlerTest {
         // Assert
         assertEquals("RETRY_EXHAUSTED", result.getStatus());
         assertEquals(Integer.valueOf(1), result.getExecutionId());
-        assertTrue(result.getMessage().contains("validation error"));
+        assertTrue(result.getMessage().contains("VALIDATION_ERROR") || result.getMessage().contains("validation error"));
     }
 
     @Test
     void testRetryExecutionIndividually_TransientFailure_ReturnsFailedForRetry() throws Exception {
         // Arrange
         Execution execution = createTestExecution(1);
+        ResourceAccessException timeoutException = new ResourceAccessException("Connection timeout");
         
-        when(retryTemplate.execute(any())).thenThrow(
-            new ResourceAccessException("Connection timeout"));
+        // Mock error handler to return retryable error
+        BulkExecutionErrorHandler.ErrorInfo retryableError = new BulkExecutionErrorHandler.ErrorInfo(
+            BulkExecutionErrorHandler.ErrorCategory.TIMEOUT_ERROR,
+            BulkExecutionErrorHandler.ErrorSeverity.MEDIUM,
+            "TIMEOUT_ERROR",
+            "Connection timeout",
+            "Connection timeout",
+            true, // Retryable
+            new HashMap<>()
+        );
+        
+        when(retryTemplate.execute(any())).thenThrow(timeoutException);
+        when(errorHandler.mapException(eq(timeoutException), any())).thenReturn(retryableError);
+        when(errorHandler.shouldRetry(eq(retryableError), anyInt(), anyInt())).thenReturn(true);
 
         // Act
         ExecutionSubmitResult result = failureHandler.retryExecutionIndividually(execution);
@@ -187,7 +236,7 @@ class ExecutionFailureHandlerTest {
         // Assert
         assertEquals("FAILED", result.getStatus());
         assertEquals(Integer.valueOf(1), result.getExecutionId());
-        assertTrue(result.getMessage().contains("Connection timeout"));
+        assertTrue(result.getMessage().contains("TIMEOUT_ERROR") || result.getMessage().contains("Connection timeout"));
         assertEquals(1, failureHandler.getRetryAttempts(1)); // Counter incremented
     }
 

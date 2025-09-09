@@ -34,6 +34,7 @@ public class ExecutionFailureHandler {
     private final ExecutionServiceClient executionServiceClient;
     private final ExecutionBatchProperties batchProperties;
     private final RetryTemplate retryTemplate;
+    private final BulkExecutionErrorHandler errorHandler;
     
     // Track retry attempts per execution to prevent infinite retries
     private final Map<Integer, Integer> retryAttempts = new ConcurrentHashMap<>();
@@ -43,11 +44,13 @@ public class ExecutionFailureHandler {
             ExecutionBatchProcessor batchProcessor,
             ExecutionServiceClient executionServiceClient,
             ExecutionBatchProperties batchProperties,
-            @Qualifier("executionServiceRetryTemplate") RetryTemplate retryTemplate) {
+            @Qualifier("executionServiceRetryTemplate") RetryTemplate retryTemplate,
+            BulkExecutionErrorHandler errorHandler) {
         this.batchProcessor = batchProcessor;
         this.executionServiceClient = executionServiceClient;
         this.batchProperties = batchProperties;
         this.retryTemplate = retryTemplate;
+        this.errorHandler = errorHandler;
     }
     
     /**
@@ -227,17 +230,27 @@ public class ExecutionFailureHandler {
             }
             
         } catch (Exception ex) {
-            logger.error("Execution {} retry failed with exception after {} attempts: {}", 
-                        executionId, currentAttempts + 1, ex.getMessage(), ex);
+            // Map exception to detailed error information
+            List<Integer> executionIdList = List.of(executionId);
+            Map<String, Object> executionContext = errorHandler.createExecutionContext(executionIdList, 1, currentAttempts + 1);
+            BulkExecutionErrorHandler.ErrorInfo errorInfo = errorHandler.mapException(ex, executionContext);
+            
+            // Log detailed error information
+            errorHandler.logError(errorInfo, executionIdList, 1);
+            
+            logger.error("Execution {} retry failed with exception after {} attempts: [{}] {}", 
+                        executionId, currentAttempts + 1, errorInfo.getErrorCode(), errorInfo.getMessage(), ex);
             
             // Determine if this is a permanent failure or should be retried again
-            if (isPermanentFailure(ex) || currentAttempts + 1 >= batchProperties.getRetryFailedIndividually()) {
+            boolean shouldRetry = errorHandler.shouldRetry(errorInfo, currentAttempts + 1, batchProperties.getRetryFailedIndividually());
+            
+            if (!shouldRetry || currentAttempts + 1 >= batchProperties.getRetryFailedIndividually()) {
                 retryAttempts.remove(executionId); // Clear counter for permanent failures
                 return new ExecutionSubmitResult(executionId, "RETRY_EXHAUSTED", 
-                                               "Retry failed: " + ex.getMessage(), null);
+                                               String.format("[%s] %s", errorInfo.getErrorCode(), errorInfo.getMessage()), null);
             } else {
                 return new ExecutionSubmitResult(executionId, "FAILED", 
-                                               "Retry failed: " + ex.getMessage(), null);
+                                               String.format("[%s] %s", errorInfo.getErrorCode(), errorInfo.getMessage()), null);
             }
         }
     }
@@ -332,20 +345,33 @@ public class ExecutionFailureHandler {
             return result;
             
         } catch (Exception ex) {
-            logger.error("Batch retry failed: {}", ex.getMessage(), ex);
+            // Map exception to detailed error information
+            List<Integer> executionIdList = executions.stream().map(Execution::getId).collect(Collectors.toList());
+            Map<String, Object> executionContext = errorHandler.createExecutionContext(executionIdList, executions.size(), 1);
+            BulkExecutionErrorHandler.ErrorInfo errorInfo = errorHandler.mapException(ex, executionContext);
+            
+            // Log detailed error information
+            errorHandler.logError(errorInfo, executionIdList, executions.size());
+            
+            logger.error("Batch retry failed: [{}] {}", errorInfo.getErrorCode(), errorInfo.getMessage(), ex);
+            
+            // Determine retry status based on error analysis
+            boolean shouldRetry = errorHandler.shouldRetry(errorInfo, 1, batchProperties.getRetryFailedIndividually());
+            String status = shouldRetry ? "FAILED" : "RETRY_EXHAUSTED";
+            String message = String.format("[%s] %s", errorInfo.getErrorCode(), errorInfo.getMessage());
             
             // Create failure results for all executions in the batch
             List<ExecutionSubmitResult> failureResults = executions.stream()
                 .map(execution -> new ExecutionSubmitResult(
                     execution.getId(),
-                    isPermanentFailure(ex) ? "RETRY_EXHAUSTED" : "FAILED",
-                    "Batch retry failed: " + ex.getMessage(),
+                    status,
+                    message,
                     null
                 ))
                 .collect(Collectors.toList());
             
             return new BulkSubmitResult(executions.size(), 0, executions.size(), 
-                                       failureResults, "FAILED", "Batch retry failed: " + ex.getMessage());
+                                       failureResults, "FAILED", message);
         }
     }
     
@@ -481,35 +507,7 @@ public class ExecutionFailureHandler {
                lowerMessage.contains("retry");
     }
     
-    /**
-     * Determines if an exception represents a permanent failure that should not be retried.
-     * 
-     * @param ex The exception to check
-     * @return true if the failure is permanent, false if it should be retried
-     */
-    private boolean isPermanentFailure(Exception ex) {
-        if (ex instanceof HttpServerErrorException) {
-            HttpServerErrorException serverEx = (HttpServerErrorException) ex;
-            // 5xx errors are generally retryable, but some specific ones might not be
-            return false;
-        }
-        
-        if (ex instanceof ResourceAccessException) {
-            // Network/timeout errors are retryable
-            return false;
-        }
-        
-        String message = ex.getMessage();
-        if (message != null) {
-            String lowerMessage = message.toLowerCase();
-            return lowerMessage.contains("validation") || 
-                   lowerMessage.contains("invalid") || 
-                   lowerMessage.contains("unauthorized") ||
-                   lowerMessage.contains("forbidden");
-        }
-        
-        return false; // Default to retryable
-    }
+
     
     /**
      * Determines the overall status based on success/failure counts.

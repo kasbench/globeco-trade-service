@@ -2,6 +2,7 @@ package org.kasbench.globeco_trade_service.client;
 
 import org.kasbench.globeco_trade_service.dto.BatchExecutionRequestDTO;
 import org.kasbench.globeco_trade_service.dto.BatchExecutionResponseDTO;
+import org.kasbench.globeco_trade_service.service.BulkExecutionErrorHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -14,6 +15,10 @@ import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.HttpServerErrorException;
 import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestTemplate;
+
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * Client for making bulk execution submission calls to the Execution Service API.
@@ -28,14 +33,17 @@ public class ExecutionServiceClient {
     private final RestTemplate restTemplate;
     private final RetryTemplate retryTemplate;
     private final String executionServiceBaseUrl;
+    private final BulkExecutionErrorHandler errorHandler;
     
     public ExecutionServiceClient(
             @Qualifier("executionServiceRestTemplate") RestTemplate restTemplate,
             @Qualifier("executionServiceRetryTemplate") RetryTemplate retryTemplate,
-            @Value("${execution.service.base-url:http://globeco-execution-service:8084}") String executionServiceBaseUrl) {
+            @Value("${execution.service.base-url:http://globeco-execution-service:8084}") String executionServiceBaseUrl,
+            BulkExecutionErrorHandler errorHandler) {
         this.restTemplate = restTemplate;
         this.retryTemplate = retryTemplate;
         this.executionServiceBaseUrl = executionServiceBaseUrl;
+        this.errorHandler = errorHandler;
     }
     
     /**
@@ -51,40 +59,75 @@ public class ExecutionServiceClient {
         }
         
         int batchSize = request.getExecutions().size();
-        logger.info("Starting batch execution submission for {} executions", batchSize);
+        List<Integer> executionIds = extractExecutionIds(request);
+        
+        logger.info("Starting batch execution submission for {} executions: {}", 
+                   batchSize, executionIds.size() <= 10 ? executionIds : executionIds.subList(0, 5) + "...");
         
         long startTime = System.currentTimeMillis();
+        Map<String, Object> executionContext = errorHandler.createExecutionContext(executionIds, batchSize, 1);
         
         try {
             BatchExecutionResponseDTO response = retryTemplate.execute(context -> {
-                logger.debug("Attempting batch execution submission (attempt {})", context.getRetryCount() + 1);
-                return executeSubmitBatch(request, batchSize);
+                int attemptNumber = context.getRetryCount() + 1;
+                logger.debug("Attempting batch execution submission (attempt {}) for executions: {}", 
+                           attemptNumber, executionIds.size() <= 5 ? executionIds : executionIds.size() + " executions");
+                
+                // Update attempt number in context
+                Map<String, Object> attemptContext = errorHandler.createExecutionContext(executionIds, batchSize, attemptNumber);
+                return executeSubmitBatch(request, batchSize, executionIds, attemptContext);
             });
             
             long duration = System.currentTimeMillis() - startTime;
             logger.info("Batch execution submission completed successfully in {} ms for {} executions", 
                        duration, batchSize);
             
-            logBatchResults(response, batchSize);
+            logBatchResults(response, batchSize, executionIds);
             return response;
             
         } catch (Exception ex) {
             long duration = System.currentTimeMillis() - startTime;
-            logger.error("Batch execution submission failed after {} ms for {} executions: {}", 
-                        duration, batchSize, ex.getMessage(), ex);
-            throw new ExecutionServiceException("Failed to submit batch execution after retries", ex);
+            
+            // Check if this is already an ExecutionServiceException with ErrorInfo
+            if (ex instanceof ExecutionServiceException && ((ExecutionServiceException) ex).hasErrorInfo()) {
+                // Re-throw the original exception with its ErrorInfo intact
+                logger.error("Batch execution submission failed after {} ms for {} executions: {}", 
+                            duration, batchSize, ex.getMessage());
+                throw (ExecutionServiceException) ex;
+            }
+            
+            // Map exception to detailed error information
+            BulkExecutionErrorHandler.ErrorInfo errorInfo = errorHandler.mapException(ex, executionContext);
+            
+            // Log detailed error information
+            errorHandler.logError(errorInfo, executionIds, batchSize);
+            
+            // Log performance impact
+            logger.error("Batch execution submission failed after {} ms for {} executions. Error: [{}] {}", 
+                        duration, batchSize, errorInfo.getErrorCode(), errorInfo.getMessage());
+            
+            throw new ExecutionServiceException(
+                String.format("Failed to submit batch execution after retries: [%s] %s", 
+                            errorInfo.getErrorCode(), errorInfo.getMessage()), 
+                ex, 
+                errorInfo
+            );
         }
     }
     
     /**
      * Executes the actual batch submission API call.
      */
-    private BatchExecutionResponseDTO executeSubmitBatch(BatchExecutionRequestDTO request, int batchSize) {
+    private BatchExecutionResponseDTO executeSubmitBatch(BatchExecutionRequestDTO request, int batchSize, 
+                                                        List<Integer> executionIds, Map<String, Object> context) {
         String url = executionServiceBaseUrl + "/api/v1/executions/batch";
         
         long apiCallStartTime = System.currentTimeMillis();
         
         try {
+            logger.debug("Making API call to {} for executions: {}", url, 
+                        executionIds.size() <= 5 ? executionIds : executionIds.size() + " executions");
+            
             ResponseEntity<BatchExecutionResponseDTO> response = restTemplate.postForEntity(
                 url, request, BatchExecutionResponseDTO.class);
             
@@ -92,29 +135,49 @@ public class ExecutionServiceClient {
             logger.info("Execution Service API call completed in {} ms for batch of {} executions", 
                        apiCallDuration, batchSize);
             
-            return handleResponse(response, batchSize);
+            return handleResponse(response, batchSize, executionIds);
             
         } catch (HttpClientErrorException ex) {
             long apiCallDuration = System.currentTimeMillis() - apiCallStartTime;
-            logger.warn("Execution Service API call failed with client error in {} ms: HTTP {} - {}", 
-                       apiCallDuration, ex.getStatusCode().value(), ex.getResponseBodyAsString());
             
-            return handleClientError(ex, batchSize);
+            // Map and log client error with context
+            BulkExecutionErrorHandler.ErrorInfo errorInfo = errorHandler.mapException(ex, context);
+            logger.warn("Execution Service API call failed with client error in {} ms: [{}] {} - HTTP {} - {}", 
+                       apiCallDuration, errorInfo.getErrorCode(), errorInfo.getMessage(),
+                       ex.getStatusCode().value(), ex.getResponseBodyAsString());
+            
+            return handleClientError(ex, batchSize, executionIds, errorInfo);
             
         } catch (HttpServerErrorException ex) {
             long apiCallDuration = System.currentTimeMillis() - apiCallStartTime;
-            logger.warn("Execution Service API call failed with server error in {} ms: HTTP {} - {}", 
-                       apiCallDuration, ex.getStatusCode().value(), ex.getResponseBodyAsString());
+            
+            // Map and log server error with context
+            BulkExecutionErrorHandler.ErrorInfo errorInfo = errorHandler.mapException(ex, context);
+            logger.warn("Execution Service API call failed with server error in {} ms: [{}] {} - HTTP {} - {}", 
+                       apiCallDuration, errorInfo.getErrorCode(), errorInfo.getMessage(),
+                       ex.getStatusCode().value(), ex.getResponseBodyAsString());
             
             // Server errors should be retried by the retry template
             throw ex;
             
         } catch (ResourceAccessException ex) {
             long apiCallDuration = System.currentTimeMillis() - apiCallStartTime;
-            logger.warn("Execution Service API call failed with network error in {} ms: {}", 
-                       apiCallDuration, ex.getMessage());
+            
+            // Map and log network error with context
+            BulkExecutionErrorHandler.ErrorInfo errorInfo = errorHandler.mapException(ex, context);
+            logger.warn("Execution Service API call failed with network error in {} ms: [{}] {} - {}", 
+                       apiCallDuration, errorInfo.getErrorCode(), errorInfo.getMessage(), ex.getMessage());
             
             // Network errors should be retried by the retry template
+            throw ex;
+        } catch (Exception ex) {
+            long apiCallDuration = System.currentTimeMillis() - apiCallStartTime;
+            
+            // Map and log unexpected errors
+            BulkExecutionErrorHandler.ErrorInfo errorInfo = errorHandler.mapException(ex, context);
+            logger.error("Execution Service API call failed with unexpected error in {} ms: [{}] {} - {}", 
+                        apiCallDuration, errorInfo.getErrorCode(), errorInfo.getMessage(), ex.getMessage());
+            
             throw ex;
         }
     }
@@ -122,27 +185,38 @@ public class ExecutionServiceClient {
     /**
      * Handles successful HTTP responses based on status code.
      */
-    private BatchExecutionResponseDTO handleResponse(ResponseEntity<BatchExecutionResponseDTO> response, int batchSize) {
+    private BatchExecutionResponseDTO handleResponse(ResponseEntity<BatchExecutionResponseDTO> response, 
+                                                    int batchSize, List<Integer> executionIds) {
         HttpStatus statusCode = (HttpStatus) response.getStatusCode();
         BatchExecutionResponseDTO body = response.getBody();
         
         if (body == null) {
-            logger.error("Received null response body from Execution Service for batch of {} executions", batchSize);
-            throw new ExecutionServiceException("Received null response from Execution Service");
+            String errorMsg = String.format("Received null response body from Execution Service for batch of %d executions: %s", 
+                                           batchSize, executionIds);
+            logger.error(errorMsg);
+            throw new ExecutionServiceException(errorMsg);
         }
         
         switch (statusCode) {
             case CREATED: // HTTP 201 - All executions successful
-                logger.info("All {} executions in batch submitted successfully (HTTP 201)", batchSize);
+                logger.info("All {} executions in batch submitted successfully (HTTP 201): {}", 
+                           batchSize, executionIds.size() <= 10 ? executionIds : executionIds.size() + " executions");
                 return body;
                 
             case MULTI_STATUS: // HTTP 207 - Partial success
-                logger.info("Batch submission completed with partial success (HTTP 207): {} successful, {} failed", 
-                           body.getSuccessful(), body.getFailed());
+                logger.info("Batch submission completed with partial success (HTTP 207): {} successful, {} failed for executions: {}", 
+                           body.getSuccessful(), body.getFailed(), 
+                           executionIds.size() <= 10 ? executionIds : executionIds.size() + " executions");
+                
+                // Log details about failed executions if available
+                if (body.getResults() != null && body.getFailed() > 0) {
+                    logFailedExecutionDetails(body, executionIds);
+                }
                 return body;
                 
             default:
-                logger.warn("Unexpected HTTP status code {} for batch submission", statusCode.value());
+                logger.warn("Unexpected HTTP status code {} for batch submission of executions: {}", 
+                           statusCode.value(), executionIds);
                 return body;
         }
     }
@@ -150,18 +224,23 @@ public class ExecutionServiceClient {
     /**
      * Handles HTTP 4xx client errors.
      */
-    private BatchExecutionResponseDTO handleClientError(HttpClientErrorException ex, int batchSize) {
+    private BatchExecutionResponseDTO handleClientError(HttpClientErrorException ex, int batchSize, 
+                                                       List<Integer> executionIds, 
+                                                       BulkExecutionErrorHandler.ErrorInfo errorInfo) {
         HttpStatus statusCode = (HttpStatus) ex.getStatusCode();
         
         if (statusCode == HttpStatus.BAD_REQUEST) {
             // HTTP 400 - All executions failed due to bad request
-            logger.error("All {} executions in batch failed due to bad request (HTTP 400): {}", 
-                        batchSize, ex.getResponseBodyAsString());
+            logger.error("All {} executions in batch failed due to bad request (HTTP 400) - Executions: {} - Error: {}", 
+                        batchSize, executionIds, ex.getResponseBodyAsString());
             
             // Create a response indicating all executions failed
             BatchExecutionResponseDTO errorResponse = new BatchExecutionResponseDTO();
             errorResponse.setStatus("FAILED");
-            errorResponse.setMessage("Bad request: " + ex.getResponseBodyAsString());
+            errorResponse.setMessage(String.format("[%s] %s - Response: %s", 
+                                                  errorInfo.getErrorCode(), 
+                                                  errorInfo.getMessage(), 
+                                                  ex.getResponseBodyAsString()));
             errorResponse.setTotalRequested(batchSize);
             errorResponse.setSuccessful(0);
             errorResponse.setFailed(batchSize);
@@ -169,46 +248,111 @@ public class ExecutionServiceClient {
             return errorResponse;
         } else {
             // Other 4xx errors should not be retried
-            logger.error("Batch submission failed with client error HTTP {}: {}", 
-                        statusCode.value(), ex.getResponseBodyAsString());
-            throw new ExecutionServiceException("Client error: HTTP " + statusCode.value(), ex);
+            String errorMsg = String.format("Batch submission failed with client error [%s] %s - HTTP %d - Executions: %s", 
+                                          errorInfo.getErrorCode(), errorInfo.getMessage(), 
+                                          statusCode.value(), executionIds);
+            logger.error(errorMsg + " - Response: {}", ex.getResponseBodyAsString());
+            throw new ExecutionServiceException(errorMsg, ex, errorInfo);
         }
     }
     
     /**
      * Logs detailed batch submission results for monitoring and debugging.
      */
-    private void logBatchResults(BatchExecutionResponseDTO response, int batchSize) {
+    private void logBatchResults(BatchExecutionResponseDTO response, int batchSize, List<Integer> executionIds) {
         if (response == null) {
-            logger.warn("Cannot log batch results - response is null");
+            logger.warn("Cannot log batch results - response is null for executions: {}", executionIds);
             return;
         }
         
-        logger.info("Batch execution results - Status: {}, Total: {}, Successful: {}, Failed: {}", 
+        logger.info("Batch execution results - Status: {}, Total: {}, Successful: {}, Failed: {} - Executions: {}", 
                    response.getStatus(), 
                    response.getTotalRequested(), 
                    response.getSuccessful(), 
-                   response.getFailed());
+                   response.getFailed(),
+                   executionIds.size() <= 10 ? executionIds : executionIds.size() + " executions");
         
         if (response.getFailed() != null && response.getFailed() > 0) {
-            logger.warn("{} executions failed in batch submission", response.getFailed());
+            logger.warn("{} executions failed in batch submission for executions: {}", 
+                       response.getFailed(), executionIds);
+            
+            // Log additional failure details if available
+            if (response.getResults() != null) {
+                logFailedExecutionDetails(response, executionIds);
+            }
         }
         
         if (response.getResults() != null) {
-            logger.debug("Batch response contains {} individual execution results", response.getResults().size());
+            logger.debug("Batch response contains {} individual execution results for executions: {}", 
+                        response.getResults().size(), executionIds);
         }
+        
+        // Structured logging for monitoring
+        logger.info("BULK_EXECUTION_BATCH_METRICS: batch_size={}, successful={}, failed={}, execution_ids_count={}", 
+                   batchSize, response.getSuccessful(), response.getFailed(), executionIds.size());
+    }
+    
+    /**
+     * Logs detailed information about failed executions in a batch.
+     */
+    private void logFailedExecutionDetails(BatchExecutionResponseDTO response, List<Integer> executionIds) {
+        if (response.getResults() == null || response.getResults().isEmpty()) {
+            return;
+        }
+        
+        response.getResults().stream()
+            .filter(result -> "FAILED".equals(result.getStatus()))
+            .forEach(result -> {
+                Integer executionId = null;
+                if (result.getRequestIndex() != null && result.getRequestIndex() < executionIds.size()) {
+                    executionId = executionIds.get(result.getRequestIndex());
+                }
+                
+                logger.warn("EXECUTION_FAILURE_DETAIL: execution_id={}, request_index={}, status={}, message={}", 
+                           executionId, result.getRequestIndex(), result.getStatus(), result.getMessage());
+            });
+    }
+    
+    /**
+     * Extracts execution IDs from the batch request for logging and error tracking.
+     */
+    private List<Integer> extractExecutionIds(BatchExecutionRequestDTO request) {
+        if (request == null || request.getExecutions() == null) {
+            return List.of();
+        }
+        
+        return request.getExecutions().stream()
+            .map(execution -> execution.getTradeOrderId()) // Use trade order ID as identifier
+            .collect(Collectors.toList());
     }
     
     /**
      * Custom exception for Execution Service API failures.
      */
     public static class ExecutionServiceException extends RuntimeException {
+        private final BulkExecutionErrorHandler.ErrorInfo errorInfo;
+        
         public ExecutionServiceException(String message) {
             super(message);
+            this.errorInfo = null;
         }
         
         public ExecutionServiceException(String message, Throwable cause) {
             super(message, cause);
+            this.errorInfo = null;
+        }
+        
+        public ExecutionServiceException(String message, Throwable cause, BulkExecutionErrorHandler.ErrorInfo errorInfo) {
+            super(message, cause);
+            this.errorInfo = errorInfo;
+        }
+        
+        public BulkExecutionErrorHandler.ErrorInfo getErrorInfo() {
+            return errorInfo;
+        }
+        
+        public boolean hasErrorInfo() {
+            return errorInfo != null;
         }
     }
 }
