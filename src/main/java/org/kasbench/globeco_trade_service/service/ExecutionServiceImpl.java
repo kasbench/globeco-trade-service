@@ -376,4 +376,16 @@ public class ExecutionServiceImpl implements ExecutionService {
             existing.setDestination(destination);
         }
     }
+
+    @Override
+    public BulkSubmitResult submitExecutions(List<Integer> executionIds) {
+        // TODO: Implementation will be added in task 7
+        throw new UnsupportedOperationException("Bulk execution submission not yet implemented");
+    }
+
+    @Override
+    public BulkSubmitResult submitExecutionsBatch(List<Integer> executionIds, int batchSize) {
+        // TODO: Implementation will be added in task 7
+        throw new UnsupportedOperationException("Bulk execution submission with custom batch size not yet implemented");
+    }
 }
