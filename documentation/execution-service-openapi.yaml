@@ -1,33 +1,264 @@
 {
   "openapi": "3.1.0",
   "info": {
-    "title": "OpenAPI definition",
-    "version": "v0"
+    "title": "Globeco Execution Service API",
+    "description": "RESTful API for managing trade executions with enhanced filtering, pagination, batch processing, and security integration",
+    "contact": {
+      "name": "GlobeCo Development Team",
+      "url": "https://globeco.com",
+      "email": "dev@globeco.com"
+    },
+    "license": {
+      "name": "MIT License",
+      "url": "https://opensource.org/licenses/MIT"
+    },
+    "version": "v1.3.0"
   },
   "servers": [
     {
       "url": "http://localhost:8084",
-      "description": "Generated server url"
+      "description": "Local development server"
+    },
+    {
+      "url": "http://globeco-execution-service:8084",
+      "description": "Docker container server"
+    }
+  ],
+  "tags": [
+    {
+      "name": "Performance Testing",
+      "description": "Endpoints for performance testing and benchmarking"
+    },
+    {
+      "name": "Batch Operations",
+      "description": "Bulk operations for creating multiple executions"
+    },
+    {
+      "name": "Health",
+      "description": "Health check and monitoring endpoints"
+    },
+    {
+      "name": "Executions",
+      "description": "Operations for managing trade executions"
+    },
+    {
+      "name": "Performance Monitoring",
+      "description": "Endpoints for performance diagnostics"
     }
   ],
   "paths": {
-    "/api/v1/executions": {
+    "/api/v1/execution/{id}": {
       "get": {
         "tags": [
-          "execution-controller"
+          "Executions"
         ],
-        "operationId": "getAllExecutions",
+        "summary": "Get execution by ID",
+        "description": "Retrieve a specific execution by its unique identifier",
+        "operationId": "getExecutionById",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Execution ID",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            },
+            "example": 1
+          }
+        ],
         "responses": {
           "200": {
-            "description": "OK",
+            "description": "Execution found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExecutionDTO"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Execution not found",
             "content": {
               "*/*": {
                 "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/ExecutionDTO"
-                  }
+                  "$ref": "#/components/schemas/ExecutionDTO"
                 }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Executions"
+        ],
+        "summary": "Update execution fill data",
+        "description": "Update an execution's fill quantities and average price. Requires version for optimistic locking.",
+        "operationId": "updateExecution",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Execution ID",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            },
+            "example": 1
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ExecutionPutDTO"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Execution updated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExecutionDTO"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Execution not found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExecutionDTO"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Version conflict - execution was modified by another process",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExecutionDTO"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/executions": {
+      "get": {
+        "tags": [
+          "Executions"
+        ],
+        "summary": "Get executions with filtering and pagination",
+        "description": "Retrieve executions with optional filtering by status, trade type, destination, or ticker symbol. Supports pagination and multi-field sorting. Returns enriched data with security ticker information.",
+        "operationId": "getAllExecutions",
+        "parameters": [
+          {
+            "name": "offset",
+            "in": "query",
+            "description": "Number of records to skip",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 0,
+              "minimum": 0
+            },
+            "example": 0
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Maximum records to return (max 100)",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 50,
+              "maximum": 100,
+              "minimum": 1
+            },
+            "example": 50
+          },
+          {
+            "name": "executionStatus",
+            "in": "query",
+            "description": "Filter by execution status",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "example": "NEW"
+          },
+          {
+            "name": "tradeType",
+            "in": "query",
+            "description": "Filter by trade type",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "example": "BUY"
+          },
+          {
+            "name": "destination",
+            "in": "query",
+            "description": "Filter by destination exchange",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "example": "NYSE"
+          },
+          {
+            "name": "ticker",
+            "in": "query",
+            "description": "Filter by ticker symbol",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "example": "AAPL"
+          },
+          {
+            "name": "sortBy",
+            "in": "query",
+            "description": "Comma-separated sort fields with minus prefix for descending",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "id"
+            },
+            "example": "receivedTimestamp,-id"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successfully retrieved executions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExecutionPageDTO"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid query parameters",
+            "content": {
+              "application/json": {
+
               }
             }
           }
@@ -35,8 +266,10 @@
       },
       "post": {
         "tags": [
-          "execution-controller"
+          "Executions"
         ],
+        "summary": "Create a new execution",
+        "description": "Create a single trade execution and send it to the trading platform",
         "operationId": "createExecution",
         "requestBody": {
           "content": {
@@ -49,8 +282,18 @@
           "required": true
         },
         "responses": {
-          "200": {
-            "description": "OK",
+          "201": {
+            "description": "Execution created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExecutionDTO"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid execution data",
             "content": {
               "*/*": {
                 "schema": {
@@ -62,21 +305,109 @@
         }
       }
     },
-    "/api/v1/execution/{id}": {
+    "/api/v1/executions/batch": {
+      "post": {
+        "tags": [
+          "Executions",
+          "Batch Operations"
+        ],
+        "summary": "Create multiple executions in batch",
+        "description": "Process up to 100 executions in a single batch operation. Returns detailed results for each execution including success/failure status.",
+        "operationId": "createBatchExecutions",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BatchExecutionRequestDTO"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "All executions created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BatchExecutionResponseDTO"
+                }
+              }
+            }
+          },
+          "207": {
+            "description": "Partial success - some executions failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BatchExecutionResponseDTO"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "All executions failed or validation errors",
+            "content": {
+              "application/json": {
+
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/performance-test/executions-benchmark": {
       "get": {
         "tags": [
-          "execution-controller"
+          "Performance Testing"
         ],
-        "operationId": "getExecutionById",
+        "summary": "Run performance test on executions endpoint",
+        "description": "Tests the /api/v1/executions endpoint with various parameters to identify performance bottlenecks",
+        "operationId": "benchmarkExecutionsEndpoint",
         "parameters": [
           {
-            "name": "id",
-            "in": "path",
-            "required": true,
+            "name": "iterations",
+            "in": "query",
+            "description": "Number of test iterations",
+            "required": false,
             "schema": {
               "type": "integer",
-              "format": "int32"
-            }
+              "format": "int32",
+              "default": 10
+            },
+            "example": 10
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "description": "Page size to test",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 50
+            },
+            "example": 50
+          },
+          {
+            "name": "testStatus",
+            "in": "query",
+            "description": "Test with status filter",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "example": "NEW"
+          },
+          {
+            "name": "testTicker",
+            "in": "query",
+            "description": "Test with ticker filter",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "example": "AAPL"
           }
         ],
         "responses": {
@@ -85,7 +416,85 @@
             "content": {
               "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/ExecutionDTO"
+                  "type": "object",
+                  "additionalProperties": {
+
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/monitoring/security-cache-stats": {
+      "get": {
+        "tags": [
+          "Performance Monitoring"
+        ],
+        "summary": "Get security service cache statistics",
+        "description": "Returns cache hit rates and performance metrics for the security service client",
+        "operationId": "getSecurityCacheStats",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": {
+
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/monitoring/db-pool-stats": {
+      "get": {
+        "tags": [
+          "Performance Monitoring"
+        ],
+        "summary": "Get database connection pool statistics",
+        "description": "Returns connection pool metrics for database performance monitoring",
+        "operationId": "getDatabasePoolStats",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": {
+
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/monitoring/clear-security-cache": {
+      "get": {
+        "tags": [
+          "Performance Monitoring"
+        ],
+        "summary": "Clear security service cache",
+        "description": "Clears the security service cache - use for testing or when cache becomes stale",
+        "operationId": "clearSecurityCache",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "string"
+                  }
                 }
               }
             }
@@ -96,8 +505,91 @@
   },
   "components": {
     "schemas": {
+      "ExecutionPutDTO": {
+        "type": "object",
+        "description": "Update data with fill information",
+        "properties": {
+          "quantityFilled": {
+            "type": "number"
+          },
+          "averagePrice": {
+            "type": "number"
+          },
+          "version": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "ExecutionDTO": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "executionStatus": {
+            "type": "string"
+          },
+          "tradeType": {
+            "type": "string"
+          },
+          "destination": {
+            "type": "string"
+          },
+          "security": {
+            "$ref": "#/components/schemas/SecurityDTO"
+          },
+          "quantity": {
+            "type": "number"
+          },
+          "limitPrice": {
+            "type": "number"
+          },
+          "receivedTimestamp": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "sentTimestamp": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "tradeServiceExecutionId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "quantityFilled": {
+            "type": "number"
+          },
+          "averagePrice": {
+            "type": "number"
+          },
+          "version": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "ticker": {
+            "type": "string"
+          },
+          "securityId": {
+            "type": "string"
+          }
+        }
+      },
+      "SecurityDTO": {
+        "type": "object",
+        "properties": {
+          "securityId": {
+            "type": "string"
+          },
+          "ticker": {
+            "type": "string"
+          }
+        }
+      },
       "ExecutionPostDTO": {
         "type": "object",
+        "description": "Execution data",
         "properties": {
           "executionStatus": {
             "type": "string"
@@ -127,42 +619,112 @@
           }
         }
       },
-      "ExecutionDTO": {
+      "BatchExecutionRequestDTO": {
+        "type": "object",
+        "description": "Batch request with up to 100 executions",
+        "properties": {
+          "executions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ExecutionPostDTO"
+            },
+            "maxItems": 100,
+            "minItems": 0
+          }
+        },
+        "required": [
+          "executions"
+        ]
+      },
+      "BatchExecutionResponseDTO": {
         "type": "object",
         "properties": {
-          "id": {
+          "status": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "totalRequested": {
             "type": "integer",
             "format": "int32"
           },
-          "executionStatus": {
-            "type": "string"
-          },
-          "tradeType": {
-            "type": "string"
-          },
-          "destination": {
-            "type": "string"
-          },
-          "securityId": {
-            "type": "string"
-          },
-          "quantity": {
-            "type": "number"
-          },
-          "limitPrice": {
-            "type": "number"
-          },
-          "receivedTimestamp": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "sentTimestamp": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "version": {
+          "successful": {
             "type": "integer",
             "format": "int32"
+          },
+          "failed": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "results": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ExecutionResultDTO"
+            }
+          }
+        }
+      },
+      "ExecutionResultDTO": {
+        "type": "object",
+        "properties": {
+          "requestIndex": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "status": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "execution": {
+            "$ref": "#/components/schemas/ExecutionDTO"
+          }
+        }
+      },
+      "ExecutionPageDTO": {
+        "type": "object",
+        "properties": {
+          "content": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ExecutionDTO"
+            }
+          },
+          "pagination": {
+            "$ref": "#/components/schemas/PaginationDTO"
+          }
+        }
+      },
+      "PaginationDTO": {
+        "type": "object",
+        "properties": {
+          "offset": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "limit": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalElements": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "totalPages": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "currentPage": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "hasNext": {
+            "type": "boolean"
+          },
+          "hasPrevious": {
+            "type": "boolean"
           }
         }
       }
