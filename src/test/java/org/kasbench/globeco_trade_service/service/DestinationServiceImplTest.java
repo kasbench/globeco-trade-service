@@ -13,7 +13,7 @@ import java.util.Optional;
 import static org.junit.jupiter.api.Assertions.*;
 
 @SpringBootTest
-public class DestinationServiceImplTest extends org.kasbench.globeco_trade_service.AbstractPostgresContainerTest {
+public class DestinationServiceImplTest extends org.kasbench.globeco_trade_service.AbstractH2Test {
     @Autowired
     private DestinationService destinationService;
     @Autowired

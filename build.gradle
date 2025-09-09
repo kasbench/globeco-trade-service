@@ -32,8 +32,7 @@ dependencies {
 	implementation 'com.github.ben-manes.caffeine:caffeine:3.1.8'
 	testImplementation 'com.h2database:h2'
 	implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.8'
-	testImplementation 'org.testcontainers:junit-jupiter:1.19.7'
-	testImplementation 'org.testcontainers:postgresql:1.19.7'
+
 	implementation 'io.micrometer:micrometer-registry-otlp'
 	implementation 'io.micrometer:micrometer-tracing-bridge-otel'
 	implementation 'io.opentelemetry:opentelemetry-exporter-otlp:1.38.0'
@@ -53,5 +52,5 @@ tasks.named('test') {
 	}
 	systemProperty 'junit.jupiter.execution.timeout.default', '60s'
 	systemProperty 'junit.jupiter.execution.timeout.testable.method.default', '30s'
-	systemProperty 'testcontainers.reuse.enable', 'false'
+
 }

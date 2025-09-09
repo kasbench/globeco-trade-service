@@ -14,7 +14,7 @@ import java.util.UUID;
 import static org.junit.jupiter.api.Assertions.*;
 
 @SpringBootTest
-public class ExecutionStatusServiceImplTest extends org.kasbench.globeco_trade_service.AbstractPostgresContainerTest {
+public class ExecutionStatusServiceImplTest extends org.kasbench.globeco_trade_service.AbstractH2Test {
     @Autowired
     private ExecutionStatusService executionStatusService;
     @Autowired

@@ -7,7 +7,7 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 
-import org.kasbench.globeco_trade_service.AbstractPostgresContainerTest;
+import org.kasbench.globeco_trade_service.AbstractH2Test;
 import org.kasbench.globeco_trade_service.entity.TradeOrder;
 import org.kasbench.globeco_trade_service.entity.Blotter;
 import org.kasbench.globeco_trade_service.repository.TradeOrderRepository;
@@ -25,7 +25,7 @@ import static org.junit.jupiter.api.Assertions.*;
  */
 @SpringBootTest
 @ActiveProfiles("test")
-class OptimizedTradeOrderServiceIntegrationTest extends AbstractPostgresContainerTest {
+class OptimizedTradeOrderServiceIntegrationTest extends AbstractH2Test {
 
     @Autowired
     private OptimizedTradeOrderService optimizedTradeOrderService;

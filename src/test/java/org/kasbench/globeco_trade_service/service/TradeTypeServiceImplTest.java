@@ -11,7 +11,7 @@ import java.util.Optional;
 import static org.junit.jupiter.api.Assertions.*;
 
 @SpringBootTest
-public class TradeTypeServiceImplTest extends org.kasbench.globeco_trade_service.AbstractPostgresContainerTest {
+public class TradeTypeServiceImplTest extends org.kasbench.globeco_trade_service.AbstractH2Test {
     @Autowired
     private TradeTypeService tradeTypeService;
     @Autowired

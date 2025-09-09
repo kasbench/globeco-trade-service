@@ -8,7 +8,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 @AutoConfigureMockMvc
-public class PostgresContainerTest extends AbstractPostgresContainerTest {
+public class H2DatabaseTest extends AbstractH2Test {
     
     @Autowired
     private JdbcTemplate jdbcTemplate;

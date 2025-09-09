@@ -11,7 +11,7 @@ import org.springframework.cache.CacheManager;
 import java.util.Optional;
 
 @SpringBootTest
-public class BlotterServiceImplTest extends org.kasbench.globeco_trade_service.AbstractPostgresContainerTest {
+public class BlotterServiceImplTest extends org.kasbench.globeco_trade_service.AbstractH2Test {
     @Autowired
     private BlotterService blotterService;
     @Autowired

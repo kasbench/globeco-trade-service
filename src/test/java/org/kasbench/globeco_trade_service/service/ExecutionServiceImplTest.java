@@ -28,7 +28,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 @SpringBootTest
 @Import(org.kasbench.globeco_trade_service.config.TestConfig.class)
-public class ExecutionServiceImplTest extends org.kasbench.globeco_trade_service.AbstractPostgresContainerTest {
+public class ExecutionServiceImplTest extends org.kasbench.globeco_trade_service.AbstractH2Test {
     @Autowired
     private ExecutionService executionService;
     @Autowired

@@ -20,7 +20,7 @@ import static org.junit.jupiter.api.Assertions.*;
     "management.endpoints.web.exposure.include=health,info,metrics",
     "management.endpoint.metrics.enabled=true"
 })
-class MetricsEndpointIntegrationTest extends AbstractPostgresContainerTest {
+class MetricsEndpointIntegrationTest extends AbstractH2Test {
 
     @LocalServerPort
     private int port;
