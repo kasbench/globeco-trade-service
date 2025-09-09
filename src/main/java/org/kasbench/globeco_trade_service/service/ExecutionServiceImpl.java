@@ -20,6 +20,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.ArrayList;
 import java.math.BigDecimal;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
@@ -50,7 +51,8 @@ public class ExecutionServiceImpl implements ExecutionService {
             TradeOrderRepository tradeOrderRepository,
             DestinationRepository destinationRepository,
             @org.springframework.beans.factory.annotation.Qualifier("executionServiceRestTemplate") RestTemplate restTemplate,
-            @org.springframework.beans.factory.annotation.Qualifier("executionServiceRetryTemplate") org.springframework.retry.support.RetryTemplate retryTemplate) {
+            @org.springframework.beans.factory.annotation.Qualifier("executionServiceRetryTemplate") org.springframework.retry.support.RetryTemplate retryTemplate,
+            BulkExecutionSubmissionService bulkExecutionSubmissionService) {
         this.executionRepository = executionRepository;
         this.executionStatusRepository = executionStatusRepository;
         this.blotterRepository = blotterRepository;
@@ -59,6 +61,7 @@ public class ExecutionServiceImpl implements ExecutionService {
         this.destinationRepository = destinationRepository;
         this.restTemplate = restTemplate;
         this.retryTemplate = retryTemplate;
+        this.bulkExecutionSubmissionService = bulkExecutionSubmissionService;
     }
 
     @EventListener(ApplicationReadyEvent.class)
@@ -210,81 +213,27 @@ public class ExecutionServiceImpl implements ExecutionService {
         long startTime = System.currentTimeMillis();
         org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(ExecutionServiceImpl.class);
 
+        logger.debug("Routing single execution {} through bulk processor", id);
+
         try {
-            Optional<Execution> opt = executionRepository.findById(id);
-            if (opt.isEmpty()) {
-                return new SubmitResult(null, "Execution not found");
+            // Route through bulk submission with batch size 1 for consistency
+            BulkSubmitResult bulkResult = submitExecutions(List.of(id));
+            
+            // Convert bulk result to single result
+            if (bulkResult.getResults().isEmpty()) {
+                return new SubmitResult(null, "No results returned from bulk submission");
             }
-            Execution execution = opt.get();
-
-            // Build DTO for external service
-            java.util.Map<String, Object> payload = new java.util.HashMap<>();
-            payload.put("executionStatus", execution.getExecutionStatus().getAbbreviation());
-            payload.put("tradeType", execution.getTradeType().getAbbreviation());
-            payload.put("destination", execution.getDestination().getAbbreviation());
-            payload.put("securityId", execution.getTradeOrder().getSecurityId());
-            payload.put("quantity", execution.getQuantityOrdered());
-            payload.put("limitPrice", execution.getLimitPrice());
-            payload.put("tradeServiceExecutionId", execution.getId());
-            payload.put("version", 1);
-
-            String url = executionServiceBaseUrl + "/api/v1/executions";
-
-            // Use retry template with exponential backoff for external service call
-            ResponseEntity<java.util.Map<String, Object>> response = retryTemplate.execute(context -> {
-                logger.debug("Attempting execution service submission for execution {} (attempt {})",
-                        id, context.getRetryCount() + 1);
-
-                long apiCallStartTime = System.currentTimeMillis();
-                ResponseEntity<java.util.Map<String, Object>> result = restTemplate.postForEntity(
-                        url, payload, (Class<java.util.Map<String, Object>>) (Class<?>) java.util.Map.class);
-                long apiCallDuration = System.currentTimeMillis() - apiCallStartTime;
-
-                logger.info("(Execution Service) Execution service API call completed in {} ms for execution {}",
-                        apiCallDuration, id);
-                logger.debug("Execution service responded with status: {}", result.getStatusCode());
-                return result;
-            });
-
-            if (response.getStatusCode().is2xxSuccessful() &&
-                    response.getBody() != null &&
-                    response.getBody().get("id") != null) {
-
-                Integer extId = (Integer) response.getBody().get("id");
-                execution.setExecutionServiceId(extId);
-
-                // Set quantityPlaced to quantityOrdered
-                execution.setQuantityPlaced(execution.getQuantityOrdered());
-
-                // Set status to SENT (id=2)
-                ExecutionStatus sentStatus = getExecutionStatusById(2);
-                if (sentStatus != null) {
-                    execution.setExecutionStatus(sentStatus);
-                }
-
-                executionRepository.save(execution);
+            
+            ExecutionSubmitResult singleResult = bulkResult.getResults().get(0);
+            
+            if ("SUCCESS".equals(singleResult.getStatus()) || "COMPLETED".equals(singleResult.getStatus())) {
                 return new SubmitResult("submitted", null);
             } else {
-                return new SubmitResult(null, "Unexpected response from execution service");
+                return new SubmitResult(null, singleResult.getMessage());
             }
-
-        } catch (HttpStatusCodeException ex) {
-            org.springframework.http.HttpStatusCode statusCode = ex.getStatusCode();
-            if (statusCode.is4xxClientError()) {
-                return new SubmitResult(null, "Client error: " + ex.getResponseBodyAsString());
-            } else if (statusCode.is5xxServerError()) {
-                return new SubmitResult(null,
-                        "Failed to submit execution: execution service unavailable (HTTP " + statusCode.value() + ")");
-            } else {
-                return new SubmitResult(null, "Error: HTTP " + statusCode.value() + " - " + ex.getMessage());
-            }
-        } catch (org.springframework.web.client.ResourceAccessException ex) {
-            // This includes timeout exceptions
-            return new SubmitResult(null,
-                    "Failed to submit execution: execution service timeout or connection error - " + ex.getMessage());
+            
         } catch (Exception ex) {
-            logger.error("Unexpected error during execution service submission for execution {}: {}", id,
-                    ex.getMessage(), ex);
+            logger.error("Error routing single execution {} through bulk processor: {}", id, ex.getMessage(), ex);
             return new SubmitResult(null, "Error: " + ex.getMessage());
         } finally {
             long executionTime = System.currentTimeMillis() - startTime;
@@ -377,15 +326,181 @@ public class ExecutionServiceImpl implements ExecutionService {
         }
     }
 
+    /**
+     * Splits a list of execution IDs into batches of the specified size.
+     */
+    private List<List<Integer>> splitExecutionIds(List<Integer> executionIds, int batchSize) {
+        List<List<Integer>> batches = new ArrayList<>();
+        
+        for (int i = 0; i < executionIds.size(); i += batchSize) {
+            int endIndex = Math.min(i + batchSize, executionIds.size());
+            List<Integer> batch = executionIds.subList(i, endIndex);
+            batches.add(new ArrayList<>(batch)); // Create new list to avoid sublist issues
+        }
+        
+        return batches;
+    }
+
+    /**
+     * Determines the overall status based on success/failure counts.
+     */
+    private String determineOverallStatus(int successful, int failed, int total) {
+        if (failed == 0) {
+            return "SUCCESS";
+        } else if (successful == 0) {
+            return "FAILED";
+        } else {
+            return "PARTIAL_SUCCESS";
+        }
+    }
+
+    // Bulk execution submission service
+    private final BulkExecutionSubmissionService bulkExecutionSubmissionService;
+
     @Override
+    @Transactional
     public BulkSubmitResult submitExecutions(List<Integer> executionIds) {
-        // TODO: Implementation will be added in task 7
-        throw new UnsupportedOperationException("Bulk execution submission not yet implemented");
+        long startTime = System.currentTimeMillis();
+        org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(ExecutionServiceImpl.class);
+        
+        logger.info("Starting bulk execution submission for {} execution IDs", executionIds.size());
+        
+        try {
+            // Use the bulk submission service to handle the request
+            org.kasbench.globeco_trade_service.service.ExecutionBatchProcessor.BulkSubmitResult bulkResult = 
+                bulkExecutionSubmissionService.submitExecutionsBulk(executionIds);
+            
+            // Convert from ExecutionBatchProcessor.BulkSubmitResult to ExecutionService.BulkSubmitResult
+            List<ExecutionSubmitResult> convertedResults = new ArrayList<>();
+            for (org.kasbench.globeco_trade_service.service.ExecutionBatchProcessor.ExecutionSubmitResult result : bulkResult.getResults()) {
+                convertedResults.add(new ExecutionSubmitResult(
+                    result.getExecutionId(),
+                    result.getStatus(),
+                    result.getMessage(),
+                    result.getExecutionServiceId()
+                ));
+            }
+            
+            BulkSubmitResult serviceResult = new BulkSubmitResult(
+                bulkResult.getTotalRequested(),
+                bulkResult.getSuccessful(),
+                bulkResult.getFailed(),
+                convertedResults,
+                bulkResult.getOverallStatus(),
+                bulkResult.getMessage()
+            );
+            
+            long duration = System.currentTimeMillis() - startTime;
+            logger.info("Bulk execution submission completed in {} ms: {} total, {} successful, {} failed", 
+                       duration, serviceResult.getTotalRequested(), 
+                       serviceResult.getSuccessful(), serviceResult.getFailed());
+            
+            return serviceResult;
+            
+        } catch (Exception ex) {
+            long duration = System.currentTimeMillis() - startTime;
+            logger.error("Bulk execution submission failed after {} ms for {} executions: {}", 
+                        duration, executionIds.size(), ex.getMessage(), ex);
+            
+            // Create failure result
+            List<ExecutionSubmitResult> failureResults = new ArrayList<>();
+            for (Integer id : executionIds) {
+                failureResults.add(new ExecutionSubmitResult(id, "FAILED", ex.getMessage()));
+            }
+            
+            return new BulkSubmitResult(
+                executionIds.size(), 0, executionIds.size(),
+                failureResults, "FAILED", "Bulk submission failed: " + ex.getMessage()
+            );
+        }
     }
 
     @Override
+    @Transactional
     public BulkSubmitResult submitExecutionsBatch(List<Integer> executionIds, int batchSize) {
-        // TODO: Implementation will be added in task 7
-        throw new UnsupportedOperationException("Bulk execution submission with custom batch size not yet implemented");
+        long startTime = System.currentTimeMillis();
+        org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(ExecutionServiceImpl.class);
+        
+        logger.info("Starting bulk execution submission with custom batch size {} for {} execution IDs", 
+                   batchSize, executionIds.size());
+        
+        try {
+            // Validate batch size
+            if (batchSize <= 0) {
+                throw new IllegalArgumentException("Batch size must be greater than 0");
+            }
+            
+            // For custom batch size, we need to split the executions ourselves
+            // and call the bulk service for each batch
+            List<List<Integer>> batches = splitExecutionIds(executionIds, batchSize);
+            
+            List<ExecutionSubmitResult> allResults = new ArrayList<>();
+            int totalSuccessful = 0;
+            int totalFailed = 0;
+            
+            for (int i = 0; i < batches.size(); i++) {
+                List<Integer> batch = batches.get(i);
+                logger.debug("Processing batch {} of {} with {} executions", 
+                            i + 1, batches.size(), batch.size());
+                
+                try {
+                    org.kasbench.globeco_trade_service.service.ExecutionBatchProcessor.BulkSubmitResult batchResult = 
+                        bulkExecutionSubmissionService.submitExecutionsBulk(batch);
+                    
+                    // Convert and aggregate results
+                    for (org.kasbench.globeco_trade_service.service.ExecutionBatchProcessor.ExecutionSubmitResult result : batchResult.getResults()) {
+                        allResults.add(new ExecutionSubmitResult(
+                            result.getExecutionId(),
+                            result.getStatus(),
+                            result.getMessage(),
+                            result.getExecutionServiceId()
+                        ));
+                    }
+                    
+                    totalSuccessful += batchResult.getSuccessful();
+                    totalFailed += batchResult.getFailed();
+                    
+                } catch (Exception ex) {
+                    logger.error("Batch {} failed: {}", i + 1, ex.getMessage());
+                    
+                    // Add failure results for this batch
+                    for (Integer id : batch) {
+                        allResults.add(new ExecutionSubmitResult(id, "FAILED", "Batch failed: " + ex.getMessage()));
+                        totalFailed++;
+                    }
+                }
+            }
+            
+            String overallStatus = determineOverallStatus(totalSuccessful, totalFailed, executionIds.size());
+            String message = String.format("Processed %d batches with size %d: %d successful, %d failed", 
+                                          batches.size(), batchSize, totalSuccessful, totalFailed);
+            
+            BulkSubmitResult result = new BulkSubmitResult(
+                executionIds.size(), totalSuccessful, totalFailed,
+                allResults, overallStatus, message
+            );
+            
+            long duration = System.currentTimeMillis() - startTime;
+            logger.info("Bulk execution submission with custom batch size completed in {} ms: {} total, {} successful, {} failed", 
+                       duration, result.getTotalRequested(), result.getSuccessful(), result.getFailed());
+            
+            return result;
+            
+        } catch (Exception ex) {
+            long duration = System.currentTimeMillis() - startTime;
+            logger.error("Bulk execution submission with custom batch size failed after {} ms for {} executions: {}", 
+                        duration, executionIds.size(), ex.getMessage(), ex);
+            
+            // Create failure result
+            List<ExecutionSubmitResult> failureResults = new ArrayList<>();
+            for (Integer id : executionIds) {
+                failureResults.add(new ExecutionSubmitResult(id, "FAILED", ex.getMessage()));
+            }
+            
+            return new BulkSubmitResult(
+                executionIds.size(), 0, executionIds.size(),
+                failureResults, "FAILED", "Bulk submission with custom batch size failed: " + ex.getMessage()
+            );
+        }
     }
 }
