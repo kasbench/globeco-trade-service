@@ -37,12 +37,15 @@ class BulkExecutionSubmissionServiceTest {
     @Mock
     private ExecutionBatchProperties batchProperties;
 
+    @Mock
+    private ExecutionFailureHandler failureHandler;
+
     private BulkExecutionSubmissionService service;
 
     @BeforeEach
     void setUp() {
         service = new BulkExecutionSubmissionService(
-            executionRepository, batchProcessor, executionServiceClient, batchProperties);
+            executionRepository, batchProcessor, executionServiceClient, batchProperties, failureHandler);
     }
 
     @Test
@@ -447,4 +450,244 @@ class BulkExecutionSubmissionServiceTest {
             "Some executions failed"
         );
     }
-}
+
+    @Test
+    void processBatch_WithPartialFailuresAndRetryEnabled_ShouldHandleRetries() {
+        // Arrange
+        List<Execution> executions = createTestExecutions(Arrays.asList(1, 2, 3));
+        
+        when(batchProperties.getRetryFailedIndividually()).thenReturn(3);
+        
+        BatchExecutionRequestDTO batchRequest = new BatchExecutionRequestDTO();
+        when(batchProcessor.buildBatchRequest(executions)).thenReturn(batchRequest);
+        
+        BatchExecutionResponseDTO response = createPartialSuccessResponse();
+        when(executionServiceClient.submitBatch(batchRequest)).thenReturn(response);
+        
+        BulkSubmitResult initialResult = createPartialResult(executions);
+        when(batchProcessor.processResponse(response, executions)).thenReturn(initialResult);
+        
+        // Mock retry handling
+        BulkSubmitResult retryResult = createRetrySuccessResult(executions);
+        when(failureHandler.handlePartialFailures(initialResult, executions)).thenReturn(retryResult);
+        
+        // Act
+        BulkSubmitResult result = service.processBatch(executions);
+        
+        // Assert
+        assertNotNull(result);
+        assertEquals(3, result.getTotalRequested());
+        assertEquals(3, result.getSuccessful()); // All successful after retry
+        assertEquals(0, result.getFailed());
+        assertEquals("SUCCESS", result.getOverallStatus());
+        
+        verify(failureHandler).handlePartialFailures(initialResult, executions);
+        verify(failureHandler).clearRetryCounters(any());
+    }
+
+    @Test
+    void processBatch_WithPartialFailuresAndRetryDisabled_ShouldNotRetry() {
+        // Arrange
+        List<Execution> executions = createTestExecutions(Arrays.asList(1, 2, 3));
+        
+        when(batchProperties.getRetryFailedIndividually()).thenReturn(0); // Retry disabled
+        
+        BatchExecutionRequestDTO batchRequest = new BatchExecutionRequestDTO();
+        when(batchProcessor.buildBatchRequest(executions)).thenReturn(batchRequest);
+        
+        BatchExecutionResponseDTO response = createPartialSuccessResponse();
+        when(executionServiceClient.submitBatch(batchRequest)).thenReturn(response);
+        
+        BulkSubmitResult partialResult = createPartialResult(executions);
+        when(batchProcessor.processResponse(response, executions)).thenReturn(partialResult);
+        
+        // Act
+        BulkSubmitResult result = service.processBatch(executions);
+        
+        // Assert
+        assertNotNull(result);
+        assertEquals(3, result.getTotalRequested());
+        assertEquals(2, result.getSuccessful());
+        assertEquals(1, result.getFailed());
+        assertEquals("PARTIAL_SUCCESS", result.getOverallStatus());
+        
+        // Verify retry handler was not called
+        verify(failureHandler, never()).handlePartialFailures(any(), any());
+        verify(failureHandler).clearRetryCounters(any()); // Still clears counters
+    }
+
+    @Test
+    void processBatch_WithAllFailuresAndRetryEnabled_ShouldAttemptRetries() {
+        // Arrange
+        List<Execution> executions = createTestExecutions(Arrays.asList(1, 2));
+        
+        when(batchProperties.getRetryFailedIndividually()).thenReturn(3);
+        
+        BatchExecutionRequestDTO batchRequest = new BatchExecutionRequestDTO();
+        when(batchProcessor.buildBatchRequest(executions)).thenReturn(batchRequest);
+        
+        BatchExecutionResponseDTO response = createFailureResponse();
+        when(executionServiceClient.submitBatch(batchRequest)).thenReturn(response);
+        
+        BulkSubmitResult allFailedResult = createAllFailedResult(executions);
+        when(batchProcessor.processResponse(response, executions)).thenReturn(allFailedResult);
+        
+        // Mock retry handling - some succeed on retry
+        BulkSubmitResult retryResult = createPartialRetryResult(executions);
+        when(failureHandler.handlePartialFailures(allFailedResult, executions)).thenReturn(retryResult);
+        
+        // Act
+        BulkSubmitResult result = service.processBatch(executions);
+        
+        // Assert
+        assertNotNull(result);
+        assertEquals(2, result.getTotalRequested());
+        assertEquals(1, result.getSuccessful()); // One succeeded on retry
+        assertEquals(1, result.getFailed());
+        assertEquals("PARTIAL_SUCCESS", result.getOverallStatus());
+        
+        verify(failureHandler).handlePartialFailures(allFailedResult, executions);
+    }
+
+    @Test
+    void submitExecutionsBulk_WithMultipleBatchesAndRetries_ShouldHandleAllRetries() {
+        // Arrange
+        List<Integer> executionIds = Arrays.asList(1, 2, 3, 4);
+        List<Execution> executions = createTestExecutions(executionIds);
+        
+        when(batchProperties.isEnableBatching()).thenReturn(true);
+        when(batchProperties.getEffectiveBatchSize()).thenReturn(2); // Force 2 batches
+        when(batchProperties.getRetryFailedIndividually()).thenReturn(3);
+        
+        // Mock repository calls
+        for (int i = 0; i < executionIds.size(); i++) {
+            when(executionRepository.findByIdWithAllRelations(executionIds.get(i)))
+                .thenReturn(Optional.of(executions.get(i)));
+        }
+        
+        // Mock batch processing with partial failures in both batches
+        BatchExecutionRequestDTO batchRequest = new BatchExecutionRequestDTO();
+        when(batchProcessor.buildBatchRequest(any())).thenReturn(batchRequest);
+        
+        BatchExecutionResponseDTO response = createPartialSuccessResponse();
+        when(executionServiceClient.submitBatch(batchRequest)).thenReturn(response);
+        
+        // Mock partial results for each batch
+        when(batchProcessor.processResponse(eq(response), any()))
+            .thenAnswer(invocation -> {
+                List<Execution> batchExecutions = invocation.getArgument(1);
+                return createPartialResult(batchExecutions);
+            });
+        
+        // Mock retry handling for each batch
+        when(failureHandler.handlePartialFailures(any(), any()))
+            .thenAnswer(invocation -> {
+                BulkSubmitResult originalResult = invocation.getArgument(0);
+                List<Execution> batchExecutions = invocation.getArgument(1);
+                return createRetrySuccessResult(batchExecutions);
+            });
+        
+        // Act
+        BulkSubmitResult result = service.submitExecutionsBulk(executionIds);
+        
+        // Assert
+        assertNotNull(result);
+        assertEquals(4, result.getTotalRequested());
+        assertEquals(4, result.getSuccessful()); // All successful after retries
+        assertEquals(0, result.getFailed());
+        assertEquals("SUCCESS", result.getOverallStatus());
+        
+        // Verify retry handler called for each batch
+        verify(failureHandler, times(2)).handlePartialFailures(any(), any());
+        verify(failureHandler, times(2)).clearRetryCounters(any());
+    }
+
+    // Additional helper methods for retry tests
+
+    private BatchExecutionResponseDTO createFailureResponse() {
+        BatchExecutionResponseDTO response = new BatchExecutionResponseDTO();
+        response.setStatus("FAILED");
+        response.setMessage("All executions failed");
+        response.setTotalRequested(2);
+        response.setSuccessful(0);
+        response.setFailed(2);
+        return response;
+    }
+
+    private BulkSubmitResult createAllFailedResult(List<Execution> executions) {
+        List<ExecutionSubmitResult> results = new ArrayList<>();
+        
+        for (Execution execution : executions) {
+            results.add(new ExecutionSubmitResult(
+                execution.getId(), 
+                "FAILED", 
+                "timeout error", // Retryable error
+                null
+            ));
+        }
+        
+        return new BulkSubmitResult(
+            executions.size(), 
+            0, 
+            executions.size(), 
+            results, 
+            "FAILED", 
+            "All executions failed"
+        );
+    }
+
+    private BulkSubmitResult createRetrySuccessResult(List<Execution> executions) {
+        List<ExecutionSubmitResult> results = new ArrayList<>();
+        
+        for (Execution execution : executions) {
+            results.add(new ExecutionSubmitResult(
+                execution.getId(), 
+                "SUCCESS", 
+                "Retry successful",
+                200 + execution.getId() // Mock execution service ID from retry
+            ));
+        }
+        
+        return new BulkSubmitResult(
+            executions.size(), 
+            executions.size(), 
+            0, 
+            results, 
+            "SUCCESS", 
+            "All executions successful after retry"
+        );
+    }
+
+    private BulkSubmitResult createPartialRetryResult(List<Execution> executions) {
+        List<ExecutionSubmitResult> results = new ArrayList<>();
+        
+        for (int i = 0; i < executions.size(); i++) {
+            Execution execution = executions.get(i);
+            if (i == 0) {
+                // First execution succeeds on retry
+                results.add(new ExecutionSubmitResult(
+                    execution.getId(), 
+                    "SUCCESS", 
+                    "Retry successful",
+                    200 + execution.getId()
+                ));
+            } else {
+                // Others still fail (retry exhausted)
+                results.add(new ExecutionSubmitResult(
+                    execution.getId(), 
+                    "RETRY_EXHAUSTED", 
+                    "Maximum retry attempts exceeded",
+                    null
+                ));
+            }
+        }
+        
+        return new BulkSubmitResult(
+            executions.size(), 
+            1, 
+            executions.size() - 1, 
+            results, 
+            "PARTIAL_SUCCESS", 
+            "Some executions succeeded on retry"
+        );
+    }}

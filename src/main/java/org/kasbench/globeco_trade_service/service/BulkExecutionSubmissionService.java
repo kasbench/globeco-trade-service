@@ -32,17 +32,20 @@ public class BulkExecutionSubmissionService {
     private final ExecutionBatchProcessor batchProcessor;
     private final ExecutionServiceClient executionServiceClient;
     private final ExecutionBatchProperties batchProperties;
+    private final ExecutionFailureHandler failureHandler;
     
     @Autowired
     public BulkExecutionSubmissionService(
             ExecutionRepository executionRepository,
             ExecutionBatchProcessor batchProcessor,
             ExecutionServiceClient executionServiceClient,
-            ExecutionBatchProperties batchProperties) {
+            ExecutionBatchProperties batchProperties,
+            ExecutionFailureHandler failureHandler) {
         this.executionRepository = executionRepository;
         this.batchProcessor = batchProcessor;
         this.executionServiceClient = executionServiceClient;
         this.batchProperties = batchProperties;
+        this.failureHandler = failureHandler;
     }
     
     /**
@@ -128,8 +131,20 @@ public class BulkExecutionSubmissionService {
             // Process response and update execution statuses
             BulkSubmitResult result = batchProcessor.processResponse(response, executions);
             
+            // Handle partial failures with retry logic
+            if (result.getFailed() > 0 && batchProperties.getRetryFailedIndividually() > 0) {
+                logger.debug("Handling {} failures with retry logic", result.getFailed());
+                result = failureHandler.handlePartialFailures(result, executions);
+            }
+            
             // Update execution entities based on results
             updateExecutionStatuses(result, executions);
+            
+            // Clear retry counters for completed executions
+            List<Integer> executionIds = executions.stream()
+                .map(Execution::getId)
+                .collect(Collectors.toList());
+            failureHandler.clearRetryCounters(executionIds);
             
             long batchDuration = System.currentTimeMillis() - batchStartTime;
             logger.debug("Batch processing completed in {} ms: {} successful, {} failed", 
