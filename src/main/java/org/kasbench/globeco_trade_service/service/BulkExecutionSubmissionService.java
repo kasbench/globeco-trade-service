@@ -2,7 +2,7 @@ package org.kasbench.globeco_trade_service.service;
 
 import org.kasbench.globeco_trade_service.client.ExecutionServiceClient;
 import org.kasbench.globeco_trade_service.config.ExecutionBatchProperties;
-import org.kasbench.globeco_trade_service.dto.BatchExecutionRequestDTO;
+import org.kasbench.globeco_trade_service.dto.ExecutionServiceBatchRequestDTO;
 import org.kasbench.globeco_trade_service.dto.BatchExecutionResponseDTO;
 import org.kasbench.globeco_trade_service.entity.Execution;
 import org.kasbench.globeco_trade_service.repository.ExecutionRepository;
@@ -134,7 +134,7 @@ public class BulkExecutionSubmissionService {
         
         try {
             // Build batch request
-            BatchExecutionRequestDTO batchRequest = batchProcessor.buildBatchRequest(executions);
+            ExecutionServiceBatchRequestDTO batchRequest = batchProcessor.buildBatchRequest(executions);
             logger.debug("Built batch request for {} executions", batchSize);
             
             // Submit batch to external service

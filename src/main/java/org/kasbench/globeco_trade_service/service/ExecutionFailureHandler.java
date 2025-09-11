@@ -2,7 +2,7 @@ package org.kasbench.globeco_trade_service.service;
 
 import org.kasbench.globeco_trade_service.client.ExecutionServiceClient;
 import org.kasbench.globeco_trade_service.config.ExecutionBatchProperties;
-import org.kasbench.globeco_trade_service.dto.BatchExecutionRequestDTO;
+import org.kasbench.globeco_trade_service.dto.ExecutionServiceBatchRequestDTO;
 import org.kasbench.globeco_trade_service.dto.BatchExecutionResponseDTO;
 import org.kasbench.globeco_trade_service.entity.Execution;
 import org.kasbench.globeco_trade_service.service.ExecutionBatchProcessor.BulkSubmitResult;
@@ -205,7 +205,7 @@ public class ExecutionFailureHandler {
                 logger.debug("Executing retry attempt {} for execution {}", 
                            context.getRetryCount() + 1, executionId);
                 
-                BatchExecutionRequestDTO request = batchProcessor.buildBatchRequest(List.of(execution));
+                ExecutionServiceBatchRequestDTO request = batchProcessor.buildBatchRequest(List.of(execution));
                 return executionServiceClient.submitBatch(request);
             });
             
@@ -325,7 +325,7 @@ public class ExecutionFailureHandler {
             BatchExecutionResponseDTO response = retryTemplate.execute(context -> {
                 logger.debug("Executing batch retry attempt {}", context.getRetryCount() + 1);
                 
-                BatchExecutionRequestDTO request = batchProcessor.buildBatchRequest(executions);
+                ExecutionServiceBatchRequestDTO request = batchProcessor.buildBatchRequest(executions);
                 return executionServiceClient.submitBatch(request);
             });
             

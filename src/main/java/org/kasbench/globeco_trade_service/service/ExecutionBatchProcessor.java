@@ -11,47 +11,55 @@ import java.util.stream.IntStream;
 
 /**
  * Component responsible for processing execution batches for bulk submission.
- * Handles conversion between Execution entities and batch DTOs, processes responses,
+ * Handles conversion between Execution entities and batch DTOs, processes
+ * responses,
  * and manages failed execution extraction for retry scenarios.
  */
 @Component
 public class ExecutionBatchProcessor {
-    
+
     private static final Logger logger = LoggerFactory.getLogger(ExecutionBatchProcessor.class);
-    
+
     /**
-     * Builds a BatchExecutionRequestDTO from a list of Execution entities.
-     * Converts each execution to ExecutionPostDTO format for API submission.
+     * Builds an ExecutionServiceBatchRequestDTO from a list of Execution entities.
+     * Converts each execution to ExecutionServicePostDTO format for API submission.
      * 
      * @param executions List of executions to include in the batch
-     * @return BatchExecutionRequestDTO ready for API submission
+     * @return ExecutionServiceBatchRequestDTO ready for API submission
      * @throws IllegalArgumentException if executions list is null or empty
      */
-    public BatchExecutionRequestDTO buildBatchRequest(List<Execution> executions) {
+    public ExecutionServiceBatchRequestDTO buildBatchRequest(List<Execution> executions) {
         if (executions == null || executions.isEmpty()) {
             throw new IllegalArgumentException("Executions list cannot be null or empty");
         }
-        
+
         logger.debug("Building batch request for {} executions", executions.size());
-        
-        List<ExecutionPostDTO> executionDTOs = new ArrayList<>();
-        
+
+        List<ExecutionServicePostDTO> executionDTOs = new ArrayList<>();
+
         for (Execution execution : executions) {
-            ExecutionPostDTO dto = convertToExecutionPostDTO(execution);
+            ExecutionServicePostDTO dto = convertToExecutionServicePostDTO(execution);
             executionDTOs.add(dto);
+            
+            // Log each execution DTO to debug the payload
+            logger.info("EXECUTION_DTO_BUILT: Execution ID={}, ExecutionStatus={}, TradeType={}, Destination={}, SecurityId={}, Quantity={}", 
+                       execution.getId(), dto.getExecutionStatus(), dto.getTradeType(), dto.getDestination(), dto.getSecurityId(), dto.getQuantity());
         }
-        
-        BatchExecutionRequestDTO batchRequest = new BatchExecutionRequestDTO(executionDTOs);
-        
+
+        ExecutionServiceBatchRequestDTO batchRequest = new ExecutionServiceBatchRequestDTO(executionDTOs);
+
         logger.debug("Built batch request with {} execution DTOs", executionDTOs.size());
+        logger.info("BATCH_REQUEST_BUILT: Full batch request with {} executions: {}", executionDTOs.size(), batchRequest);
         return batchRequest;
     }
-    
+
     /**
-     * Processes a BatchExecutionResponseDTO and maps results back to original executions.
-     * Updates execution statuses based on individual results and creates a summary result.
+     * Processes a BatchExecutionResponseDTO and maps results back to original
+     * executions.
+     * Updates execution statuses based on individual results and creates a summary
+     * result.
      * 
-     * @param response The batch response from the Execution Service API
+     * @param response           The batch response from the Execution Service API
      * @param originalExecutions The original executions that were submitted
      * @return BulkSubmitResult containing processing summary and individual results
      * @throws IllegalArgumentException if response or originalExecutions is null
@@ -63,25 +71,26 @@ public class ExecutionBatchProcessor {
         if (originalExecutions == null || originalExecutions.isEmpty()) {
             throw new IllegalArgumentException("Original executions list cannot be null or empty");
         }
-        
-        logger.debug("Processing batch response with status: {}, {} results", 
-                    response.getStatus(), response.getResults() != null ? response.getResults().size() : 0);
-        
+
+        logger.debug("Processing batch response with status: {}, {} results",
+                response.getStatus(), response.getResults() != null ? response.getResults().size() : 0);
+
         List<ExecutionSubmitResult> results = new ArrayList<>();
         int successful = 0;
         int failed = 0;
-        
-        // Handle case where response has no individual results (e.g., HTTP 201 - all successful)
+
+        // Handle case where response has no individual results (e.g., HTTP 201 - all
+        // successful)
         if (response.getResults() == null || response.getResults().isEmpty()) {
             if ("SUCCESS".equals(response.getStatus()) || "COMPLETED".equals(response.getStatus())) {
                 // All executions successful
                 for (int i = 0; i < originalExecutions.size(); i++) {
                     Execution execution = originalExecutions.get(i);
                     ExecutionSubmitResult result = new ExecutionSubmitResult(
-                        execution.getId(), 
-                        "SUCCESS", 
-                        "Batch submission successful",
-                        null // executionServiceId will be set elsewhere if available
+                            execution.getId(),
+                            "SUCCESS",
+                            "Batch submission successful",
+                            null // executionServiceId will be set elsewhere if available
                     );
                     results.add(result);
                     successful++;
@@ -91,11 +100,10 @@ public class ExecutionBatchProcessor {
                 for (int i = 0; i < originalExecutions.size(); i++) {
                     Execution execution = originalExecutions.get(i);
                     ExecutionSubmitResult result = new ExecutionSubmitResult(
-                        execution.getId(), 
-                        "FAILED", 
-                        response.getMessage() != null ? response.getMessage() : "Batch submission failed",
-                        null
-                    );
+                            execution.getId(),
+                            "FAILED",
+                            response.getMessage() != null ? response.getMessage() : "Batch submission failed",
+                            null);
                     results.add(result);
                     failed++;
                 }
@@ -103,19 +111,19 @@ public class ExecutionBatchProcessor {
         } else {
             // Process individual results
             Map<Integer, Execution> executionByIndex = createExecutionIndexMap(originalExecutions);
-            
+
             for (ExecutionResultDTO resultDTO : response.getResults()) {
                 Integer requestIndex = resultDTO.getRequestIndex();
                 Execution originalExecution = executionByIndex.get(requestIndex);
-                
+
                 if (originalExecution == null) {
                     logger.warn("No original execution found for request index: {}", requestIndex);
                     continue;
                 }
-                
+
                 ExecutionSubmitResult result = mapResultDTO(resultDTO, originalExecution);
                 results.add(result);
-                
+
                 if ("SUCCESS".equals(result.getStatus()) || "COMPLETED".equals(result.getStatus())) {
                     successful++;
                 } else {
@@ -123,27 +131,28 @@ public class ExecutionBatchProcessor {
                 }
             }
         }
-        
+
         BulkSubmitResult bulkResult = new BulkSubmitResult(
-            originalExecutions.size(),
-            successful,
-            failed,
-            results,
-            determineOverallStatus(successful, failed, originalExecutions.size()),
-            response.getMessage()
-        );
-        
-        logger.debug("Processed batch response: {} total, {} successful, {} failed", 
-                    originalExecutions.size(), successful, failed);
-        
+                originalExecutions.size(),
+                successful,
+                failed,
+                results,
+                determineOverallStatus(successful, failed, originalExecutions.size()),
+                response.getMessage());
+
+        logger.debug("Processed batch response: {} total, {} successful, {} failed",
+                originalExecutions.size(), successful, failed);
+
         return bulkResult;
     }
-    
+
     /**
      * Extracts executions that failed from a BulkSubmitResult for retry processing.
-     * Only includes executions that failed due to transient errors suitable for retry.
+     * Only includes executions that failed due to transient errors suitable for
+     * retry.
      * 
-     * @param result The bulk submit result containing individual execution results
+     * @param result             The bulk submit result containing individual
+     *                           execution results
      * @param originalExecutions The original executions that were submitted
      * @return List of executions that should be retried
      * @throws IllegalArgumentException if result or originalExecutions is null
@@ -155,14 +164,14 @@ public class ExecutionBatchProcessor {
         if (originalExecutions == null) {
             throw new IllegalArgumentException("Original executions cannot be null");
         }
-        
-        logger.debug("Extracting failed executions from result with {} total results", 
-                    result.getResults() != null ? result.getResults().size() : 0);
-        
+
+        logger.debug("Extracting failed executions from result with {} total results",
+                result.getResults() != null ? result.getResults().size() : 0);
+
         List<Execution> failedExecutions = new ArrayList<>();
         Map<Integer, Execution> executionMap = originalExecutions.stream()
-            .collect(HashMap::new, (map, exec) -> map.put(exec.getId(), exec), HashMap::putAll);
-        
+                .collect(HashMap::new, (map, exec) -> map.put(exec.getId(), exec), HashMap::putAll);
+
         if (result.getResults() != null) {
             for (ExecutionSubmitResult submitResult : result.getResults()) {
                 if (isRetryableFailure(submitResult)) {
@@ -173,43 +182,66 @@ public class ExecutionBatchProcessor {
                 }
             }
         }
-        
+
         logger.debug("Extracted {} failed executions for retry", failedExecutions.size());
         return failedExecutions;
     }
-    
+
     /**
-     * Converts an Execution entity to ExecutionPostDTO for API submission.
+     * Converts an Execution entity to ExecutionServicePostDTO for API submission.
      */
-    private ExecutionPostDTO convertToExecutionPostDTO(Execution execution) {
-        ExecutionPostDTO dto = new ExecutionPostDTO();
+    private ExecutionServicePostDTO convertToExecutionServicePostDTO(Execution execution) {
+        ExecutionServicePostDTO dto = new ExecutionServicePostDTO();
+
+        // Log the original execution entity to debug conversion
+        logger.info("CONVERTING_EXECUTION: ID={}, ExecutionStatus={}, TradeType={}, Destination={}, TradeOrder={}", 
+                   execution.getId(), 
+                   execution.getExecutionStatus() != null ? execution.getExecutionStatus().getAbbreviation() : "NULL",
+                   execution.getTradeType() != null ? execution.getTradeType().getAbbreviation() : "NULL",
+                   execution.getDestination() != null ? execution.getDestination().getAbbreviation() : "NULL",
+                   execution.getTradeOrder() != null ? execution.getTradeOrder().getId() : "NULL");
+
+        // Convert to string abbreviations as expected by execution service
+        String executionStatus = execution.getExecutionStatus() != null ? 
+            execution.getExecutionStatus().getAbbreviation() : "NEW";
+        dto.setExecutionStatus(executionStatus);
         
-        dto.setExecutionTimestamp(execution.getExecutionTimestamp());
-        dto.setExecutionStatusId(execution.getExecutionStatus() != null ? execution.getExecutionStatus().getId() : null);
-        dto.setBlotterId(execution.getBlotter() != null ? execution.getBlotter().getId() : null);
-        dto.setTradeTypeId(execution.getTradeType() != null ? execution.getTradeType().getId() : null);
-        dto.setTradeOrderId(execution.getTradeOrder() != null ? execution.getTradeOrder().getId() : null);
-        dto.setDestinationId(execution.getDestination() != null ? execution.getDestination().getId() : null);
-        dto.setQuantityOrdered(execution.getQuantityOrdered());
-        dto.setQuantityPlaced(execution.getQuantityPlaced());
-        dto.setQuantityFilled(execution.getQuantityFilled());
+        String tradeType = execution.getTradeType() != null ? 
+            execution.getTradeType().getAbbreviation() : null;
+        dto.setTradeType(tradeType);
+        
+        String destination = execution.getDestination() != null ? 
+            execution.getDestination().getAbbreviation() : null;
+        dto.setDestination(destination);
+        
+        // Get security ID from trade order
+        String securityId = execution.getTradeOrder() != null ? 
+            execution.getTradeOrder().getSecurityId() : null;
+        dto.setSecurityId(securityId);
+        
+        // Use quantity ordered as the quantity
+        dto.setQuantity(execution.getQuantityOrdered());
         dto.setLimitPrice(execution.getLimitPrice());
-        dto.setExecutionServiceId(execution.getExecutionServiceId());
+        dto.setVersion(1); // Default version
         
+        logger.info("EXECUTION_CONVERSION_RESULT: ExecutionStatus={}, TradeType={}, Destination={}, SecurityId={}, Quantity={}", 
+                   dto.getExecutionStatus(), dto.getTradeType(), dto.getDestination(), dto.getSecurityId(), dto.getQuantity());
+
         return dto;
     }
-    
+
     /**
-     * Creates a map of request index to execution for efficient lookup during response processing.
+     * Creates a map of request index to execution for efficient lookup during
+     * response processing.
      */
     private Map<Integer, Execution> createExecutionIndexMap(List<Execution> executions) {
         return IntStream.range(0, executions.size())
-            .boxed()
-            .collect(HashMap::new, 
-                    (map, index) -> map.put(index, executions.get(index)), 
-                    HashMap::putAll);
+                .boxed()
+                .collect(HashMap::new,
+                        (map, index) -> map.put(index, executions.get(index)),
+                        HashMap::putAll);
     }
-    
+
     /**
      * Maps an ExecutionResultDTO to an ExecutionSubmitResult.
      */
@@ -218,15 +250,14 @@ public class ExecutionBatchProcessor {
         if (resultDTO.getExecution() != null && resultDTO.getExecution().getExecutionServiceId() != null) {
             executionServiceId = resultDTO.getExecution().getExecutionServiceId();
         }
-        
+
         return new ExecutionSubmitResult(
-            originalExecution.getId(),
-            resultDTO.getStatus(),
-            resultDTO.getMessage(),
-            executionServiceId
-        );
+                originalExecution.getId(),
+                resultDTO.getStatus(),
+                resultDTO.getMessage(),
+                executionServiceId);
     }
-    
+
     /**
      * Determines the overall status based on success/failure counts.
      */
@@ -239,7 +270,7 @@ public class ExecutionBatchProcessor {
             return "PARTIAL_SUCCESS";
         }
     }
-    
+
     /**
      * Determines if a failure is retryable based on the status and message.
      */
@@ -247,32 +278,32 @@ public class ExecutionBatchProcessor {
         if (!"FAILED".equals(result.getStatus())) {
             return false;
         }
-        
+
         String message = result.getMessage();
         if (message == null) {
             return true; // Assume retryable if no specific message
         }
-        
+
         String lowerMessage = message.toLowerCase();
-        
+
         // Non-retryable failures (permanent errors)
-        if (lowerMessage.contains("validation") || 
-            lowerMessage.contains("invalid") || 
-            lowerMessage.contains("not found") ||
-            lowerMessage.contains("duplicate") ||
-            lowerMessage.contains("unauthorized") ||
-            lowerMessage.contains("forbidden")) {
+        if (lowerMessage.contains("validation") ||
+                lowerMessage.contains("invalid") ||
+                lowerMessage.contains("not found") ||
+                lowerMessage.contains("duplicate") ||
+                lowerMessage.contains("unauthorized") ||
+                lowerMessage.contains("forbidden")) {
             return false;
         }
-        
+
         // Retryable failures (transient errors)
-        return lowerMessage.contains("timeout") || 
-               lowerMessage.contains("connection") || 
-               lowerMessage.contains("service unavailable") ||
-               lowerMessage.contains("internal server error") ||
-               lowerMessage.contains("temporary");
+        return lowerMessage.contains("timeout") ||
+                lowerMessage.contains("connection") ||
+                lowerMessage.contains("service unavailable") ||
+                lowerMessage.contains("internal server error") ||
+                lowerMessage.contains("temporary");
     }
-    
+
     /**
      * Result class for bulk execution submissions.
      */
@@ -283,9 +314,9 @@ public class ExecutionBatchProcessor {
         private final List<ExecutionSubmitResult> results;
         private final String overallStatus;
         private final String message;
-        
-        public BulkSubmitResult(int totalRequested, int successful, int failed, 
-                               List<ExecutionSubmitResult> results, String overallStatus, String message) {
+
+        public BulkSubmitResult(int totalRequested, int successful, int failed,
+                List<ExecutionSubmitResult> results, String overallStatus, String message) {
             this.totalRequested = totalRequested;
             this.successful = successful;
             this.failed = failed;
@@ -293,14 +324,31 @@ public class ExecutionBatchProcessor {
             this.overallStatus = overallStatus;
             this.message = message;
         }
-        
-        public int getTotalRequested() { return totalRequested; }
-        public int getSuccessful() { return successful; }
-        public int getFailed() { return failed; }
-        public List<ExecutionSubmitResult> getResults() { return Collections.unmodifiableList(results); }
-        public String getOverallStatus() { return overallStatus; }
-        public String getMessage() { return message; }
-        
+
+        public int getTotalRequested() {
+            return totalRequested;
+        }
+
+        public int getSuccessful() {
+            return successful;
+        }
+
+        public int getFailed() {
+            return failed;
+        }
+
+        public List<ExecutionSubmitResult> getResults() {
+            return Collections.unmodifiableList(results);
+        }
+
+        public String getOverallStatus() {
+            return overallStatus;
+        }
+
+        public String getMessage() {
+            return message;
+        }
+
         @Override
         public String toString() {
             return "BulkSubmitResult{" +
@@ -312,7 +360,7 @@ public class ExecutionBatchProcessor {
                     '}';
         }
     }
-    
+
     /**
      * Result class for individual execution submissions within a bulk operation.
      */
@@ -321,19 +369,30 @@ public class ExecutionBatchProcessor {
         private final String status;
         private final String message;
         private final Integer executionServiceId;
-        
+
         public ExecutionSubmitResult(Integer executionId, String status, String message, Integer executionServiceId) {
             this.executionId = executionId;
             this.status = status;
             this.message = message;
             this.executionServiceId = executionServiceId;
         }
-        
-        public Integer getExecutionId() { return executionId; }
-        public String getStatus() { return status; }
-        public String getMessage() { return message; }
-        public Integer getExecutionServiceId() { return executionServiceId; }
-        
+
+        public Integer getExecutionId() {
+            return executionId;
+        }
+
+        public String getStatus() {
+            return status;
+        }
+
+        public String getMessage() {
+            return message;
+        }
+
+        public Integer getExecutionServiceId() {
+            return executionServiceId;
+        }
+
         @Override
         public String toString() {
             return "ExecutionSubmitResult{" +

@@ -17,6 +17,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
+import java.util.Map;
+import java.util.HashMap;
 
 @Service
 public class BatchTradeOrderService {
@@ -26,14 +28,17 @@ public class BatchTradeOrderService {
     private final TradeOrderRepository tradeOrderRepository;
     private final TradeOrderService tradeOrderService;
     private final ExecutionRepository executionRepository;
+    private final ExecutionService executionService;
     
     public BatchTradeOrderService(
             TradeOrderRepository tradeOrderRepository,
             TradeOrderService tradeOrderService,
-            ExecutionRepository executionRepository) {
+            ExecutionRepository executionRepository,
+            ExecutionService executionService) {
         this.tradeOrderRepository = tradeOrderRepository;
         this.tradeOrderService = tradeOrderService;
         this.executionRepository = executionRepository;
+        this.executionService = executionService;
     }
     
     /**
@@ -45,8 +50,7 @@ public class BatchTradeOrderService {
     }
     
     /**
-     * Submit multiple trade orders in batch with sequential processing
-     * Note: Changed from async to sequential to avoid Hibernate lazy loading issues
+     * Submit multiple trade orders in batch with true bulk execution processing
      * @param request The batch submission request
      * @param noExecuteSubmit When false (default), automatically submits to execution service; when true, only creates local executions
      */
@@ -64,17 +68,77 @@ public class BatchTradeOrderService {
         // Validate request structure
         validateBatchRequest(request);
         
-        // Process submissions sequentially within the same transaction
+        // Step 1: Create all executions locally (without submitting to external service)
         List<BatchSubmitResponseDTO.TradeOrderSubmitResultDTO> results = new ArrayList<>();
+        List<Integer> executionIds = new ArrayList<>();
+        Map<Integer, Integer> executionToRequestIndex = new HashMap<>();
         
         for (int i = 0; i < request.getSubmissions().size(); i++) {
             BatchSubmitRequestDTO.TradeOrderSubmissionDTO submission = request.getSubmissions().get(i);
             int requestIndex = i;
             
-            BatchSubmitResponseDTO.TradeOrderSubmitResultDTO result = 
-                processTradeOrderSubmission(submission, requestIndex, noExecuteSubmit);
+            try {
+                // Create execution locally (with noExecuteSubmit=true to skip external submission)
+                BatchSubmitResponseDTO.TradeOrderSubmitResultDTO result = 
+                    processTradeOrderSubmission(submission, requestIndex, true); // Always skip external submission initially
+                
+                results.add(result);
+                
+                if (BatchSubmitResponseDTO.TradeOrderSubmitResultDTO.SubmitStatus.SUCCESS.equals(result.getStatus())) {
+                    // Extract execution ID from the result
+                    Integer executionId = result.getExecution().getId();
+                    executionIds.add(executionId);
+                    executionToRequestIndex.put(executionId, requestIndex);
+                    logger.debug("Created execution {} for trade order {} (request index {})", 
+                               executionId, submission.getTradeOrderId(), requestIndex);
+                }
+            } catch (Exception e) {
+                logger.error("Error creating execution for trade order {}: {}", submission.getTradeOrderId(), e.getMessage(), e);
+                results.add(new BatchSubmitResponseDTO.TradeOrderSubmitResultDTO(
+                    submission.getTradeOrderId(),
+                    BatchSubmitResponseDTO.TradeOrderSubmitResultDTO.SubmitStatus.FAILURE,
+                    "Failed to create execution: " + e.getMessage(),
+                    null,
+                    requestIndex
+                ));
+            }
+        }
+        
+        // Step 2: If noExecuteSubmit is false and we have executions to submit, use bulk submission
+        if (!noExecuteSubmit && !executionIds.isEmpty()) {
+            logger.info("Submitting {} executions in bulk to external service", executionIds.size());
             
-            results.add(result);
+            try {
+                // Use the bulk execution submission service
+                ExecutionService.BulkSubmitResult bulkResult = executionService.submitExecutions(executionIds);
+                
+                logger.info("Bulk execution submission completed - Total: {}, Successful: {}, Failed: {}", 
+                           bulkResult.getTotalRequested(), bulkResult.getSuccessful(), bulkResult.getFailed());
+                
+                // Update results based on bulk submission outcome
+                updateResultsFromBulkSubmission(results, bulkResult, executionToRequestIndex);
+                
+            } catch (Exception e) {
+                logger.error("Bulk execution submission failed: {}", e.getMessage(), e);
+                
+                // Mark all successfully created executions as failed due to bulk submission failure
+                for (Integer executionId : executionIds) {
+                    Integer requestIndex = executionToRequestIndex.get(executionId);
+                    if (requestIndex != null && requestIndex < results.size()) {
+                        BatchSubmitResponseDTO.TradeOrderSubmitResultDTO result = results.get(requestIndex);
+                        if (BatchSubmitResponseDTO.TradeOrderSubmitResultDTO.SubmitStatus.SUCCESS.equals(result.getStatus())) {
+                            // Update the result to reflect the bulk submission failure
+                            results.set(requestIndex, new BatchSubmitResponseDTO.TradeOrderSubmitResultDTO(
+                                result.getTradeOrderId(),
+                                BatchSubmitResponseDTO.TradeOrderSubmitResultDTO.SubmitStatus.FAILURE,
+                                "Bulk execution submission failed: " + e.getMessage(),
+                                result.getExecution(), // Keep the execution data
+                                requestIndex
+                            ));
+                        }
+                    }
+                }
+            }
         }
         
         // Calculate summary statistics
@@ -112,6 +176,67 @@ public class BatchTradeOrderService {
         );
     }
     
+    /**
+     * Update results based on bulk execution submission outcome
+     */
+    private void updateResultsFromBulkSubmission(
+            List<BatchSubmitResponseDTO.TradeOrderSubmitResultDTO> results,
+            ExecutionService.BulkSubmitResult bulkResult,
+            Map<Integer, Integer> executionToRequestIndex) {
+        
+        // Process individual execution results from bulk submission
+        for (ExecutionService.ExecutionSubmitResult executionResult : bulkResult.getResults()) {
+            Integer requestIndex = executionToRequestIndex.get(executionResult.getExecutionId());
+            
+            if (requestIndex != null && requestIndex < results.size()) {
+                BatchSubmitResponseDTO.TradeOrderSubmitResultDTO currentResult = results.get(requestIndex);
+                
+                // Only update if the current result was successful (execution was created)
+                if (BatchSubmitResponseDTO.TradeOrderSubmitResultDTO.SubmitStatus.SUCCESS.equals(currentResult.getStatus())) {
+                    
+                    if ("SUCCESS".equals(executionResult.getStatus()) || "COMPLETED".equals(executionResult.getStatus())) {
+                        // Execution submitted successfully - keep the current success result
+                        // but potentially update execution data if needed
+                        logger.debug("Execution {} submitted successfully to external service", executionResult.getExecutionId());
+                        
+                        // Re-fetch execution to get updated data (execution service ID, etc.)
+                        try {
+                            Execution updatedExecution = executionRepository.findByIdWithAllRelations(executionResult.getExecutionId())
+                                .orElse(null);
+                            if (updatedExecution != null) {
+                                ExecutionResponseDTO updatedExecutionResponse = convertToExecutionResponseDTO(updatedExecution);
+                                results.set(requestIndex, new BatchSubmitResponseDTO.TradeOrderSubmitResultDTO(
+                                    currentResult.getTradeOrderId(),
+                                    BatchSubmitResponseDTO.TradeOrderSubmitResultDTO.SubmitStatus.SUCCESS,
+                                    "Trade order submitted successfully",
+                                    updatedExecutionResponse,
+                                    requestIndex
+                                ));
+                            }
+                        } catch (Exception e) {
+                            logger.warn("Failed to re-fetch execution {} after successful submission: {}", 
+                                       executionResult.getExecutionId(), e.getMessage());
+                            // Keep the original result if re-fetch fails
+                        }
+                        
+                    } else {
+                        // Execution submission failed - update result to reflect failure
+                        logger.warn("Execution {} failed to submit to external service: {}", 
+                                   executionResult.getExecutionId(), executionResult.getMessage());
+                        
+                        results.set(requestIndex, new BatchSubmitResponseDTO.TradeOrderSubmitResultDTO(
+                            currentResult.getTradeOrderId(),
+                            BatchSubmitResponseDTO.TradeOrderSubmitResultDTO.SubmitStatus.FAILURE,
+                            "Execution submission failed: " + executionResult.getMessage(),
+                            currentResult.getExecution(), // Keep the execution data
+                            requestIndex
+                        ));
+                    }
+                }
+            }
+        }
+    }
+
     /**
      * Process individual trade order submission
      */
