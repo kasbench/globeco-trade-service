@@ -67,7 +67,7 @@ public class BulkExecutionSubmissionService {
             throw new IllegalArgumentException("Execution IDs list cannot be null or empty");
         }
         
-        logger.info("Starting bulk execution submission for {} execution IDs", executionIds.size());
+        logger.debug("Starting bulk execution submission for {} execution IDs", executionIds.size());
         long startTime = System.currentTimeMillis();
         
         try {
@@ -81,18 +81,18 @@ public class BulkExecutionSubmissionService {
             
             // Check if batching is enabled
             if (!batchProperties.isEnableBatching()) {
-                logger.info("Batching is disabled, processing executions individually");
+                logger.debug("Batching is disabled, processing executions individually");
                 return processIndividually(executions);
             }
             
             // Split into batches and process
             List<List<Execution>> batches = splitIntoBatches(executions);
-            logger.info("Split {} executions into {} batches", executions.size(), batches.size());
+            logger.debug("Split {} executions into {} batches", executions.size(), batches.size());
             
             BulkSubmitResult aggregatedResult = processBatches(batches);
             
             long duration = System.currentTimeMillis() - startTime;
-            logger.info("Bulk execution submission completed in {} ms: {} total, {} successful, {} failed", 
+            logger.debug("Bulk execution submission completed in {} ms: {} total, {} successful, {} failed", 
                        duration, aggregatedResult.getTotalRequested(), 
                        aggregatedResult.getSuccessful(), aggregatedResult.getFailed());
             
@@ -293,7 +293,7 @@ public class BulkExecutionSubmissionService {
      * Processes executions individually when batching is disabled.
      */
     private BulkSubmitResult processIndividually(List<Execution> executions) {
-        logger.info("Processing {} executions individually", executions.size());
+        logger.debug("Processing {} executions individually", executions.size());
         
         List<ExecutionSubmitResult> results = new ArrayList<>();
         int successful = 0;

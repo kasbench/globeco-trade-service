@@ -72,7 +72,7 @@ public class ExecutionServiceImpl implements ExecutionService {
             executionStatusByAbbreviationCache.put(status.getAbbreviation(), status);
         }
         org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(ExecutionServiceImpl.class);
-        logger.info("Initialized execution status cache with {} statuses", statuses.size());
+        logger.debug("Initialized execution status cache with {} statuses", statuses.size());
     }
 
     /**
@@ -237,7 +237,7 @@ public class ExecutionServiceImpl implements ExecutionService {
             return new SubmitResult(null, "Error: " + ex.getMessage());
         } finally {
             long executionTime = System.currentTimeMillis() - startTime;
-            logger.info("(Execution Service) submitExecution method completed for execution {} in {} ms", id,
+            logger.debug("(Execution Service) submitExecution method completed for execution {} in {} ms", id,
                     executionTime);
         }
     }
@@ -363,7 +363,7 @@ public class ExecutionServiceImpl implements ExecutionService {
         long startTime = System.currentTimeMillis();
         org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(ExecutionServiceImpl.class);
         
-        logger.info("Starting bulk execution submission for {} execution IDs", executionIds.size());
+        logger.debug("Starting bulk execution submission for {} execution IDs", executionIds.size());
         
         try {
             // Use the bulk submission service to handle the request
@@ -391,7 +391,7 @@ public class ExecutionServiceImpl implements ExecutionService {
             );
             
             long duration = System.currentTimeMillis() - startTime;
-            logger.info("Bulk execution submission completed in {} ms: {} total, {} successful, {} failed", 
+            logger.debug("Bulk execution submission completed in {} ms: {} total, {} successful, {} failed", 
                        duration, serviceResult.getTotalRequested(), 
                        serviceResult.getSuccessful(), serviceResult.getFailed());
             
@@ -421,7 +421,7 @@ public class ExecutionServiceImpl implements ExecutionService {
         long startTime = System.currentTimeMillis();
         org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(ExecutionServiceImpl.class);
         
-        logger.info("Starting bulk execution submission with custom batch size {} for {} execution IDs", 
+        logger.debug("Starting bulk execution submission with custom batch size {} for {} execution IDs", 
                    batchSize, executionIds.size());
         
         try {
@@ -481,7 +481,7 @@ public class ExecutionServiceImpl implements ExecutionService {
             );
             
             long duration = System.currentTimeMillis() - startTime;
-            logger.info("Bulk execution submission with custom batch size completed in {} ms: {} total, {} successful, {} failed", 
+            logger.debug("Bulk execution submission with custom batch size completed in {} ms: {} total, {} successful, {} failed", 
                        duration, result.getTotalRequested(), result.getSuccessful(), result.getFailed());
             
             return result;

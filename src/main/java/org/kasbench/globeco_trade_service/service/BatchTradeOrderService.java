@@ -56,7 +56,7 @@ public class BatchTradeOrderService {
      */
     @Transactional
     public BatchSubmitResponseDTO submitTradeOrdersBatch(BatchSubmitRequestDTO request, boolean noExecuteSubmit) {
-        logger.info("Processing batch submission for {} trade orders", request.getSubmissions().size());
+        logger.debug("Processing batch submission for {} trade orders", request.getSubmissions().size());
         
         // Validate batch size
         if (request.getSubmissions().size() > MAX_BATCH_SIZE) {
@@ -106,13 +106,13 @@ public class BatchTradeOrderService {
         
         // Step 2: If noExecuteSubmit is false and we have executions to submit, use bulk submission
         if (!noExecuteSubmit && !executionIds.isEmpty()) {
-            logger.info("Submitting {} executions in bulk to external service", executionIds.size());
+            logger.debug("Submitting {} executions in bulk to external service", executionIds.size());
             
             try {
                 // Use the bulk execution submission service
                 ExecutionService.BulkSubmitResult bulkResult = executionService.submitExecutions(executionIds);
                 
-                logger.info("Bulk execution submission completed - Total: {}, Successful: {}, Failed: {}", 
+                logger.debug("Bulk execution submission completed - Total: {}, Successful: {}, Failed: {}", 
                            bulkResult.getTotalRequested(), bulkResult.getSuccessful(), bulkResult.getFailed());
                 
                 // Update results based on bulk submission outcome
@@ -163,7 +163,7 @@ public class BatchTradeOrderService {
             message = String.format("%d of %d trade orders submitted successfully", successful, results.size());
         }
         
-        logger.info("Batch submission completed - Status: {}, Successful: {}, Failed: {}", 
+        logger.debug("Batch submission completed - Status: {}, Successful: {}, Failed: {}", 
                    overallStatus, successful, failed);
         
         return new BatchSubmitResponseDTO(

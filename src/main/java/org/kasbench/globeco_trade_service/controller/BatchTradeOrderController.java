@@ -73,7 +73,7 @@ public class BatchTradeOrderController {
             @Parameter(description = "When false (default), automatically submits to execution service; when true, only creates local executions")
             @org.springframework.web.bind.annotation.RequestParam(value = "noExecuteSubmit", required = false, defaultValue = "false") boolean noExecuteSubmit) {
         
-        logger.info("POST /api/v1/tradeOrders/batch/submit - Processing batch of {} trade orders, noExecuteSubmit={}", 
+        logger.debug("POST /api/v1/tradeOrders/batch/submit - Processing batch of {} trade orders, noExecuteSubmit={}", 
                    request.getSubmissions() != null ? request.getSubmissions().size() : 0, noExecuteSubmit);
         
         try {
@@ -91,7 +91,7 @@ public class BatchTradeOrderController {
             // Determine HTTP status based on batch results
             HttpStatus status = determineHttpStatus(response);
             
-            logger.info("Batch submission completed - Status: {}, HTTP: {}, Successful: {}, Failed: {}", 
+            logger.debug("Batch submission completed - Status: {}, HTTP: {}, Successful: {}, Failed: {}", 
                        response.getStatus(), status, response.getSuccessful(), response.getFailed());
             
             return ResponseEntity.status(status).body(response);

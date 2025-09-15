@@ -85,7 +85,7 @@ public class ExecutionV2Controller {
 
             @Parameter(description = "Filter by execution service ID (exact match)", example = "789") @RequestParam(name = "executionServiceId", required = false) Integer executionServiceId) {
 
-        // logger.info("GET /api/v2/executions - IP: {}, limit: {}, offset: {}, sort: {}, filters applied",
+        // logger.debug("GET /api/v2/executions - IP: {}, limit: {}, offset: {}, sort: {}, filters applied",
         //         request.getRemoteAddr(), limit, offset, sort);
 
         try {
@@ -108,7 +108,7 @@ public class ExecutionV2Controller {
                     quantityFilledMin, quantityFilledMax,
                     executionServiceId);
 
-            logger.info("Successfully retrieved {} executions out of {} total",
+            logger.debug("Successfully retrieved {} executions out of {} total",
                     response.getExecutions().size(), response.getPagination().getTotalElements());
 
             return ResponseEntity.ok(response);

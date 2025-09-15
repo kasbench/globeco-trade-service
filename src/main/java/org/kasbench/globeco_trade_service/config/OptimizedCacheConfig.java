@@ -45,7 +45,7 @@ public class OptimizedCacheConfig {
      */
     @Bean("optimizedSecurityCache")
     public Cache<String, SecurityDTO> optimizedSecurityCache() {
-        logger.info("Initializing optimized security cache with size=2000, TTL=10min");
+        logger.debug("Initializing optimized security cache with size=2000, TTL=10min");
         
         return Caffeine.newBuilder()
                 .maximumSize(2000)                          // Increased from 1000
@@ -61,7 +61,7 @@ public class OptimizedCacheConfig {
      */
     @Bean("optimizedPortfolioCache")
     public Cache<String, PortfolioDTO> optimizedPortfolioCache() {
-        logger.info("Initializing optimized portfolio cache with size=1000, TTL=15min");
+        logger.debug("Initializing optimized portfolio cache with size=1000, TTL=15min");
         
         return Caffeine.newBuilder()
                 .maximumSize(1000)
@@ -78,13 +78,13 @@ public class OptimizedCacheConfig {
     @EventListener(ApplicationReadyEvent.class)
     @Async
     public void warmupCaches() {
-        logger.info("Starting cache warmup process...");
+        logger.debug("Starting cache warmup process...");
         
         CompletableFuture<Void> securityWarmup = CompletableFuture.runAsync(this::warmupSecurityCache);
         CompletableFuture<Void> portfolioWarmup = CompletableFuture.runAsync(this::warmupPortfolioCache);
         
         CompletableFuture.allOf(securityWarmup, portfolioWarmup)
-                .thenRun(() -> logger.info("Cache warmup completed successfully"))
+                .thenRun(() -> logger.debug("Cache warmup completed successfully"))
                 .exceptionally(throwable -> {
                     logger.error("Cache warmup failed", throwable);
                     return null;
@@ -96,7 +96,7 @@ public class OptimizedCacheConfig {
      */
     private void warmupSecurityCache() {
         try {
-            logger.info("Warming up security cache...");
+            logger.debug("Warming up security cache...");
             Cache<String, SecurityDTO> securityCache = optimizedSecurityCache();
             
             // Common securities that are frequently accessed
@@ -123,7 +123,7 @@ public class OptimizedCacheConfig {
                 Thread.sleep(10);
             }
             
-            logger.info("Security cache warmup completed. Warmed {} securities", warmedCount);
+            logger.debug("Security cache warmup completed. Warmed {} securities", warmedCount);
             
         } catch (Exception e) {
             logger.error("Security cache warmup failed", e);
@@ -135,7 +135,7 @@ public class OptimizedCacheConfig {
      */
     private void warmupPortfolioCache() {
         try {
-            logger.info("Warming up portfolio cache...");
+            logger.debug("Warming up portfolio cache...");
             Cache<String, PortfolioDTO> portfolioCache = optimizedPortfolioCache();
             
             // Common portfolio names that are frequently accessed
@@ -162,7 +162,7 @@ public class OptimizedCacheConfig {
                 Thread.sleep(10);
             }
             
-            logger.info("Portfolio cache warmup completed. Warmed {} portfolios", warmedCount);
+            logger.debug("Portfolio cache warmup completed. Warmed {} portfolios", warmedCount);
             
         } catch (Exception e) {
             logger.error("Portfolio cache warmup failed", e);

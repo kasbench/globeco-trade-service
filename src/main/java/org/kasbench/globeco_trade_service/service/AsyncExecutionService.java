@@ -51,7 +51,7 @@ public class AsyncExecutionService {
      */
     @Async("executionSubmissionExecutor")
     public CompletableFuture<ExecutionService.SubmitResult> submitExecutionAsync(Integer executionId) {
-        logger.info("Starting async execution submission for execution ID: {}", executionId);
+        logger.debug("Starting async execution submission for execution ID: {}", executionId);
         
         return CompletableFuture.supplyAsync(() -> {
             long startTime = System.currentTimeMillis();
@@ -77,7 +77,7 @@ public class AsyncExecutionService {
                 long duration = System.currentTimeMillis() - startTime;
                 
                 if (result.getStatus() != null && "submitted".equals(result.getStatus())) {
-                    logger.info("Successfully completed async execution submission for execution {} in {} ms", 
+                    logger.debug("Successfully completed async execution submission for execution {} in {} ms", 
                             executionId, duration);
                     return result;
                 } else {
@@ -122,7 +122,7 @@ public class AsyncExecutionService {
      */
     @Async("executionSubmissionExecutor")
     public CompletableFuture<ExecutionService.SubmitResult[]> submitExecutionsAsync(Integer... executionIds) {
-        logger.info("Starting batch async execution submission for {} executions", executionIds.length);
+        logger.debug("Starting batch async execution submission for {} executions", executionIds.length);
         
         return CompletableFuture.supplyAsync(() -> {
             long startTime = System.currentTimeMillis();
@@ -152,7 +152,7 @@ public class AsyncExecutionService {
                 }
                 
                 long duration = System.currentTimeMillis() - startTime;
-                logger.info("Completed batch async execution submission for {} executions in {} ms", 
+                logger.debug("Completed batch async execution submission for {} executions in {} ms", 
                         executionIds.length, duration);
                 
                 return results;
@@ -218,7 +218,7 @@ public class AsyncExecutionService {
             return;
         }
         
-        logger.info("Handling async submission failure for execution {} and trade order {}: {}", 
+        logger.debug("Handling async submission failure for execution {} and trade order {}: {}", 
                 originalExecution.getId(), originalTradeOrderState.getTradeOrderId(), errorMessage);
         
         try {
@@ -233,7 +233,7 @@ public class AsyncExecutionService {
                             originalExecution.getId(), originalTradeOrderState.getTradeOrderId(), 
                             throwable.getMessage(), throwable);
                 } else {
-                    logger.info("Async compensation completed successfully for execution {} and trade order {}", 
+                    logger.debug("Async compensation completed successfully for execution {} and trade order {}", 
                             originalExecution.getId(), originalTradeOrderState.getTradeOrderId());
                 }
             });

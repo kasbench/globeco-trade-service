@@ -52,7 +52,7 @@ public class BatchCacheLoadingService {
             return t;
         });
         
-        logger.info("BatchCacheLoadingService initialized with dedicated thread pool");
+        logger.debug("BatchCacheLoadingService initialized with dedicated thread pool");
     }
     
     /**
@@ -68,7 +68,7 @@ public class BatchCacheLoadingService {
             return CompletableFuture.completedFuture(new ConcurrentHashMap<>());
         }
         
-        logger.info("Starting batch load for {} securities", securityIds.size());
+        logger.debug("Starting batch load for {} securities", securityIds.size());
         
         return CompletableFuture.supplyAsync(() -> {
             // Use ConcurrentHashMap for thread safety
@@ -142,7 +142,7 @@ public class BatchCacheLoadingService {
                         }
                     });
             
-            logger.info("Batch load completed for securities. Loaded: {}, Total requested: {}", 
+            logger.debug("Batch load completed for securities. Loaded: {}, Total requested: {}", 
                     results.size(), securityIds.size());
             
             return results;
@@ -163,7 +163,7 @@ public class BatchCacheLoadingService {
             return CompletableFuture.completedFuture(new ConcurrentHashMap<>());
         }
         
-        logger.info("Starting batch load for {} portfolios", portfolioIds.size());
+        logger.debug("Starting batch load for {} portfolios", portfolioIds.size());
         
         return CompletableFuture.supplyAsync(() -> {
             // Use ConcurrentHashMap for thread safety
@@ -237,7 +237,7 @@ public class BatchCacheLoadingService {
                         }
                     });
             
-            logger.info("Batch load completed for portfolios. Loaded: {}, Total requested: {}", 
+            logger.debug("Batch load completed for portfolios. Loaded: {}, Total requested: {}", 
                     results.size(), portfolioIds.size());
             
             return results;
@@ -257,7 +257,7 @@ public class BatchCacheLoadingService {
             return CompletableFuture.completedFuture(new ConcurrentHashMap<>());
         }
         
-        logger.info("Starting batch load for {} securities by ticker", tickers.size());
+        logger.debug("Starting batch load for {} securities by ticker", tickers.size());
         
         return CompletableFuture.supplyAsync(() -> {
             Map<String, SecurityDTO> results = new ConcurrentHashMap<>();
@@ -328,7 +328,7 @@ public class BatchCacheLoadingService {
                         }
                     });
             
-            logger.info("Batch load by ticker completed. Loaded: {}, Total requested: {}", 
+            logger.debug("Batch load by ticker completed. Loaded: {}, Total requested: {}", 
                     results.size(), tickers.size());
             
             return results;

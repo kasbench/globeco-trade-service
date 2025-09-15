@@ -97,7 +97,7 @@ public class TradeOrderController {
     @PostMapping("/bulk")
     public ResponseEntity<BulkTradeOrderResponseDTO> createTradeOrdersBulk(
             @Valid @RequestBody BulkTradeOrderRequestDTO request) {
-        logger.info("Bulk trade order creation requested with {} orders",
+        logger.debug("Bulk trade order creation requested with {} orders",
                 request.getTradeOrders() != null ? request.getTradeOrders().size() : 0);
 
         try {
@@ -126,7 +126,7 @@ public class TradeOrderController {
                     0,
                     results);
 
-            logger.info("Successfully created {} trade orders in bulk operation", createdOrders.size());
+            logger.debug("Successfully created {} trade orders in bulk operation", createdOrders.size());
             return new ResponseEntity<>(response, HttpStatus.CREATED);
 
         } catch (IllegalArgumentException e) {
@@ -216,14 +216,14 @@ public class TradeOrderController {
             @RequestParam(value = "noExecuteSubmit", required = false, defaultValue = "false") boolean noExecuteSubmit) {
 
         long startTime = System.currentTimeMillis();
-        logger.info("submitTradeOrder called with id={}, dto={}, noExecuteSubmit={}", id, dto, noExecuteSubmit);
+        logger.debug("submitTradeOrder called with id={}, dto={}, noExecuteSubmit={}", id, dto, noExecuteSubmit);
 
         try {
             long serviceCallStartTime = System.currentTimeMillis();
-            logger.info("Starting tradeOrderService.submitTradeOrder call for id={}", id);
+            logger.debug("Starting tradeOrderService.submitTradeOrder call for id={}", id);
             Execution execution = tradeOrderService.submitTradeOrder(id, dto, noExecuteSubmit);
             long serviceCallEndTime = System.currentTimeMillis();
-            logger.info(
+            logger.debug(
                     "(Trade Order Controller) Completed tradeOrderService.submitTradeOrder call for id={} in {} milliseconds",
                     id, (serviceCallEndTime - serviceCallStartTime));
 
@@ -237,18 +237,18 @@ public class TradeOrderController {
                 return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
             }
             long dtoConversionEndTime = System.currentTimeMillis();
-            logger.info("(Trade Order Controller) DTO conversion completed for id={} in {} milliseconds",
+            logger.debug("(Trade Order Controller) DTO conversion completed for id={} in {} milliseconds",
                     id, (dtoConversionEndTime - dtoConversionStartTime));
-            logger.info("Returning ExecutionResponseDTO: {}", response);
+            logger.debug("Returning ExecutionResponseDTO: {}", response);
 
             long responseCreationStartTime = System.currentTimeMillis();
             ResponseEntity<ExecutionResponseDTO> responseEntity = new ResponseEntity<>(response, HttpStatus.CREATED);
             long responseCreationEndTime = System.currentTimeMillis();
-            logger.info("(Trade Order Controller) Response entity creation completed for id={} in {} milliseconds",
+            logger.debug("(Trade Order Controller) Response entity creation completed for id={} in {} milliseconds",
                     id, (responseCreationEndTime - responseCreationStartTime));
 
             long beforeReturnTime = System.currentTimeMillis();
-            logger.info("(Trade Order Controller) About to return response for id={} at {} ms from start",
+            logger.debug("(Trade Order Controller) About to return response for id={} at {} ms from start",
                     id, (beforeReturnTime - startTime));
             return responseEntity;
         } catch (IllegalArgumentException e) {
@@ -280,10 +280,10 @@ public class TradeOrderController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         } finally {
             long finallyStartTime = System.currentTimeMillis();
-            logger.info("(Trade Order Controller) Finally block entered for id={} at {} ms from start",
+            logger.debug("(Trade Order Controller) Finally block entered for id={} at {} ms from start",
                     id, (finallyStartTime - startTime));
             long executionTime = System.currentTimeMillis() - startTime;
-            logger.info("(Trade Order Controller) submitTradeOrder execution completed in {} milliseconds",
+            logger.debug("(Trade Order Controller) submitTradeOrder execution completed in {} milliseconds",
                     executionTime);
         }
     }

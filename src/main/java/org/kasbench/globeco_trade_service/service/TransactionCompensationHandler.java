@@ -55,7 +55,7 @@ public class TransactionCompensationHandler {
     @Async("compensationExecutor")
     public CompletableFuture<Void> compensateFailedSubmission(Execution execution, TradeOrderState originalTradeOrderState) {
         return CompletableFuture.runAsync(() -> {
-            logger.info("Starting async compensation for execution {} and trade order {}", 
+            logger.debug("Starting async compensation for execution {} and trade order {}", 
                     execution.getId(), originalTradeOrderState.getTradeOrderId());
             
             try {
@@ -73,7 +73,7 @@ public class TransactionCompensationHandler {
                 // Step 3: Mark compensation as successful
                 markCompensationSuccessful(compensationRecord);
                 
-                logger.info("Successfully completed async compensation for execution {} and trade order {}", 
+                logger.debug("Successfully completed async compensation for execution {} and trade order {}", 
                         execution.getId(), originalTradeOrderState.getTradeOrderId());
                 
             } catch (Exception compensationException) {

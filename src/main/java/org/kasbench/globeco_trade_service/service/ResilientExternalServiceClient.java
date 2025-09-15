@@ -157,7 +157,7 @@ public class ResilientExternalServiceClient {
             // Try to get from cache first
             SecurityDTO cachedSecurity = securityCacheService.getSecurityById(securityId);
             if (cachedSecurity != null) {
-                logger.info("Security service fallback: found cached security for ID: {}", securityId);
+                logger.debug("Security service fallback: found cached security for ID: {}", securityId);
                 return Optional.of(cachedSecurity);
             }
         } catch (Exception cacheEx) {
@@ -194,7 +194,7 @@ public class ResilientExternalServiceClient {
             // Try to get from cache first
             PortfolioDTO cachedPortfolio = portfolioCacheService.getPortfolioById(portfolioId);
             if (cachedPortfolio != null) {
-                logger.info("Portfolio service fallback: found cached portfolio for ID: {}", portfolioId);
+                logger.debug("Portfolio service fallback: found cached portfolio for ID: {}", portfolioId);
                 return Optional.of(cachedPortfolio);
             }
         } catch (Exception cacheEx) {

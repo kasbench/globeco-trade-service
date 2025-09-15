@@ -68,7 +68,7 @@ public class ExecutionServiceClient {
         int batchSize = request.getExecutions().size();
         List<Integer> executionIds = extractExecutionIds(request);
 
-        logger.info("Starting batch execution submission for {} executions: {}",
+        logger.debug("Starting batch execution submission for {} executions: {}",
                 batchSize, executionIds.size() <= 10 ? executionIds : executionIds.subList(0, 5) + "...");
 
         long startTime = System.currentTimeMillis();
@@ -87,7 +87,7 @@ public class ExecutionServiceClient {
             });
 
             long duration = System.currentTimeMillis() - startTime;
-            logger.info("Batch execution submission completed successfully in {} ms for {} executions",
+            logger.debug("Batch execution submission completed successfully in {} ms for {} executions",
                     duration, batchSize);
 
             logBatchResults(response, batchSize, executionIds);
@@ -136,11 +136,11 @@ public class ExecutionServiceClient {
                     executionIds.size() <= 5 ? executionIds : executionIds.size() + " executions");
 
             // Log the full payload at INFO level for debugging execution service format
-            logger.info("BULK_EXECUTION_PAYLOAD: Sending batch request to {} with {} executions", url, batchSize);
+            logger.debug("BULK_EXECUTION_PAYLOAD: Sending batch request to {} with {} executions", url, batchSize);
             if (request.getExecutions() != null) {
                 for (int i = 0; i < request.getExecutions().size(); i++) {
                     var execution = request.getExecutions().get(i);
-                    logger.info(
+                    logger.debug(
                             "PAYLOAD_EXECUTION[{}]: ExecutionStatus={}, TradeType={}, Destination={}, SecurityId={}, Quantity={}, LimitPrice={}, Version={}",
                             i, execution.getExecutionStatus(), execution.getTradeType(), execution.getDestination(),
                             execution.getSecurityId(), execution.getQuantity(), execution.getLimitPrice(),
@@ -152,7 +152,7 @@ public class ExecutionServiceClient {
                     url, request, ExecutionServiceBatchResponseDTO.class);
 
             long apiCallDuration = System.currentTimeMillis() - apiCallStartTime;
-            logger.info("Execution Service API call completed in {} ms for batch of {} executions",
+            logger.debug("Execution Service API call completed in {} ms for batch of {} executions",
                     apiCallDuration, batchSize);
 
             return handleResponse(response, batchSize, executionIds);
@@ -223,12 +223,12 @@ public class ExecutionServiceClient {
 
         switch (statusCode) {
             case CREATED: // HTTP 201 - All executions successful
-                logger.info("All {} executions in batch submitted successfully (HTTP 201): {}",
+                logger.debug("All {} executions in batch submitted successfully (HTTP 201): {}",
                         batchSize, executionIds.size() <= 10 ? executionIds : executionIds.size() + " executions");
                 return internalResponse;
 
             case MULTI_STATUS: // HTTP 207 - Partial success
-                logger.info(
+                logger.debug(
                         "Batch submission completed with partial success (HTTP 207): {} successful, {} failed for executions: {}",
                         body.getSuccessful(), body.getFailed(),
                         executionIds.size() <= 10 ? executionIds : executionIds.size() + " executions");
@@ -291,7 +291,7 @@ public class ExecutionServiceClient {
             return;
         }
 
-        logger.info("Batch execution results - Status: {}, Total: {}, Successful: {}, Failed: {} - Executions: {}",
+        logger.debug("Batch execution results - Status: {}, Total: {}, Successful: {}, Failed: {} - Executions: {}",
                 response.getStatus(),
                 response.getTotalRequested(),
                 response.getSuccessful(),
@@ -314,7 +314,7 @@ public class ExecutionServiceClient {
         }
 
         // Structured logging for monitoring
-        logger.info("BULK_EXECUTION_BATCH_METRICS: batch_size={}, successful={}, failed={}, execution_ids_count={}",
+        logger.debug("BULK_EXECUTION_BATCH_METRICS: batch_size={}, successful={}, failed={}, execution_ids_count={}",
                 batchSize, response.getSuccessful(), response.getFailed(), executionIds.size());
     }
 

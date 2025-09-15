@@ -31,7 +31,7 @@ public class PortfolioCacheService {
                 .recordStats()
                 .build();
         
-        logger.info("PortfolioCacheService initialized with TTL: {} minutes, Max Size: {}", ttlMinutes, maxSize);
+        logger.debug("PortfolioCacheService initialized with TTL: {} minutes, Max Size: {}", ttlMinutes, maxSize);
     }
     
     /**
@@ -157,7 +157,7 @@ public class PortfolioCacheService {
      */
     public void invalidateAll() {
         portfolioCache.invalidateAll();
-        logger.info("Cleared all portfolio cache entries");
+        logger.debug("Cleared all portfolio cache entries");
     }
     
     /**
@@ -187,7 +187,7 @@ public class PortfolioCacheService {
      */
     public void logCacheStats() {
         CacheStats stats = getCacheStats();
-        logger.info("Portfolio Cache Stats - Size: {}, Hit Rate: {:.2f}%, Hits: {}, Misses: {}, Evictions: {}",
+        logger.debug("Portfolio Cache Stats - Size: {}, Hit Rate: {:.2f}%, Hits: {}, Misses: {}, Evictions: {}",
                 getCacheSize(),
                 getCacheHitRate(),
                 stats.hitCount(),

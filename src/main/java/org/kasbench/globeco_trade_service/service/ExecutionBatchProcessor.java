@@ -42,14 +42,14 @@ public class ExecutionBatchProcessor {
             executionDTOs.add(dto);
             
             // Log each execution DTO to debug the payload
-            logger.info("EXECUTION_DTO_BUILT: Execution ID={}, ExecutionStatus={}, TradeType={}, Destination={}, SecurityId={}, Quantity={}", 
+            logger.debug("EXECUTION_DTO_BUILT: Execution ID={}, ExecutionStatus={}, TradeType={}, Destination={}, SecurityId={}, Quantity={}", 
                        execution.getId(), dto.getExecutionStatus(), dto.getTradeType(), dto.getDestination(), dto.getSecurityId(), dto.getQuantity());
         }
 
         ExecutionServiceBatchRequestDTO batchRequest = new ExecutionServiceBatchRequestDTO(executionDTOs);
 
         logger.debug("Built batch request with {} execution DTOs", executionDTOs.size());
-        logger.info("BATCH_REQUEST_BUILT: Full batch request with {} executions: {}", executionDTOs.size(), batchRequest);
+        logger.debug("BATCH_REQUEST_BUILT: Full batch request with {} executions: {}", executionDTOs.size(), batchRequest);
         return batchRequest;
     }
 
@@ -194,7 +194,7 @@ public class ExecutionBatchProcessor {
         ExecutionServicePostDTO dto = new ExecutionServicePostDTO();
 
         // Log the original execution entity to debug conversion
-        logger.info("CONVERTING_EXECUTION: ID={}, ExecutionStatus={}, TradeType={}, Destination={}, TradeOrder={}", 
+        logger.debug("CONVERTING_EXECUTION: ID={}, ExecutionStatus={}, TradeType={}, Destination={}, TradeOrder={}", 
                    execution.getId(), 
                    execution.getExecutionStatus() != null ? execution.getExecutionStatus().getAbbreviation() : "NULL",
                    execution.getTradeType() != null ? execution.getTradeType().getAbbreviation() : "NULL",
@@ -224,7 +224,7 @@ public class ExecutionBatchProcessor {
         dto.setLimitPrice(execution.getLimitPrice());
         dto.setVersion(1); // Default version
         
-        logger.info("EXECUTION_CONVERSION_RESULT: ExecutionStatus={}, TradeType={}, Destination={}, SecurityId={}, Quantity={}", 
+        logger.debug("EXECUTION_CONVERSION_RESULT: ExecutionStatus={}, TradeType={}, Destination={}, SecurityId={}, Quantity={}", 
                    dto.getExecutionStatus(), dto.getTradeType(), dto.getDestination(), dto.getSecurityId(), dto.getQuantity());
 
         return dto;

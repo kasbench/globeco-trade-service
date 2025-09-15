@@ -71,18 +71,18 @@ public class ExecutionFailureHandler {
             return result;
         }
         
-        logger.info("Handling partial failures: {} failed out of {} total executions", 
+        logger.debug("Handling partial failures: {} failed out of {} total executions", 
                    result.getFailed(), result.getTotalRequested());
         
         // Extract failed executions that are suitable for retry
         List<Execution> failedExecutions = extractRetryableFailures(result, originalExecutions);
         
         if (failedExecutions.isEmpty()) {
-            logger.info("No retryable failures found, returning original result");
+            logger.debug("No retryable failures found, returning original result");
             return result;
         }
         
-        logger.info("Found {} retryable failures, attempting retry", failedExecutions.size());
+        logger.debug("Found {} retryable failures, attempting retry", failedExecutions.size());
         
         // Retry failed executions
         BulkSubmitResult retryResult = retryFailedExecutions(failedExecutions);
@@ -103,7 +103,7 @@ public class ExecutionFailureHandler {
             return new BulkSubmitResult(0, 0, 0, new ArrayList<>(), "SUCCESS", "No executions to retry");
         }
         
-        logger.info("Retrying {} failed executions", failedExecutions.size());
+        logger.debug("Retrying {} failed executions", failedExecutions.size());
         
         List<ExecutionSubmitResult> allRetryResults = new ArrayList<>();
         int totalRetrySuccessful = 0;
@@ -113,7 +113,7 @@ public class ExecutionFailureHandler {
         List<Execution> retryableExecutions = filterRetryableExecutions(failedExecutions);
         
         if (retryableExecutions.isEmpty()) {
-            logger.info("All failed executions have exceeded retry limits");
+            logger.debug("All failed executions have exceeded retry limits");
             return createRetryExhaustedResult(failedExecutions);
         }
         
@@ -163,7 +163,7 @@ public class ExecutionFailureHandler {
                                       totalRetrySuccessful, totalRetryFailed - exhaustedExecutions.size(), 
                                       exhaustedExecutions.size());
         
-        logger.info("Retry process completed: {} successful, {} failed out of {} retried executions", 
+        logger.debug("Retry process completed: {} successful, {} failed out of {} retried executions", 
                    totalRetrySuccessful, totalRetryFailed, failedExecutions.size());
         
         return new BulkSubmitResult(failedExecutions.size(), totalRetrySuccessful, totalRetryFailed, 
@@ -216,7 +216,7 @@ public class ExecutionFailureHandler {
                 ExecutionSubmitResult submitResult = result.getResults().get(0);
                 
                 if ("SUCCESS".equals(submitResult.getStatus()) || "COMPLETED".equals(submitResult.getStatus())) {
-                    logger.info("Execution {} retry succeeded after {} attempts", executionId, currentAttempts + 1);
+                    logger.debug("Execution {} retry succeeded after {} attempts", executionId, currentAttempts + 1);
                     // Clear retry counter on success
                     retryAttempts.remove(executionId);
                     return submitResult;

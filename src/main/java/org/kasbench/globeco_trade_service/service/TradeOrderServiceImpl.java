@@ -131,7 +131,7 @@ public class TradeOrderServiceImpl implements TradeOrderService {
     @Transactional
     @CacheEvict(value = "tradeOrders", allEntries = true, cacheManager = "cacheManager")
     public TradeOrder createTradeOrder(TradeOrder tradeOrder) {
-        logger.info("Creating trade order: {}", tradeOrder.getOrderId());
+        logger.debug("Creating trade order: {}", tradeOrder.getOrderId());
         tradeOrder.setId(null); // Ensure ID is not set for new entity
         if (tradeOrder.getBlotter() != null && tradeOrder.getBlotter().getId() != null) {
             Blotter blotter = blotterRepository.findById(tradeOrder.getBlotter().getId())
@@ -148,7 +148,7 @@ public class TradeOrderServiceImpl implements TradeOrderService {
         if (tradeOrder.getQuantitySent() == null) {
             tradeOrder.setQuantitySent(java.math.BigDecimal.ZERO);
         }
-        logger.info("Saving trade order: {}", tradeOrder.getOrderId());
+        logger.debug("Saving trade order: {}", tradeOrder.getOrderId());
         return tradeOrderRepository.save(tradeOrder);
     }
 
@@ -156,7 +156,7 @@ public class TradeOrderServiceImpl implements TradeOrderService {
     @Transactional
     @CacheEvict(value = "tradeOrders", allEntries = true, cacheManager = "cacheManager")
     public List<TradeOrder> createTradeOrdersBulk(List<TradeOrder> tradeOrders) {
-        logger.info("Creating bulk trade orders: {} orders", tradeOrders != null ? tradeOrders.size() : 0);
+        logger.debug("Creating bulk trade orders: {} orders", tradeOrders != null ? tradeOrders.size() : 0);
 
         // Validate input parameters
         if (tradeOrders == null) {
@@ -185,7 +185,7 @@ public class TradeOrderServiceImpl implements TradeOrderService {
             // Perform batch insert in single transaction
             logger.debug("Performing batch insert for {} trade orders", tradeOrders.size());
             List<TradeOrder> savedOrders = tradeOrderRepository.saveAll(tradeOrders);
-            logger.info("Successfully created {} trade orders in bulk", savedOrders.size());
+            logger.debug("Successfully created {} trade orders in bulk", savedOrders.size());
             return savedOrders;
         } catch (Exception e) {
             logger.error("Bulk trade order creation failed: {}", e.getMessage(), e);
@@ -416,7 +416,7 @@ public class TradeOrderServiceImpl implements TradeOrderService {
     @Transactional
     public Execution submitTradeOrder(Integer tradeOrderId, TradeOrderSubmitDTO dto, boolean noExecuteSubmit) {
         long methodStartTime = System.currentTimeMillis();
-        logger.info("TradeOrderServiceImpl.submitTradeOrder called with tradeOrderId={}, dto={}, noExecuteSubmit={}",
+        logger.debug("TradeOrderServiceImpl.submitTradeOrder called with tradeOrderId={}, dto={}, noExecuteSubmit={}",
                 tradeOrderId, dto, noExecuteSubmit);
 
         // Store original values for potential rollback
@@ -482,7 +482,7 @@ public class TradeOrderServiceImpl implements TradeOrderService {
             long executionSaveStart = System.currentTimeMillis();
             savedExecution = executionRepository.save(execution);
             long executionSaveEnd = System.currentTimeMillis();
-            logger.info("(Trade Order Service) Execution save completed in {}ms for tradeOrderId={}",
+            logger.debug("(Trade Order Service) Execution save completed in {}ms for tradeOrderId={}",
                     (executionSaveEnd - executionSaveStart), tradeOrderId);
 
             // Update trade order quantities
@@ -501,14 +501,14 @@ public class TradeOrderServiceImpl implements TradeOrderService {
             long tradeOrderSaveStart = System.currentTimeMillis();
             tradeOrderRepository.save(tradeOrder);
             long tradeOrderSaveEnd = System.currentTimeMillis();
-            logger.info("(Trade Order Service) TradeOrder save completed in {}ms for tradeOrderId={}",
+            logger.debug("(Trade Order Service) TradeOrder save completed in {}ms for tradeOrderId={}",
                     (tradeOrderSaveEnd - tradeOrderSaveStart), tradeOrderId);
 
             // If noExecuteSubmit is false (default), automatically submit to execution
             // service
             if (!noExecuteSubmit) {
                 final Integer executionId = savedExecution.getId();
-                logger.info("Automatically submitting execution {} to external service", executionId);
+                logger.debug("Automatically submitting execution {} to external service", executionId);
                 try {
                     // Use retry template for external service call with enhanced logging
                     ExecutionService.SubmitResult result = retryTemplate.execute(context -> {
@@ -526,7 +526,7 @@ public class TradeOrderServiceImpl implements TradeOrderService {
                         throw new RuntimeException("Execution service submission failed: " + result.getError());
                     }
 
-                    logger.info("Execution {} successfully submitted to external service", executionId);
+                    logger.debug("Execution {} successfully submitted to external service", executionId);
 
                     // Re-fetch the execution to get updated status and execution service ID
                     long executionRefetchStart = System.currentTimeMillis();
@@ -534,7 +534,7 @@ public class TradeOrderServiceImpl implements TradeOrderService {
                             .orElseThrow(
                                     () -> new RuntimeException("Execution not found after submission: " + executionId));
                     long executionRefetchEnd = System.currentTimeMillis();
-                    logger.info("Execution refetch completed in {}ms for executionId={}",
+                    logger.debug("Execution refetch completed in {}ms for executionId={}",
                             (executionRefetchEnd - executionRefetchStart), executionId);
 
                 } catch (Exception executionServiceException) {
@@ -559,14 +559,14 @@ public class TradeOrderServiceImpl implements TradeOrderService {
             }
 
             long methodEndTime = System.currentTimeMillis();
-            logger.info("(Trade Order Service) TradeOrderServiceImpl.submitTradeOrder completed in {}ms for tradeOrderId={}",
+            logger.debug("(Trade Order Service) TradeOrderServiceImpl.submitTradeOrder completed in {}ms for tradeOrderId={}",
                     (methodEndTime - methodStartTime), tradeOrderId);
-            logger.info("(Trade Order Service) About to return from submitTradeOrder for tradeOrderId={}, transaction commit will happen next", tradeOrderId);
+            logger.debug("(Trade Order Service) About to return from submitTradeOrder for tradeOrderId={}, transaction commit will happen next", tradeOrderId);
             return savedExecution;
 
         } catch (Exception e) {
             long methodEndTime = System.currentTimeMillis();
-            logger.info("(Trade Order Service) TradeOrderServiceImpl.submitTradeOrder failed after {}ms for tradeOrderId={}",
+            logger.debug("(Trade Order Service) TradeOrderServiceImpl.submitTradeOrder failed after {}ms for tradeOrderId={}",
                     (methodEndTime - methodStartTime), tradeOrderId);
             logger.error("Exception in TradeOrderServiceImpl.submitTradeOrder: {}: {}", e.getClass().getName(),
                     e.getMessage(), e);
@@ -581,7 +581,7 @@ public class TradeOrderServiceImpl implements TradeOrderService {
     private void performCompensatingTransaction(Execution execution, TradeOrder tradeOrder,
             java.math.BigDecimal originalQuantitySent, Boolean originalSubmittedStatus) {
         try {
-            logger.info("Performing compensating transaction for execution {} and trade order {}",
+            logger.debug("Performing compensating transaction for execution {} and trade order {}",
                     execution.getId(), tradeOrder.getId());
 
             // Delete the execution record

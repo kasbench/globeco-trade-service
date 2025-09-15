@@ -201,7 +201,7 @@ public class OptimizedTradeOrderService {
      */
     public Execution submitTradeOrder(Integer tradeOrderId, TradeOrderSubmitDTO dto, boolean noExecuteSubmit) {
         long methodStartTime = System.currentTimeMillis();
-        logger.info("OptimizedTradeOrderService.submitTradeOrder called with tradeOrderId={}, dto={}, noExecuteSubmit={}",
+        logger.debug("OptimizedTradeOrderService.submitTradeOrder called with tradeOrderId={}, dto={}, noExecuteSubmit={}",
                 tradeOrderId, dto, noExecuteSubmit);
         
         try {
@@ -250,7 +250,7 @@ public class OptimizedTradeOrderService {
             }
             
             long methodEndTime = System.currentTimeMillis();
-            logger.info("OptimizedTradeOrderService.submitTradeOrder completed in {}ms for tradeOrderId={}",
+            logger.debug("OptimizedTradeOrderService.submitTradeOrder completed in {}ms for tradeOrderId={}",
                     (methodEndTime - methodStartTime), tradeOrderId);
             
             return savedExecution;
@@ -270,7 +270,7 @@ public class OptimizedTradeOrderService {
      * @param executionId The ID of the execution to submit
      */
     private void submitToExternalService(Integer executionId) {
-        logger.info("Submitting execution {} to external service (synchronous)", executionId);
+        logger.debug("Submitting execution {} to external service (synchronous)", executionId);
         
         ExecutionService.SubmitResult result = retryTemplate.execute(context -> {
             if (context.getRetryCount() > 0) {
@@ -287,7 +287,7 @@ public class OptimizedTradeOrderService {
             throw new RuntimeException("Execution service submission failed: " + result.getError());
         }
         
-        logger.info("Execution {} successfully submitted to external service", executionId);
+        logger.debug("Execution {} successfully submitted to external service", executionId);
     }
     
     /**
@@ -299,7 +299,7 @@ public class OptimizedTradeOrderService {
      * @return CompletableFuture that completes when the async submission is done
      */
     private java.util.concurrent.CompletableFuture<ExecutionService.SubmitResult> submitToExternalServiceAsync(Integer executionId) {
-        logger.info("Submitting execution {} to external service (asynchronous)", executionId);
+        logger.debug("Submitting execution {} to external service (asynchronous)", executionId);
         
         return asyncExecutionService.submitExecutionAsync(executionId)
                 .whenComplete((result, throwable) -> {
@@ -310,7 +310,7 @@ public class OptimizedTradeOrderService {
                         logger.warn("Async execution service submission completed with error for execution {}: {}", 
                                 executionId, result.getError());
                     } else {
-                        logger.info("Execution {} successfully submitted to external service asynchronously", executionId);
+                        logger.debug("Execution {} successfully submitted to external service asynchronously", executionId);
                     }
                 });
     }
@@ -328,7 +328,7 @@ public class OptimizedTradeOrderService {
      */
     public Execution submitTradeOrderAsync(Integer tradeOrderId, TradeOrderSubmitDTO dto, boolean noExecuteSubmit, boolean useAsync) {
         long methodStartTime = System.currentTimeMillis();
-        logger.info("OptimizedTradeOrderService.submitTradeOrderAsync called with tradeOrderId={}, dto={}, noExecuteSubmit={}, useAsync={}",
+        logger.debug("OptimizedTradeOrderService.submitTradeOrderAsync called with tradeOrderId={}, dto={}, noExecuteSubmit={}, useAsync={}",
                 tradeOrderId, dto, noExecuteSubmit, useAsync);
         
         try {
@@ -353,7 +353,7 @@ public class OptimizedTradeOrderService {
                 if (useAsync) {
                     // Use async submission - fire and forget with built-in compensation
                     submitToExternalServiceAsync(executionId);
-                    logger.info("Async execution submission initiated for execution {}", executionId);
+                    logger.debug("Async execution submission initiated for execution {}", executionId);
                 } else {
                     // Use synchronous submission with manual compensation handling
                     try {
@@ -385,7 +385,7 @@ public class OptimizedTradeOrderService {
             }
             
             long methodEndTime = System.currentTimeMillis();
-            logger.info("OptimizedTradeOrderService.submitTradeOrderAsync completed in {}ms for tradeOrderId={}",
+            logger.debug("OptimizedTradeOrderService.submitTradeOrderAsync completed in {}ms for tradeOrderId={}",
                     (methodEndTime - methodStartTime), tradeOrderId);
             
             return savedExecution;

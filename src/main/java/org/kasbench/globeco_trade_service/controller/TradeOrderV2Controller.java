@@ -123,7 +123,7 @@ public class TradeOrderV2Controller {
             @RequestParam(required = false) 
             Boolean submitted) {
         
-        logger.info("GET /api/v2/tradeOrders - limit: {}, offset: {}, sort: {}, filters applied", 
+        logger.debug("GET /api/v2/tradeOrders - limit: {}, offset: {}, sort: {}, filters applied", 
                    limit, offset, sort);
         
         try {
@@ -143,7 +143,7 @@ public class TradeOrderV2Controller {
                 blotterAbbreviation, submitted
             );
             
-            logger.info("Successfully retrieved {} trade orders out of {} total", 
+            logger.debug("Successfully retrieved {} trade orders out of {} total", 
                        response.getTradeOrders().size(), response.getPagination().getTotalElements());
             
             return ResponseEntity.ok(response);

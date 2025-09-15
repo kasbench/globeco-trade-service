@@ -31,7 +31,7 @@ public class SecurityCacheService {
                 .recordStats()
                 .build();
         
-        logger.info("SecurityCacheService initialized with TTL: {} minutes, Max Size: {}", ttlMinutes, maxSize);
+        logger.debug("SecurityCacheService initialized with TTL: {} minutes, Max Size: {}", ttlMinutes, maxSize);
     }
     
     /**
@@ -157,7 +157,7 @@ public class SecurityCacheService {
      */
     public void invalidateAll() {
         securityCache.invalidateAll();
-        logger.info("Cleared all security cache entries");
+        logger.debug("Cleared all security cache entries");
     }
     
     /**
@@ -187,7 +187,7 @@ public class SecurityCacheService {
      */
     public void logCacheStats() {
         CacheStats stats = getCacheStats();
-        logger.info("Security Cache Stats - Size: {}, Hit Rate: {:.2f}%, Hits: {}, Misses: {}, Evictions: {}",
+        logger.debug("Security Cache Stats - Size: {}, Hit Rate: {:.2f}%, Hits: {}, Misses: {}, Evictions: {}",
                 getCacheSize(),
                 getCacheHitRate(),
                 stats.hitCount(),

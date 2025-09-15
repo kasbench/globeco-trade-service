@@ -476,7 +476,7 @@ public class BulkExecutionErrorHandler {
         // Log at appropriate level based on severity
         switch (errorInfo.getSeverity()) {
             case LOW:
-                logger.info(logMessage);
+                logger.debug(logMessage);
                 break;
             case MEDIUM:
                 logger.warn(logMessage);
@@ -492,7 +492,7 @@ public class BulkExecutionErrorHandler {
         }
         
         // Additional structured logging for monitoring systems
-        logger.info("BULK_EXECUTION_ERROR_METRICS: error_code={}, category={}, severity={}, retryable={}, batch_size={}, affected_executions={}", 
+        logger.debug("BULK_EXECUTION_ERROR_METRICS: error_code={}, category={}, severity={}, retryable={}, batch_size={}, affected_executions={}", 
                    errorInfo.getErrorCode(),
                    errorInfo.getCategory(),
                    errorInfo.getSeverity(),
