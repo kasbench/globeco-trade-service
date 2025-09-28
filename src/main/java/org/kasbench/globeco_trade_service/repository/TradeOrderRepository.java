@@ -13,7 +13,7 @@ import java.util.List;
 import java.util.Optional;
 
 @Repository
-public interface TradeOrderRepository extends JpaRepository<TradeOrder, Integer>, JpaSpecificationExecutor<TradeOrder> {
+public interface TradeOrderRepository extends JpaRepository<TradeOrder, Integer>, JpaSpecificationExecutor<TradeOrder>, TradeOrderRepositoryCustom {
     
     /**
      * Find trade order by ID with blotter eagerly fetched
@@ -30,4 +30,15 @@ public interface TradeOrderRepository extends JpaRepository<TradeOrder, Integer>
      * Find trade orders by order_id with pagination
      */
     Page<TradeOrder> findByOrderId(Integer orderId, Pageable pageable);
+    
+    /**
+     * Find all trade orders with blotter eagerly fetched using specification
+     */
+    @Query("SELECT DISTINCT t FROM TradeOrder t LEFT JOIN FETCH t.blotter")
+    List<TradeOrder> findAllWithBlotter();
+    
+    /**
+     * Custom method to find with specification and eager fetch blotter
+     * Note: This will be implemented in a custom repository implementation
+     */
 } 

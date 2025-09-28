@@ -20,9 +20,7 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.util.List;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+
 
 @Service
 public class TradeOrderEnhancedService {
@@ -31,7 +29,6 @@ public class TradeOrderEnhancedService {
     private final TradeOrderRepository tradeOrderRepository;
     private final SecurityCacheService securityCacheService;
     private final PortfolioCacheService portfolioCacheService;
-    private final ExecutorService executorService;
     
     public TradeOrderEnhancedService(
             TradeOrderRepository tradeOrderRepository,
@@ -40,7 +37,6 @@ public class TradeOrderEnhancedService {
         this.tradeOrderRepository = tradeOrderRepository;
         this.securityCacheService = securityCacheService;
         this.portfolioCacheService = portfolioCacheService;
-        this.executorService = Executors.newFixedThreadPool(10);
     }
     
     /**
@@ -93,12 +89,13 @@ public class TradeOrderEnhancedService {
             blotterAbbreviation, submitted
         );
         
-        // Execute query
-        Page<TradeOrder> page = tradeOrderRepository.findAll(spec, pageable);
+        // Execute query with eager fetch of blotter to avoid lazy loading issues
+        Page<TradeOrder> page = tradeOrderRepository.findAllWithBlotterAndSpecification(spec, pageable);
         
         // Convert to enhanced DTOs with external service data
+        // Using sequential stream to avoid Hibernate lazy loading issues in parallel context
         List<TradeOrderV2ResponseDTO> enhancedTradeOrders = page.getContent()
-            .parallelStream()
+            .stream()
             .map(this::convertToV2ResponseDTO)
             .toList();
         
