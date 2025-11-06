@@ -42,8 +42,8 @@ public class ExecutionBatchProcessor {
             executionDTOs.add(dto);
             
             // Log each execution DTO to debug the payload
-            logger.debug("EXECUTION_DTO_BUILT: Execution ID={}, ExecutionStatus={}, TradeType={}, Destination={}, SecurityId={}, Quantity={}", 
-                       execution.getId(), dto.getExecutionStatus(), dto.getTradeType(), dto.getDestination(), dto.getSecurityId(), dto.getQuantity());
+            logger.debug("EXECUTION_DTO_BUILT: Execution ID={}, ExecutionStatus={}, TradeType={}, Destination={}, SecurityId={}, Quantity={}, TradeServiceExecutionId={}", 
+                       execution.getId(), dto.getExecutionStatus(), dto.getTradeType(), dto.getDestination(), dto.getSecurityId(), dto.getQuantity(), dto.getTradeServiceExecutionId());
         }
 
         ExecutionServiceBatchRequestDTO batchRequest = new ExecutionServiceBatchRequestDTO(executionDTOs);
@@ -222,10 +222,14 @@ public class ExecutionBatchProcessor {
         // Use quantity ordered as the quantity
         dto.setQuantity(execution.getQuantityOrdered());
         dto.setLimitPrice(execution.getLimitPrice());
+        
+        // Set the trade service execution ID (maps to execution.id)
+        dto.setTradeServiceExecutionId(execution.getId());
+        
         dto.setVersion(1); // Default version
         
-        logger.debug("EXECUTION_CONVERSION_RESULT: ExecutionStatus={}, TradeType={}, Destination={}, SecurityId={}, Quantity={}", 
-                   dto.getExecutionStatus(), dto.getTradeType(), dto.getDestination(), dto.getSecurityId(), dto.getQuantity());
+        logger.debug("EXECUTION_CONVERSION_RESULT: ExecutionStatus={}, TradeType={}, Destination={}, SecurityId={}, Quantity={}, TradeServiceExecutionId={}", 
+                   dto.getExecutionStatus(), dto.getTradeType(), dto.getDestination(), dto.getSecurityId(), dto.getQuantity(), dto.getTradeServiceExecutionId());
 
         return dto;
     }

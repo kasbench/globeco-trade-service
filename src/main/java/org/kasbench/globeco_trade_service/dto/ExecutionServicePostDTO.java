@@ -13,6 +13,7 @@ public class ExecutionServicePostDTO {
     private String securityId;
     private BigDecimal quantity;
     private BigDecimal limitPrice;
+    private Integer tradeServiceExecutionId;
     private Integer version;
 
     public ExecutionServicePostDTO() {
@@ -66,6 +67,14 @@ public class ExecutionServicePostDTO {
         this.limitPrice = limitPrice;
     }
 
+    public Integer getTradeServiceExecutionId() {
+        return tradeServiceExecutionId;
+    }
+
+    public void setTradeServiceExecutionId(Integer tradeServiceExecutionId) {
+        this.tradeServiceExecutionId = tradeServiceExecutionId;
+    }
+
     public Integer getVersion() {
         return version;
     }
@@ -83,6 +92,7 @@ public class ExecutionServicePostDTO {
                 ", securityId='" + securityId + '\'' +
                 ", quantity=" + quantity +
                 ", limitPrice=" + limitPrice +
+                ", tradeServiceExecutionId=" + tradeServiceExecutionId +
                 ", version=" + version +
                 '}';
     }
