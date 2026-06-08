@@ -1,0 +1,122 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: globeco-trade-service
+  namespace: globeco
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: globeco-trade-service
+  template:
+    metadata:
+      labels:
+        app: globeco-trade-service
+    spec:
+      containers:
+        - name: globeco-trade-service
+          image: kasbench/globeco-trade-service:1.0.2
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8082
+          env:
+            - name: LOG_LEVEL
+              value: "INFO"
+
+              # Inject the node and pod metadata from the Downward API
+            - name: MY_POD_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+            - name: MY_POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: MY_NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+            - name: MY_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: NODE_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.hostIP
+            
+            # Point OTEL exporter to the local collector on the same node
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: "http://$(NODE_IP):4317"
+
+            - name: MANAGEMENT_OTLP_METRICS_EXPORT_URL
+              value: http://$(NODE_IP):4318/v1/metrics
+            
+            - name: MANAGEMENT_OTLP_TRACING_EXPORT_URL
+              value: http://$(NODE_IP):4318/v1/traces
+            
+            
+            
+            # Define standard service identity attributes
+            - name: OTEL_SERVICE_NAME
+              value: "globeco-trade-service"  # Changed to match container name
+            - name: OTEL_SERVICE_NAMESPACE
+              value: "globeco"
+            
+            # Inject Kubernetes metadata as resource attributes for k8sattributes processor
+            - name: OTEL_RESOURCE_ATTRIBUTES
+              value: >-
+                service.name=globeco-trade-service,
+                service.namespace=globeco,
+                k8s.pod.ip=$(MY_POD_IP),
+                k8s.pod.name=$(MY_POD_NAME),
+                k8s.node.name=$(MY_NODE_NAME),
+                k8s.namespace.name=$(MY_NAMESPACE)
+
+          resources:
+            requests:
+              cpu: 1000m
+              memory: 500Mi
+            limits:
+              cpu: 1000m
+              memory: 500Mi
+          startupProbe:
+            httpGet:
+              path: /actuator/health/readiness
+              port: 8082
+            initialDelaySeconds: 60
+            periodSeconds: 15
+            timeoutSeconds: 10
+            failureThreshold: 40
+          livenessProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: 8082
+            initialDelaySeconds: 0
+            periodSeconds: 30
+            timeoutSeconds: 10
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /actuator/health/readiness
+              port: 8082
+            initialDelaySeconds: 0
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+      restartPolicy: Always
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: globeco-trade-service
+  namespace: globeco
+spec:
+  selector:
+    app: globeco-trade-service
+  ports:
+    - protocol: TCP
+      port: 8082
+      targetPort: 8082
+  type: ClusterIP 
