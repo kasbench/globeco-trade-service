@@ -73,3 +73,17 @@ spec:
         - name: globeco-trade-service-postgresdb-storage
           persistentVolumeClaim:
             claimName: trade-service-postgres-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: globeco-trade-service-postgresql
+  namespace: globeco
+spec:
+  selector:
+    app: globeco-trade-service-postgresql
+  ports:
+    - protocol: TCP
+      port: 5432
+      targetPort: 5432
+  type: ClusterIP

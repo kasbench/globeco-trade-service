@@ -76,10 +76,10 @@ spec:
           resources:
             requests:
               cpu: 1000m
-              memory: 500Mi
+              memory: 700Mi
             limits:
               cpu: 1000m
-              memory: 500Mi
+              memory: 700Mi
           startupProbe:
             httpGet:
               path: /actuator/health/readiness
