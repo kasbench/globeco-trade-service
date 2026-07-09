@@ -1,0 +1,135 @@
+{
+  "pbtResults": {},
+  "executionHistory": {
+    "1.1 Upgrade Java toolchain from 21 to 25 and add bootBuildImage configuration": [
+      {
+        "executionId": "b0c70953-b809-49d4-ae77-225f0b7505b7",
+        "chatSessionId": "sess_83341455-4f84-462b-9d5f-ba7ee91fe42a",
+        "timestamp": 1783611705263
+      },
+      {
+        "executionId": "b0c70953-b809-49d4-ae77-225f0b7505b7",
+        "chatSessionId": "sess_83341455-4f84-462b-9d5f-ba7ee91fe42a",
+        "timestamp": 1783611722402
+      },
+      {
+        "executionId": "b0c70953-b809-49d4-ae77-225f0b7505b7",
+        "chatSessionId": "sess_83341455-4f84-462b-9d5f-ba7ee91fe42a",
+        "timestamp": 1783611836259
+      }
+    ],
+    "2.1 Update Dockerfile FROM statements to Java 25": [
+      {
+        "executionId": "b0c70953-b809-49d4-ae77-225f0b7505b7",
+        "chatSessionId": "sess_83341455-4f84-462b-9d5f-ba7ee91fe42a",
+        "timestamp": 1783611705362
+      },
+      {
+        "executionId": "b0c70953-b809-49d4-ae77-225f0b7505b7",
+        "chatSessionId": "sess_83341455-4f84-462b-9d5f-ba7ee91fe42a",
+        "timestamp": 1783611845537
+      },
+      {
+        "executionId": "b0c70953-b809-49d4-ae77-225f0b7505b7",
+        "chatSessionId": "sess_83341455-4f84-462b-9d5f-ba7ee91fe42a",
+        "timestamp": 1783612137622
+      }
+    ],
+    "3.1 Rewrite kbuild.sh to use sequential bootBuildImage invocations and docker manifest": [
+      {
+        "executionId": "b0c70953-b809-49d4-ae77-225f0b7505b7",
+        "chatSessionId": "sess_83341455-4f84-462b-9d5f-ba7ee91fe42a",
+        "timestamp": 1783611705394
+      },
+      {
+        "executionId": "b0c70953-b809-49d4-ae77-225f0b7505b7",
+        "chatSessionId": "sess_83341455-4f84-462b-9d5f-ba7ee91fe42a",
+        "timestamp": 1783611846408
+      },
+      {
+        "executionId": "b0c70953-b809-49d4-ae77-225f0b7505b7",
+        "chatSessionId": "sess_83341455-4f84-462b-9d5f-ba7ee91fe42a",
+        "timestamp": 1783612138736
+      }
+    ],
+    "4. Checkpoint - Verify local build": [
+      {
+        "executionId": "b0c70953-b809-49d4-ae77-225f0b7505b7",
+        "chatSessionId": "sess_83341455-4f84-462b-9d5f-ba7ee91fe42a",
+        "timestamp": 1783611705419
+      },
+      {
+        "executionId": "b0c70953-b809-49d4-ae77-225f0b7505b7",
+        "chatSessionId": "sess_83341455-4f84-462b-9d5f-ba7ee91fe42a",
+        "timestamp": 1783612195847
+      },
+      {
+        "executionId": "b0c70953-b809-49d4-ae77-225f0b7505b7",
+        "chatSessionId": "sess_83341455-4f84-462b-9d5f-ba7ee91fe42a",
+        "timestamp": 1783613161800
+      }
+    ],
+    "5.1 Update .github/workflows/docker-publish.yml to Java 25 and bootBuildImage-based builds": [
+      {
+        "executionId": "b0c70953-b809-49d4-ae77-225f0b7505b7",
+        "chatSessionId": "sess_83341455-4f84-462b-9d5f-ba7ee91fe42a",
+        "timestamp": 1783611705447
+      },
+      {
+        "executionId": "b0c70953-b809-49d4-ae77-225f0b7505b7",
+        "chatSessionId": "sess_83341455-4f84-462b-9d5f-ba7ee91fe42a",
+        "timestamp": 1783612196829
+      },
+      {
+        "executionId": "b0c70953-b809-49d4-ae77-225f0b7505b7",
+        "chatSessionId": "sess_83341455-4f84-462b-9d5f-ba7ee91fe42a",
+        "timestamp": 1783613161011
+      }
+    ],
+    "6. Final checkpoint - Ensure all tests pass": [
+      {
+        "executionId": "b0c70953-b809-49d4-ae77-225f0b7505b7",
+        "chatSessionId": "sess_83341455-4f84-462b-9d5f-ba7ee91fe42a",
+        "timestamp": 1783611705474
+      },
+      {
+        "executionId": "b0c70953-b809-49d4-ae77-225f0b7505b7",
+        "chatSessionId": "sess_83341455-4f84-462b-9d5f-ba7ee91fe42a",
+        "timestamp": 1783613166194
+      },
+      {
+        "executionId": "b0c70953-b809-49d4-ae77-225f0b7505b7",
+        "chatSessionId": "sess_83341455-4f84-462b-9d5f-ba7ee91fe42a",
+        "timestamp": 1783613206701
+      }
+    ],
+    "1. Upgrade Java toolchain and configure bootBuildImage in build.gradle": [
+      {
+        "executionId": "b0c70953-b809-49d4-ae77-225f0b7505b7",
+        "chatSessionId": "sess_83341455-4f84-462b-9d5f-ba7ee91fe42a",
+        "timestamp": 1783611836296
+      }
+    ],
+    "2. Update Dockerfile base images to Java 25": [
+      {
+        "executionId": "b0c70953-b809-49d4-ae77-225f0b7505b7",
+        "chatSessionId": "sess_83341455-4f84-462b-9d5f-ba7ee91fe42a",
+        "timestamp": 1783612137659
+      }
+    ],
+    "3. Rewrite kbuild.sh for multi-arch bootBuildImage builds": [
+      {
+        "executionId": "b0c70953-b809-49d4-ae77-225f0b7505b7",
+        "chatSessionId": "sess_83341455-4f84-462b-9d5f-ba7ee91fe42a",
+        "timestamp": 1783612138765
+      }
+    ],
+    "5. Update CI workflow for Java 25 and bootBuildImage": [
+      {
+        "executionId": "b0c70953-b809-49d4-ae77-225f0b7505b7",
+        "chatSessionId": "sess_83341455-4f84-462b-9d5f-ba7ee91fe42a",
+        "timestamp": 1783613161050
+      }
+    ]
+  }
+}

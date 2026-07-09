@@ -9,7 +9,7 @@ version = '0.0.1-SNAPSHOT'
 
 java {
 	toolchain {
-		languageVersion = JavaLanguageVersion.of(21)
+		languageVersion = JavaLanguageVersion.of(25)
 	}
 }
 
@@ -53,4 +53,9 @@ tasks.named('test') {
 	systemProperty 'junit.jupiter.execution.timeout.default', '60s'
 	systemProperty 'junit.jupiter.execution.timeout.testable.method.default', '30s'
 
+}
+
+// Produce a deterministically-named executable jar for the Docker build.
+tasks.named('bootJar') {
+	archiveFileName = 'app.jar'
 }

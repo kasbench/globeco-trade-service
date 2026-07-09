@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
         - name: globeco-trade-service
-          image: kasbench/globeco-trade-service:1.0.2
+          image: kasbench/globeco-trade-service:1.0.3
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 8082
