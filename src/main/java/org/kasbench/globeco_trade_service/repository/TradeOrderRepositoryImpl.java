@@ -10,6 +10,7 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -19,7 +20,16 @@ public class TradeOrderRepositoryImpl implements TradeOrderRepositoryCustom {
     @PersistenceContext
     private EntityManager entityManager;
     
+    /**
+     * Runs the fetch and count in a single short, read-only transaction so the JDBC
+     * connection is acquired and released tightly around the queries. The returned
+     * entities are detached from the persistence context before this method returns,
+     * so downstream enrichment (external HTTP calls in the service layer) never holds
+     * or re-acquires a database connection. The {@code blotter} association is eagerly
+     * fetched below, so it remains safe to read after detachment.
+     */
     @Override
+    @Transactional(readOnly = true)
     public Page<TradeOrder> findAllWithBlotterAndSpecification(Specification<TradeOrder> spec, Pageable pageable) {
         CriteriaBuilder cb = entityManager.getCriteriaBuilder();
         
@@ -68,6 +78,13 @@ public class TradeOrderRepositoryImpl implements TradeOrderRepositoryCustom {
         }
         
         Long total = entityManager.createQuery(countQuery).getSingleResult();
+        
+        // Detach entities so the transaction/connection can be fully released before the
+        // service performs external HTTP enrichment. The blotter association is already
+        // initialized via the eager fetch above, so it stays readable after detachment.
+        for (TradeOrder tradeOrder : content) {
+            entityManager.detach(tradeOrder);
+        }
         
         return new PageImpl<>(content, pageable, total);
     }

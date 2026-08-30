@@ -10,6 +10,8 @@ import org.kasbench.globeco_trade_service.repository.TradeOrderRepository;
 import org.kasbench.globeco_trade_service.repository.ExecutionRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -30,6 +32,16 @@ public class BatchTradeOrderService {
     private final ExecutionRepository executionRepository;
     private final ExecutionService executionService;
     
+    /**
+     * Self-reference used to invoke the {@code @Transactional} phase methods through the
+     * Spring proxy. The orchestrator method itself is non-transactional, so calling the
+     * phase methods directly (this.method(...)) would bypass the proxy and lose their
+     * transaction boundaries. Injected lazily to avoid a circular bean-creation dependency.
+     */
+    @Autowired
+    @Lazy
+    private BatchTradeOrderService self;
+    
     public BatchTradeOrderService(
             TradeOrderRepository tradeOrderRepository,
             TradeOrderService tradeOrderService,
@@ -42,19 +54,44 @@ public class BatchTradeOrderService {
     }
     
     /**
-     * Submit multiple trade orders in batch with default behavior (automatically submits to execution service)
+     * Holds the outcome of the local (transactional) execution-creation phase so it can
+     * be passed between the non-transactional orchestrator and the transactional phases.
      */
-    @Transactional
+    private static class LocalCreationResult {
+        final List<BatchSubmitResponseDTO.TradeOrderSubmitResultDTO> results;
+        final List<Integer> executionIds;
+        final Map<Integer, Integer> executionToRequestIndex;
+        
+        LocalCreationResult(
+                List<BatchSubmitResponseDTO.TradeOrderSubmitResultDTO> results,
+                List<Integer> executionIds,
+                Map<Integer, Integer> executionToRequestIndex) {
+            this.results = results;
+            this.executionIds = executionIds;
+            this.executionToRequestIndex = executionToRequestIndex;
+        }
+    }
+    
+    /**
+     * Submit multiple trade orders in batch with default behavior (automatically submits to execution service).
+     * <p>
+     * This method is intentionally NOT {@code @Transactional}. It orchestrates three phases:
+     * (1) create executions locally inside a short transaction, (2) submit to the external
+     * execution service with NO database connection held, and (3) persist the outcome inside
+     * a second short transaction. This keeps blocking HTTP calls out of the transaction so a
+     * JDBC connection is never pinned across the external round-trip.
+     */
     public BatchSubmitResponseDTO submitTradeOrdersBatch(BatchSubmitRequestDTO request) {
         return submitTradeOrdersBatch(request, false);
     }
     
     /**
-     * Submit multiple trade orders in batch with true bulk execution processing
+     * Submit multiple trade orders in batch with true bulk execution processing.
+     * <p>
+     * Not {@code @Transactional} by design; see {@link #submitTradeOrdersBatch(BatchSubmitRequestDTO)}.
      * @param request The batch submission request
      * @param noExecuteSubmit When false (default), automatically submits to execution service; when true, only creates local executions
      */
-    @Transactional
     public BatchSubmitResponseDTO submitTradeOrdersBatch(BatchSubmitRequestDTO request, boolean noExecuteSubmit) {
         logger.debug("Processing batch submission for {} trade orders", request.getSubmissions().size());
         
@@ -68,55 +105,29 @@ public class BatchTradeOrderService {
         // Validate request structure
         validateBatchRequest(request);
         
-        // Step 1: Create all executions locally (without submitting to external service)
-        List<BatchSubmitResponseDTO.TradeOrderSubmitResultDTO> results = new ArrayList<>();
-        List<Integer> executionIds = new ArrayList<>();
-        Map<Integer, Integer> executionToRequestIndex = new HashMap<>();
+        // Phase 1 (transactional): Create all executions locally. Runs in a short
+        // transaction and commits before any external call, so the connection is released.
+        // Invoked via self so the proxy applies the transaction boundary.
+        LocalCreationResult creation = self.createExecutionsLocally(request);
+        List<BatchSubmitResponseDTO.TradeOrderSubmitResultDTO> results = creation.results;
+        List<Integer> executionIds = creation.executionIds;
+        Map<Integer, Integer> executionToRequestIndex = creation.executionToRequestIndex;
         
-        for (int i = 0; i < request.getSubmissions().size(); i++) {
-            BatchSubmitRequestDTO.TradeOrderSubmissionDTO submission = request.getSubmissions().get(i);
-            int requestIndex = i;
-            
-            try {
-                // Create execution locally (with noExecuteSubmit=true to skip external submission)
-                BatchSubmitResponseDTO.TradeOrderSubmitResultDTO result = 
-                    processTradeOrderSubmission(submission, requestIndex, true); // Always skip external submission initially
-                
-                results.add(result);
-                
-                if (BatchSubmitResponseDTO.TradeOrderSubmitResultDTO.SubmitStatus.SUCCESS.equals(result.getStatus())) {
-                    // Extract execution ID from the result
-                    Integer executionId = result.getExecution().getId();
-                    executionIds.add(executionId);
-                    executionToRequestIndex.put(executionId, requestIndex);
-                    logger.debug("Created execution {} for trade order {} (request index {})", 
-                               executionId, submission.getTradeOrderId(), requestIndex);
-                }
-            } catch (Exception e) {
-                logger.error("Error creating execution for trade order {}: {}", submission.getTradeOrderId(), e.getMessage(), e);
-                results.add(new BatchSubmitResponseDTO.TradeOrderSubmitResultDTO(
-                    submission.getTradeOrderId(),
-                    BatchSubmitResponseDTO.TradeOrderSubmitResultDTO.SubmitStatus.FAILURE,
-                    "Failed to create execution: " + e.getMessage(),
-                    null,
-                    requestIndex
-                ));
-            }
-        }
-        
-        // Step 2: If noExecuteSubmit is false and we have executions to submit, use bulk submission
+        // Phase 2 (NO transaction / NO db connection): Submit executions in bulk to the
+        // external service. This is the blocking, retrying HTTP call that must never run
+        // while holding a JDBC connection.
         if (!noExecuteSubmit && !executionIds.isEmpty()) {
             logger.debug("Submitting {} executions in bulk to external service", executionIds.size());
             
             try {
-                // Use the bulk execution submission service
                 ExecutionService.BulkSubmitResult bulkResult = executionService.submitExecutions(executionIds);
                 
                 logger.debug("Bulk execution submission completed - Total: {}, Successful: {}, Failed: {}", 
                            bulkResult.getTotalRequested(), bulkResult.getSuccessful(), bulkResult.getFailed());
                 
-                // Update results based on bulk submission outcome
-                updateResultsFromBulkSubmission(results, bulkResult, executionToRequestIndex);
+                // Phase 3 (transactional): persist/refresh results in a short transaction.
+                // Invoked via self so the proxy applies the transaction boundary.
+                self.applyBulkSubmissionResults(results, bulkResult, executionToRequestIndex);
                 
             } catch (Exception e) {
                 logger.error("Bulk execution submission failed: {}", e.getMessage(), e);
@@ -177,9 +188,57 @@ public class BatchTradeOrderService {
     }
     
     /**
-     * Update results based on bulk execution submission outcome
+     * Phase 1: create all executions locally in a single short transaction. No external
+     * calls happen here (each submission is processed with noExecuteSubmit=true), so the
+     * transaction commits and releases its JDBC connection before the orchestrator makes
+     * the external bulk-submission call.
      */
-    private void updateResultsFromBulkSubmission(
+    @Transactional
+    public LocalCreationResult createExecutionsLocally(BatchSubmitRequestDTO request) {
+        List<BatchSubmitResponseDTO.TradeOrderSubmitResultDTO> results = new ArrayList<>();
+        List<Integer> executionIds = new ArrayList<>();
+        Map<Integer, Integer> executionToRequestIndex = new HashMap<>();
+        
+        for (int i = 0; i < request.getSubmissions().size(); i++) {
+            BatchSubmitRequestDTO.TradeOrderSubmissionDTO submission = request.getSubmissions().get(i);
+            int requestIndex = i;
+            
+            try {
+                // Create execution locally (with noExecuteSubmit=true to skip external submission)
+                BatchSubmitResponseDTO.TradeOrderSubmitResultDTO result = 
+                    processTradeOrderSubmission(submission, requestIndex, true);
+                
+                results.add(result);
+                
+                if (BatchSubmitResponseDTO.TradeOrderSubmitResultDTO.SubmitStatus.SUCCESS.equals(result.getStatus())) {
+                    Integer executionId = result.getExecution().getId();
+                    executionIds.add(executionId);
+                    executionToRequestIndex.put(executionId, requestIndex);
+                    logger.debug("Created execution {} for trade order {} (request index {})", 
+                               executionId, submission.getTradeOrderId(), requestIndex);
+                }
+            } catch (Exception e) {
+                logger.error("Error creating execution for trade order {}: {}", submission.getTradeOrderId(), e.getMessage(), e);
+                results.add(new BatchSubmitResponseDTO.TradeOrderSubmitResultDTO(
+                    submission.getTradeOrderId(),
+                    BatchSubmitResponseDTO.TradeOrderSubmitResultDTO.SubmitStatus.FAILURE,
+                    "Failed to create execution: " + e.getMessage(),
+                    null,
+                    requestIndex
+                ));
+            }
+        }
+        
+        return new LocalCreationResult(results, executionIds, executionToRequestIndex);
+    }
+    
+    /**
+     * Phase 3: apply the outcome of the external bulk submission. Runs in a short
+     * transaction because it re-fetches executions from the database to reflect updated
+     * status/execution-service IDs. Invoked only after the external HTTP call completes.
+     */
+    @Transactional
+    public void applyBulkSubmissionResults(
             List<BatchSubmitResponseDTO.TradeOrderSubmitResultDTO> results,
             ExecutionService.BulkSubmitResult bulkResult,
             Map<Integer, Integer> executionToRequestIndex) {

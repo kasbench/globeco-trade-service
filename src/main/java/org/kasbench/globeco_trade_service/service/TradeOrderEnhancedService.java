@@ -19,7 +19,11 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 
 @Service
@@ -89,14 +93,24 @@ public class TradeOrderEnhancedService {
             blotterAbbreviation, submitted
         );
         
-        // Execute query with eager fetch of blotter to avoid lazy loading issues
+        // Execute query with eager fetch of blotter to avoid lazy loading issues.
+        // The repository runs this in a short read-only transaction and detaches the
+        // results, so the JDBC connection is released before the external-service
+        // enrichment below. Never call external services while holding a DB connection.
         Page<TradeOrder> page = tradeOrderRepository.findAllWithBlotterAndSpecification(spec, pageable);
+        List<TradeOrder> tradeOrders = page.getContent();
         
-        // Convert to enhanced DTOs with external service data
-        // Using sequential stream to avoid Hibernate lazy loading issues in parallel context
-        List<TradeOrderV2ResponseDTO> enhancedTradeOrders = page.getContent()
+        // Pre-resolve all unique portfolio and security IDs on this page with one
+        // cache-first lookup per unique ID, rather than one per row. This minimizes the
+        // number of external HTTP round-trips (and the time each request occupies a
+        // worker thread) when a page contains repeated portfolio/security IDs.
+        Map<String, PortfolioDTO> portfoliosById = resolvePortfoliosForPage(tradeOrders);
+        Map<String, SecurityDTO> securitiesById = resolveSecuritiesForPage(tradeOrders);
+        
+        // Convert to enhanced DTOs using the pre-resolved lookup maps.
+        List<TradeOrderV2ResponseDTO> enhancedTradeOrders = tradeOrders
             .stream()
-            .map(this::convertToV2ResponseDTO)
+            .map(tradeOrder -> convertToV2ResponseDTO(tradeOrder, portfoliosById, securitiesById))
             .toList();
         
         // Create pagination metadata
@@ -115,9 +129,59 @@ public class TradeOrderEnhancedService {
     }
     
     /**
-     * Convert TradeOrder entity to enhanced V2 response DTO with external service data
+     * Resolve every distinct portfolio ID appearing on the page to a PortfolioDTO,
+     * performing at most one cache-first lookup per unique ID. Runs outside any
+     * database transaction/connection scope.
      */
-    private TradeOrderV2ResponseDTO convertToV2ResponseDTO(TradeOrder tradeOrder) {
+    private Map<String, PortfolioDTO> resolvePortfoliosForPage(List<TradeOrder> tradeOrders) {
+        Set<String> portfolioIds = tradeOrders.stream()
+            .map(TradeOrder::getPortfolioId)
+            .filter(id -> id != null && !id.trim().isEmpty())
+            .collect(Collectors.toSet());
+        
+        Map<String, PortfolioDTO> resolved = new LinkedHashMap<>();
+        for (String portfolioId : portfolioIds) {
+            try {
+                resolved.put(portfolioId, portfolioCacheService.getPortfolioById(portfolioId));
+            } catch (Exception e) {
+                logger.warn("Error resolving portfolio {} for page enrichment: {}", portfolioId, e.getMessage());
+                resolved.put(portfolioId, new PortfolioDTO(portfolioId, portfolioId));
+            }
+        }
+        return resolved;
+    }
+    
+    /**
+     * Resolve every distinct security ID appearing on the page to a SecurityDTO,
+     * performing at most one cache-first lookup per unique ID. Runs outside any
+     * database transaction/connection scope.
+     */
+    private Map<String, SecurityDTO> resolveSecuritiesForPage(List<TradeOrder> tradeOrders) {
+        Set<String> securityIds = tradeOrders.stream()
+            .map(TradeOrder::getSecurityId)
+            .filter(id -> id != null && !id.trim().isEmpty())
+            .collect(Collectors.toSet());
+        
+        Map<String, SecurityDTO> resolved = new LinkedHashMap<>();
+        for (String securityId : securityIds) {
+            try {
+                resolved.put(securityId, securityCacheService.getSecurityById(securityId));
+            } catch (Exception e) {
+                logger.warn("Error resolving security {} for page enrichment: {}", securityId, e.getMessage());
+                resolved.put(securityId, new SecurityDTO(securityId, securityId));
+            }
+        }
+        return resolved;
+    }
+    
+    /**
+     * Convert TradeOrder entity to enhanced V2 response DTO using pre-resolved
+     * portfolio and security lookup maps. Does not perform any external calls itself.
+     */
+    private TradeOrderV2ResponseDTO convertToV2ResponseDTO(
+            TradeOrder tradeOrder,
+            Map<String, PortfolioDTO> portfoliosById,
+            Map<String, SecurityDTO> securitiesById) {
         TradeOrderV2ResponseDTO dto = new TradeOrderV2ResponseDTO();
         
         // Basic fields
@@ -131,31 +195,18 @@ public class TradeOrderEnhancedService {
         dto.setSubmitted(tradeOrder.getSubmitted());
         dto.setVersion(tradeOrder.getVersion());
         
-        // Enhanced fields with external service data
-        try {
-            // Get portfolio information
-            if (tradeOrder.getPortfolioId() != null) {
-                PortfolioDTO portfolio = portfolioCacheService.getPortfolioById(tradeOrder.getPortfolioId());
-                dto.setPortfolio(portfolio);
-            }
-            
-            // Get security information
-            if (tradeOrder.getSecurityId() != null) {
-                SecurityDTO security = securityCacheService.getSecurityById(tradeOrder.getSecurityId());
-                dto.setSecurity(security);
-            }
-        } catch (Exception e) {
-            logger.warn("Error enriching trade order {} with external data: {}", tradeOrder.getId(), e.getMessage());
-            // Set fallback data
-            if (tradeOrder.getPortfolioId() != null) {
-                dto.setPortfolio(new PortfolioDTO(tradeOrder.getPortfolioId(), tradeOrder.getPortfolioId()));
-            }
-            if (tradeOrder.getSecurityId() != null) {
-                dto.setSecurity(new SecurityDTO(tradeOrder.getSecurityId(), tradeOrder.getSecurityId()));
-            }
+        // Enhanced fields from pre-resolved maps (with defensive fallbacks)
+        String portfolioId = tradeOrder.getPortfolioId();
+        if (portfolioId != null) {
+            dto.setPortfolio(portfoliosById.getOrDefault(portfolioId, new PortfolioDTO(portfolioId, portfolioId)));
         }
         
-        // Blotter information (already available in entity)
+        String securityId = tradeOrder.getSecurityId();
+        if (securityId != null) {
+            dto.setSecurity(securitiesById.getOrDefault(securityId, new SecurityDTO(securityId, securityId)));
+        }
+        
+        // Blotter information (already available in entity via eager fetch)
         if (tradeOrder.getBlotter() != null) {
             dto.setBlotter(convertBlotterToResponseDTO(tradeOrder.getBlotter()));
         }
