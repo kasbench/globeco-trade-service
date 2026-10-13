@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-VERSION="1.0.5"
+VERSION="1.0.6"
 IMAGE="kasbench/globeco-trade-service"
 BUILDER="globeco-multiarch"
 
