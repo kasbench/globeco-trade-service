@@ -39,7 +39,7 @@ spec:
               echo "PostgreSQL is ready."
       containers:
         - name: globeco-trade-service
-          image: kasbench/globeco-trade-service:1.0.4
+          image: kasbench/globeco-trade-service:1.0.5
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 8082
