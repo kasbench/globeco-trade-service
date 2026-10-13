@@ -43,7 +43,7 @@ class SecurityServiceClientTest {
         mockSecurity.setTicker("AAPL");
         mockResponse.setSecurities(List.of(mockSecurity));
 
-        when(restTemplate.getForEntity(anyString(), eq(SecurityServiceClient.SecuritySearchResponse.class)))
+        when(restTemplate.getForEntity(anyString(), eq(SecurityServiceClient.SecuritySearchResponse.class), any(Object[].class)))
                 .thenReturn(ResponseEntity.ok(mockResponse));
 
         // Act
@@ -54,8 +54,9 @@ class SecurityServiceClientTest {
         assertEquals("SEC123", result.get().getSecurityId());
         assertEquals("AAPL", result.get().getTicker());
         verify(restTemplate).getForEntity(
-                contains("ticker=AAPL"),
-                eq(SecurityServiceClient.SecuritySearchResponse.class)
+                contains("ticker={ticker}"),
+                eq(SecurityServiceClient.SecuritySearchResponse.class),
+                eq("AAPL")
         );
     }
 
@@ -66,7 +67,7 @@ class SecurityServiceClientTest {
         SecurityServiceClient.SecuritySearchResponse mockResponse = new SecurityServiceClient.SecuritySearchResponse();
         mockResponse.setSecurities(List.of());
 
-        when(restTemplate.getForEntity(anyString(), eq(SecurityServiceClient.SecuritySearchResponse.class)))
+        when(restTemplate.getForEntity(anyString(), eq(SecurityServiceClient.SecuritySearchResponse.class), any(Object[].class)))
                 .thenReturn(ResponseEntity.ok(mockResponse));
 
         // Act
@@ -80,7 +81,7 @@ class SecurityServiceClientTest {
     void testFindSecurityByTicker_NullResponse() {
         // Arrange
         String ticker = "AAPL";
-        when(restTemplate.getForEntity(anyString(), eq(SecurityServiceClient.SecuritySearchResponse.class)))
+        when(restTemplate.getForEntity(anyString(), eq(SecurityServiceClient.SecuritySearchResponse.class), any(Object[].class)))
                 .thenReturn(ResponseEntity.ok(null));
 
         // Act
@@ -94,7 +95,7 @@ class SecurityServiceClientTest {
     void testFindSecurityByTicker_RestClientException() {
         // Arrange
         String ticker = "AAPL";
-        when(restTemplate.getForEntity(anyString(), eq(SecurityServiceClient.SecuritySearchResponse.class)))
+        when(restTemplate.getForEntity(anyString(), eq(SecurityServiceClient.SecuritySearchResponse.class), any(Object[].class)))
                 .thenThrow(new RestClientException("Connection failed"));
 
         // Act
@@ -108,7 +109,7 @@ class SecurityServiceClientTest {
     void testFindSecurityByTicker_Timeout() {
         // Arrange
         String ticker = "AAPL";
-        when(restTemplate.getForEntity(anyString(), eq(SecurityServiceClient.SecuritySearchResponse.class)))
+        when(restTemplate.getForEntity(anyString(), eq(SecurityServiceClient.SecuritySearchResponse.class), any(Object[].class)))
                 .thenThrow(new ResourceAccessException("Read timeout"));
 
         // Act & Assert
@@ -163,7 +164,7 @@ class SecurityServiceClientTest {
         
         mockResponse.setSecurities(List.of(mockSecurity1, mockSecurity2));
 
-        when(restTemplate.getForEntity(anyString(), eq(SecurityServiceClient.SecuritySearchResponse.class)))
+        when(restTemplate.getForEntity(anyString(), eq(SecurityServiceClient.SecuritySearchResponse.class), any(Object[].class)))
                 .thenReturn(ResponseEntity.ok(mockResponse));
 
         // Act
@@ -190,7 +191,7 @@ class SecurityServiceClientTest {
         
         mockResponse.setSecurities(List.of(mockSecurity1, mockSecurity2));
 
-        when(restTemplate.getForEntity(anyString(), eq(SecurityServiceClient.SecuritySearchResponse.class)))
+        when(restTemplate.getForEntity(anyString(), eq(SecurityServiceClient.SecuritySearchResponse.class), any(Object[].class)))
                 .thenReturn(ResponseEntity.ok(mockResponse));
 
         // Act
@@ -210,7 +211,7 @@ class SecurityServiceClientTest {
         mockSecurity.setSecurityId("684F122BEEA39200E562918C");
         mockSecurity.setTicker("AAPL");
 
-        when(restTemplate.getForEntity(anyString(), eq(SecurityDTO.class)))
+        when(restTemplate.getForEntity(anyString(), eq(SecurityDTO.class), any(Object[].class)))
                 .thenReturn(ResponseEntity.ok(mockSecurity));
 
         // Act
@@ -221,8 +222,9 @@ class SecurityServiceClientTest {
         assertEquals("684F122BEEA39200E562918C", result.get().getSecurityId());
         assertEquals("AAPL", result.get().getTicker());
         verify(restTemplate).getForEntity(
-                contains("/api/v1/security/684F122BEEA39200E562918C"),
-                eq(SecurityDTO.class)
+                contains("/api/v1/security/{securityId}"),
+                eq(SecurityDTO.class),
+                eq("684F122BEEA39200E562918C")
         );
     }
 
@@ -230,7 +232,7 @@ class SecurityServiceClientTest {
     void testFindSecurityById_NotFound() {
         // Arrange
         String securityId = "UNKNOWN";
-        when(restTemplate.getForEntity(anyString(), eq(SecurityDTO.class)))
+        when(restTemplate.getForEntity(anyString(), eq(SecurityDTO.class), any(Object[].class)))
                 .thenReturn(ResponseEntity.notFound().build());
 
         // Act

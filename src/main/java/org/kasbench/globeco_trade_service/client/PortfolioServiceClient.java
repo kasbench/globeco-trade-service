@@ -13,7 +13,6 @@ import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.HttpServerErrorException;
 import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestTemplate;
-import org.springframework.web.util.UriComponentsBuilder;
 
 import java.util.List;
 import java.util.Optional;
@@ -51,14 +50,11 @@ public class PortfolioServiceClient {
         }
         
         try {
-            String url = UriComponentsBuilder
-                .fromUriString(portfolioServiceBaseUrl + "/api/v2/portfolios")
-                .queryParam("name", name.trim())
-                .toUriString();
+            String url = portfolioServiceBaseUrl + "/api/v2/portfolios?name={name}";
             logger.debug("Calling Portfolio Service: {}", url);
             
             ResponseEntity<PortfolioSearchResponse> response = restTemplate.getForEntity(
-                url, PortfolioSearchResponse.class);
+                url, PortfolioSearchResponse.class, name.trim());
             
             if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
                 PortfolioSearchResponse searchResponse = response.getBody();
@@ -114,11 +110,11 @@ public class PortfolioServiceClient {
         }
         
         try {
-            String url = portfolioServiceBaseUrl + "/api/v1/portfolio/" + portfolioId.trim();
+            String url = portfolioServiceBaseUrl + "/api/v1/portfolio/{portfolioId}";
             logger.debug("Calling Portfolio Service: {}", url);
             
             ResponseEntity<PortfolioDTO> response = restTemplate.getForEntity(
-                url, PortfolioDTO.class);
+                url, PortfolioDTO.class, portfolioId.trim());
             
             if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
                 PortfolioDTO portfolio = response.getBody();
@@ -168,14 +164,11 @@ public class PortfolioServiceClient {
         }
         
         try {
-            String url = UriComponentsBuilder
-                .fromUriString(portfolioServiceBaseUrl + "/api/v2/portfolios")
-                .queryParam("name_like", namePattern.trim())
-                .toUriString();
+            String url = portfolioServiceBaseUrl + "/api/v2/portfolios?name_like={nameLike}";
             logger.debug("Calling Portfolio Service: {}", url);
             
             ResponseEntity<PortfolioSearchResponse> response = restTemplate.getForEntity(
-                url, PortfolioSearchResponse.class);
+                url, PortfolioSearchResponse.class, namePattern.trim());
             
             if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
                 PortfolioSearchResponse searchResponse = response.getBody();

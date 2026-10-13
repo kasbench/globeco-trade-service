@@ -43,7 +43,7 @@ class PortfolioServiceClientTest {
         mockPortfolio.setName("Growth Fund");
         mockResponse.setPortfolios(List.of(mockPortfolio));
 
-        when(restTemplate.getForEntity(anyString(), eq(PortfolioServiceClient.PortfolioSearchResponse.class)))
+        when(restTemplate.getForEntity(anyString(), eq(PortfolioServiceClient.PortfolioSearchResponse.class), any(Object[].class)))
                 .thenReturn(ResponseEntity.ok(mockResponse));
 
         // Act
@@ -54,8 +54,9 @@ class PortfolioServiceClientTest {
         assertEquals("PORT123", result.get().getPortfolioId());
         assertEquals("Growth Fund", result.get().getName());
         verify(restTemplate).getForEntity(
-                contains("name=Growth%20Fund"),
-                eq(PortfolioServiceClient.PortfolioSearchResponse.class)
+                contains("name={name}"),
+                eq(PortfolioServiceClient.PortfolioSearchResponse.class),
+                eq("Growth Fund")
         );
     }
 
@@ -66,7 +67,7 @@ class PortfolioServiceClientTest {
         PortfolioServiceClient.PortfolioSearchResponse mockResponse = new PortfolioServiceClient.PortfolioSearchResponse();
         mockResponse.setPortfolios(List.of());
 
-        when(restTemplate.getForEntity(anyString(), eq(PortfolioServiceClient.PortfolioSearchResponse.class)))
+        when(restTemplate.getForEntity(anyString(), eq(PortfolioServiceClient.PortfolioSearchResponse.class), any(Object[].class)))
                 .thenReturn(ResponseEntity.ok(mockResponse));
 
         // Act
@@ -80,7 +81,7 @@ class PortfolioServiceClientTest {
     void testFindPortfolioByName_NullResponse() {
         // Arrange
         String name = "Growth Fund";
-        when(restTemplate.getForEntity(anyString(), eq(PortfolioServiceClient.PortfolioSearchResponse.class)))
+        when(restTemplate.getForEntity(anyString(), eq(PortfolioServiceClient.PortfolioSearchResponse.class), any(Object[].class)))
                 .thenReturn(ResponseEntity.ok(null));
 
         // Act
@@ -94,7 +95,7 @@ class PortfolioServiceClientTest {
     void testFindPortfolioByName_RestClientException() {
         // Arrange
         String name = "Growth Fund";
-        when(restTemplate.getForEntity(anyString(), eq(PortfolioServiceClient.PortfolioSearchResponse.class)))
+        when(restTemplate.getForEntity(anyString(), eq(PortfolioServiceClient.PortfolioSearchResponse.class), any(Object[].class)))
                 .thenThrow(new RestClientException("Connection failed"));
 
         // Act
@@ -108,7 +109,7 @@ class PortfolioServiceClientTest {
     void testFindPortfolioByName_Timeout() {
         // Arrange
         String name = "Growth Fund";
-        when(restTemplate.getForEntity(anyString(), eq(PortfolioServiceClient.PortfolioSearchResponse.class)))
+        when(restTemplate.getForEntity(anyString(), eq(PortfolioServiceClient.PortfolioSearchResponse.class), any(Object[].class)))
                 .thenThrow(new ResourceAccessException("Read timeout"));
 
         // Act & Assert
@@ -163,7 +164,7 @@ class PortfolioServiceClientTest {
         
         mockResponse.setPortfolios(List.of(mockPortfolio1, mockPortfolio2));
 
-        when(restTemplate.getForEntity(anyString(), eq(PortfolioServiceClient.PortfolioSearchResponse.class)))
+        when(restTemplate.getForEntity(anyString(), eq(PortfolioServiceClient.PortfolioSearchResponse.class), any(Object[].class)))
                 .thenReturn(ResponseEntity.ok(mockResponse));
 
         // Act
@@ -190,7 +191,7 @@ class PortfolioServiceClientTest {
         
         mockResponse.setPortfolios(List.of(mockPortfolio1, mockPortfolio2));
 
-        when(restTemplate.getForEntity(anyString(), eq(PortfolioServiceClient.PortfolioSearchResponse.class)))
+        when(restTemplate.getForEntity(anyString(), eq(PortfolioServiceClient.PortfolioSearchResponse.class), any(Object[].class)))
                 .thenReturn(ResponseEntity.ok(mockResponse));
 
         // Act
@@ -209,7 +210,7 @@ class PortfolioServiceClientTest {
         PortfolioServiceClient.PortfolioSearchResponse mockResponse = new PortfolioServiceClient.PortfolioSearchResponse();
         mockResponse.setPortfolios(List.of());
 
-        when(restTemplate.getForEntity(anyString(), eq(PortfolioServiceClient.PortfolioSearchResponse.class)))
+        when(restTemplate.getForEntity(anyString(), eq(PortfolioServiceClient.PortfolioSearchResponse.class), any(Object[].class)))
                 .thenReturn(ResponseEntity.ok(mockResponse));
 
         // Act
@@ -217,8 +218,9 @@ class PortfolioServiceClientTest {
 
         // Assert
         verify(restTemplate).getForEntity(
-                contains("name=Growth%20Technology%20Fund"),
-                eq(PortfolioServiceClient.PortfolioSearchResponse.class)
+                contains("name={name}"),
+                eq(PortfolioServiceClient.PortfolioSearchResponse.class),
+                eq("Growth Technology Fund")
         );
     }
 
@@ -230,7 +232,7 @@ class PortfolioServiceClientTest {
         mockPortfolio.setPortfolioId("684f1250c19ad4fb89bbfed7");
         mockPortfolio.setName("Growth Fund");
 
-        when(restTemplate.getForEntity(anyString(), eq(PortfolioDTO.class)))
+        when(restTemplate.getForEntity(anyString(), eq(PortfolioDTO.class), any(Object[].class)))
                 .thenReturn(ResponseEntity.ok(mockPortfolio));
 
         // Act
@@ -241,8 +243,9 @@ class PortfolioServiceClientTest {
         assertEquals("684f1250c19ad4fb89bbfed7", result.get().getPortfolioId());
         assertEquals("Growth Fund", result.get().getName());
         verify(restTemplate).getForEntity(
-                contains("/api/v1/portfolio/684f1250c19ad4fb89bbfed7"),
-                eq(PortfolioDTO.class)
+                contains("/api/v1/portfolio/{portfolioId}"),
+                eq(PortfolioDTO.class),
+                eq("684f1250c19ad4fb89bbfed7")
         );
     }
 
@@ -250,7 +253,7 @@ class PortfolioServiceClientTest {
     void testFindPortfolioById_NotFound() {
         // Arrange
         String portfolioId = "unknown";
-        when(restTemplate.getForEntity(anyString(), eq(PortfolioDTO.class)))
+        when(restTemplate.getForEntity(anyString(), eq(PortfolioDTO.class), any(Object[].class)))
                 .thenReturn(ResponseEntity.notFound().build());
 
         // Act

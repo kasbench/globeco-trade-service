@@ -50,11 +50,11 @@ public class SecurityServiceClient {
         }
         
         try {
-            String url = securityServiceBaseUrl + "/api/v2/securities?ticker=" + ticker.trim();
+            String url = securityServiceBaseUrl + "/api/v2/securities?ticker={ticker}";
             logger.debug("Calling Security Service: {}", url);
             
             ResponseEntity<SecuritySearchResponse> response = restTemplate.getForEntity(
-                url, SecuritySearchResponse.class);
+                url, SecuritySearchResponse.class, ticker.trim());
             
             if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
                 SecuritySearchResponse searchResponse = response.getBody();
@@ -110,11 +110,11 @@ public class SecurityServiceClient {
         }
         
         try {
-            String url = securityServiceBaseUrl + "/api/v1/security/" + securityId.trim();
+            String url = securityServiceBaseUrl + "/api/v1/security/{securityId}";
             logger.debug("Calling Security Service: {}", url);
             
             ResponseEntity<SecurityDTO> response = restTemplate.getForEntity(
-                url, SecurityDTO.class);
+                url, SecurityDTO.class, securityId.trim());
             
             if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
                 SecurityDTO security = response.getBody();
@@ -164,11 +164,11 @@ public class SecurityServiceClient {
         }
         
         try {
-            String url = securityServiceBaseUrl + "/api/v2/securities?ticker_like=" + tickerPattern.trim();
+            String url = securityServiceBaseUrl + "/api/v2/securities?ticker_like={tickerLike}";
             logger.debug("Calling Security Service: {}", url);
             
             ResponseEntity<SecuritySearchResponse> response = restTemplate.getForEntity(
-                url, SecuritySearchResponse.class);
+                url, SecuritySearchResponse.class, tickerPattern.trim());
             
             if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
                 SecuritySearchResponse searchResponse = response.getBody();
